@@ -203,8 +203,8 @@
           teamDelta = 1;
           if (servingTeam === 'opp') { rotateUs = true; newServing = 'us'; }
         }
-        if (['error', 'service_error', 'block_error', 'opp_point'].includes(type)) { oppDelta = 1; newServing = 'opp'; }
-        // 'reception_good', 'reception_bad', 'dig' = soft tracking, kein Punkt
+        if (['error', 'service_error', 'block_error', 'reception_bad', 'opp_point'].includes(type)) { oppDelta = 1; newServing = 'opp'; }
+        // 'reception_good', 'attack_attempt' = soft tracking, kein Punkt
         updateMatch(m => ({
           ...m, events: [...m.events, event],
           teamScore: m.teamScore + teamDelta, opponentScore: m.opponentScore + oppDelta,
@@ -221,7 +221,7 @@
           teamDelta = -1;
           if (last.serving === 'opp') undoRotate = true;
         }
-        if (['error', 'service_error', 'block_error', 'opp_point'].includes(last.type)) oppDelta = -1;
+        if (['error', 'service_error', 'block_error', 'reception_bad', 'opp_point'].includes(last.type)) oppDelta = -1;
         updateMatch(m => ({
           ...m, events: m.events.slice(0, -1),
           teamScore: m.teamScore + teamDelta, opponentScore: m.opponentScore + oppDelta,
@@ -544,12 +544,12 @@
                   <StatBtn emoji="❌" label="Angriff-F." type="error" color="bg-gradient-to-br from-red-500 to-rose-600" />
                   <StatBtn emoji="🚫" label="Block-F." type="block_error" color="bg-gradient-to-br from-red-600 to-pink-700" />
                   <StatBtn emoji="📉" label="Service-F." type="service_error" color="bg-gradient-to-br from-orange-500 to-red-500" />
+                  <StatBtn emoji="⚠️" label="Annahme -" type="reception_bad" color="bg-gradient-to-br from-amber-500 to-orange-600" />
                 </div>
                 <div className="text-[10px] font-bold text-gray-500 mb-1">SOFT-TRACKING (kein Punkt)</div>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 gap-2">
                   <StatBtn emoji="✅" label="Annahme +" type="reception_good" color="bg-gradient-to-br from-lime-500 to-green-600" />
-                  <StatBtn emoji="⚠️" label="Annahme -" type="reception_bad" color="bg-gradient-to-br from-amber-500 to-orange-600" />
-                  <StatBtn emoji="🛡️" label="Dig" type="dig" color="bg-gradient-to-br from-teal-500 to-cyan-500" />
+                  <StatBtn emoji="⚔️" label="Angriffsv." type="attack_attempt" color="bg-gradient-to-br from-teal-500 to-cyan-500" />
                 </div>
               </div>
               <div className="bg-white/95 rounded-2xl p-3 shadow-xl mb-3">
@@ -568,7 +568,7 @@
                   <div className="text-xs font-bold text-gray-600 mb-2">📜 LETZTE</div>
                   <div className="space-y-1 max-h-28 overflow-y-auto">
                     {currentMatch.events.slice(-5).reverse().map(e => {
-                      const labels = { kill: '💥 Kill', ace: '🎯 Ace', block: '🧱 Stuff', error: '❌ Angriff-F.', service_error: '📉 Service-F.', block_error: '🚫 Block-F.', dig: '🛡️ Dig', opp_point: '🆚 Gegner +1', opp_error: '✨ Gegner-Fehler', reception_good: '✅ Annahme+', reception_bad: '⚠️ Annahme-' };
+                      const labels = { kill: '💥 Kill', ace: '🎯 Ace', block: '🧱 Stuff', error: '❌ Angriff-F.', service_error: '📉 Service-F.', block_error: '🚫 Block-F.', attack_attempt: '⚔️ Angriffsv.', opp_point: '🆚 Gegner +1', opp_error: '✨ Gegner-Fehler', reception_good: '✅ Annahme+', reception_bad: '⚠️ Annahme-' };
                       return (
                         <div key={e.id} className="text-xs flex justify-between bg-gray-50 rounded-lg px-2 py-1">
                           <span className="font-semibold">{labels[e.type]}</span>
@@ -622,7 +622,7 @@
                           <div className="bg-red-100 p-1 rounded text-center">❌ {s.error || 0}</div>
                           <div className="bg-orange-100 p-1 rounded text-center">📉 {s.service_error || 0}</div>
                           <div className="bg-pink-100 p-1 rounded text-center">🚫 {s.block_error || 0}</div>
-                          <div className="bg-teal-100 p-1 rounded text-center">🛡️ {s.dig || 0}</div>
+                          <div className="bg-teal-100 p-1 rounded text-center">⚔️ {s.attack_attempt || 0}</div>
                           <div className="bg-lime-100 p-1 rounded text-center">✅ {s.reception_good || 0}</div>
                           <div className="bg-amber-100 p-1 rounded text-center">⚠️ {s.reception_bad || 0}</div>
                         </div>
