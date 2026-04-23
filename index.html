@@ -475,16 +475,21 @@
                   <button onClick={finishMatch} className="text-green-600 text-xs font-bold">✓ Fertig</button>
                 </div>
                 <div className="flex items-center justify-around">
-                  <div className="text-center">
-                    <div className="text-xs font-bold text-purple-600 flex items-center justify-center gap-1">WIR {servingTeam === 'us' && <span>🏐</span>}</div>
+                  <button onClick={() => setServingTeam('us')} className="text-center active:scale-95">
+                    <div className={`text-xs font-bold flex items-center justify-center gap-1 ${servingTeam === 'us' ? 'text-purple-600' : 'text-gray-400'}`}>
+                      WIR <span className={servingTeam === 'us' ? '' : 'opacity-30'}>🏐</span>
+                    </div>
                     <div className="text-5xl font-black text-purple-700">{currentMatch.teamScore}</div>
-                  </div>
+                  </button>
                   <div className="text-2xl text-gray-400">:</div>
-                  <div className="text-center">
-                    <div className="text-xs font-bold text-orange-600 flex items-center justify-center gap-1">{servingTeam === 'opp' && <span>🏐</span>} {currentMatch.opponent.toUpperCase()}</div>
+                  <button onClick={() => setServingTeam('opp')} className="text-center active:scale-95">
+                    <div className={`text-xs font-bold flex items-center justify-center gap-1 ${servingTeam === 'opp' ? 'text-orange-600' : 'text-gray-400'}`}>
+                      <span className={servingTeam === 'opp' ? '' : 'opacity-30'}>🏐</span> {currentMatch.opponent.toUpperCase()}
+                    </div>
                     <div className="text-5xl font-black text-orange-600">{currentMatch.opponentScore}</div>
-                  </div>
+                  </button>
                 </div>
+                <div className="text-center text-[10px] text-gray-400 mt-0.5">tippe 🏐 zum Aufschlag wechseln</div>
                 {currentMatch.setScores.length > 0 && <div className="text-center text-xs text-gray-500 mt-1">{currentMatch.setScores.map(s => `${s.teamScore}-${s.opponentScore}`).join(' | ')}</div>}
               </div>
               <div className="bg-white/95 rounded-2xl p-3 shadow-xl mb-3">
