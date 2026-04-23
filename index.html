@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#7c3aed" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Coach Tracker" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icon.svg" />
+  <title>Volleyball Coach Tracker</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    html, body { margin: 0; padding: 0; overscroll-behavior: none; -webkit-tap-highlight-color: transparent; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    * { -webkit-user-select: none; user-select: none; }
+    input, textarea { -webkit-user-select: text; user-select: text; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel" data-presets="react">
+    const { useState, useEffect, useRef } = React;
+
+    // === Storage Abstraction (localStorage) ===
+    const storage = {
+      async get(key) {
+        try {
+          const value = localStorage.getItem('vbt_' + key);
+          return value ? { value } : null;
+        } catch (e) { return null; }
+      },
+      async set(key, value) {
+        try {
+          localStorage.setItem('vbt_' + key, value);
+          return { value };
+        } catch (e) { return null; }
+      },
+    };
+
+    // === Icons (simple SVG replacements for lucide) ===
+    const Icon = ({ children, size = 16 }) => (
+      <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{children}</svg>
+    );
+    const ArrowLeft = ({ size }) => <Icon size={size}><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></Icon>;
+    const RotateCw = ({ size }) => <Icon size={size}><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></Icon>;
+    const Trash2 = ({ size }) => <Icon size={size}><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></Icon>;
+    const Star = ({ size, fill }) => <Icon size={size}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" fill={fill || 'none'}/></Icon>;
+    const Save = ({ size }) => <Icon size={size}><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></Icon>;
+    const RefreshCw = ({ size }) => <Icon size={size}><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></Icon>;
+
+    const POSITION_TYPES = {
+      S: { label: 'Setter / Zuspieler', color: 'from-yellow-400 to-orange-500', short: 'Z' },
+      OPP: { label: 'Opposite / Diagonal', color: 'from-red-500 to-pink-600', short: 'D' },
+      OH: { label: 'Outside / Außen', color: 'from-blue-500 to-cyan-600', short: 'AA' },
+      MB: { label: 'Middle / Mittel', color: 'from-purple-500 to-indigo-600', short: 'MB' },
+      L: { label: 'Libero', color: 'from-gray-600 to-gray-800', short: 'L' },
+      DS: { label: 'Defensive Spec.', color: 'from-green-600 to-teal-700', short: 'DS' },
+    };
+
+    const DEFAULT_CONFIG = { S: 1, OPP: 1, OH: 2, MB: 2, L: 1, DS: 0 };
+
+    function generateSlots(config) {
+      const slots = [];
+      Object.entries(config).forEach(([type, count]) => {
+        for (let i = 1; i <= count; i++) {
+          slots.push({
+            id: `${type}${i}`, type,
+            label: count > 1 ? `${POSITION_TYPES[type].label} ${i}` : POSITION_TYPES[type].label,
+            short: count > 1 ? `${POSITION_TYPES[type].short}${i}` : POSITION_TYPES[type].short,
+          });
+        }
+      });
+      return slots;
+    }
+
+    const COURT_POSITIONS = [
+      { pos: 4, x: 18, y: 28, label: 'LF' },
+      { pos: 3, x: 50, y: 28, label: 'MF' },
+      { pos: 2, x: 82, y: 28, label: 'RF' },
+      { pos: 5, x: 18, y: 72, label: 'LB' },
+      { pos: 6, x: 50, y: 72, label: 'MB' },
+      { pos: 1, x: 82, y: 72, label: 'RB' },
+    ];
+
+    function getDefaultReception(rotation) {
+      return { 1: { x: 75, y: 40 }, 2: { x: 30, y: 62 }, 3: { x: 50, y: 22 }, 4: { x: 20, y: 25 }, 5: { x: 55, y: 68 }, 6: { x: 80, y: 68 } };
+    }
+
+    function getLineupForRotation(startingLineup, rotation) {
+      const clockwise = [1, 6, 5, 4, 3, 2];
+      const lineup = {};
+      Object.entries(startingLineup).forEach(([pos, slotId]) => {
+        const idx = clockwise.indexOf(parseInt(pos));
+        const newIdx = (idx + (rotation - 1)) % 6;
+        lineup[clockwise[newIdx]] = slotId;
+      });
+      return lineup;
+    }
+
+    function setterRotToInternal(setterRot) {
+      const map = { 1: 1, 2: 6, 3: 5, 4: 4, 5: 3, 6: 2 };
+      return map[setterRot] || 1;
+    }
+
+    function VolleyballTracker() {
+      const [view, setView] = useState('home');
+      const [teamConfig, setTeamConfig] = useState(DEFAULT_CONFIG);
+      const [roster, setRoster] = useState({});
+      const [startingLineup, setStartingLineup] = useState({});
+      const [receptionFormations, setReceptionFormations] = useState({});
+      const [matches, setMatches] = useState([]);
+      const [currentMatch, setCurrentMatch] = useState(null);
+      const [loading, setLoading] = useState(true);
+      const [editingSlot, setEditingSlot] = useState(null);
+      const [nameInput, setNameInput] = useState('');
+      const [selectedSlot, setSelectedSlot] = useState(null);
+      const [showNewMatch, setShowNewMatch] = useState(false);
+      const [opponentName, setOpponentName] = useState('');
+      const [viewingMatch, setViewingMatch] = useState(null);
+      const [servingTeam, setServingTeam] = useState('us');
+      const [showConfig, setShowConfig] = useState(false);
+      const [showLineupEditor, setShowLineupEditor] = useState(false);
+      const [formationEditRotation, setFormationEditRotation] = useState(1);
+
+      useEffect(() => {
+        async function load() {
+          try { const c = await storage.get('team_config'); if (c) setTeamConfig(JSON.parse(c.value)); } catch (e) {}
+          try { const r = await storage.get('roster_v3'); if (r) setRoster(JSON.parse(r.value)); } catch (e) {}
+          try { const l = await storage.get('starting_lineup_v2'); if (l) setStartingLineup(JSON.parse(l.value)); } catch (e) {}
+          try { const f = await storage.get('reception_formations_v2'); if (f) setReceptionFormations(JSON.parse(f.value)); } catch (e) {}
+          try { const m = await storage.get('matches_v3'); if (m) setMatches(JSON.parse(m.value)); } catch (e) {}
+          setLoading(false);
+        }
+        load();
+      }, []);
+
+      const saveConfig = async (c) => { setTeamConfig(c); await storage.set('team_config', JSON.stringify(c)); };
+      const saveRoster = async (r) => { setRoster(r); await storage.set('roster_v3', JSON.stringify(r)); };
+      const saveLineup = async (l) => { setStartingLineup(l); await storage.set('starting_lineup_v2', JSON.stringify(l)); };
+      const saveFormations = async (f) => { setReceptionFormations(f); await storage.set('reception_formations_v2', JSON.stringify(f)); };
+      const saveMatches = async (m) => { setMatches(m); await storage.set('matches_v3', JSON.stringify(m)); };
+
+      const slots = generateSlots(teamConfig);
+      const assignedSlots = slots.filter(s => roster[s.id]);
+
+      const setPlayerName = (slotId, name) => {
+        const newRoster = { ...roster };
+        if (!name.trim()) {
+          delete newRoster[slotId];
+          const newLineup = { ...startingLineup };
+          Object.entries(newLineup).forEach(([p, sid]) => { if (sid === slotId) delete newLineup[p]; });
+          saveLineup(newLineup);
+        } else { newRoster[slotId] = { name: name.trim() }; }
+        saveRoster(newRoster);
+        setEditingSlot(null); setNameInput('');
+      };
+
+      const updateConfigCount = (type, delta) => {
+        const current = teamConfig[type] || 0;
+        const newCount = Math.max(0, Math.min(6, current + delta));
+        saveConfig({ ...teamConfig, [type]: newCount });
+      };
+
+      const assignToPosition = (pos, slotId) => {
+        const newLineup = {};
+        Object.entries(startingLineup).forEach(([p, s]) => { if (s !== slotId) newLineup[p] = s; });
+        newLineup[pos] = slotId;
+        saveLineup(newLineup);
+      };
+
+      const lineupComplete = [1, 2, 3, 4, 5, 6].every(p => startingLineup[p]);
+
+      const startNewMatch = () => {
+        if (!opponentName.trim()) return;
+        const match = {
+          id: Date.now().toString(), opponent: opponentName.trim(), date: new Date().toISOString(),
+          events: [], set: 1, rotation: 1, teamScore: 0, opponentScore: 0, setScores: [],
+          rosterSnapshot: { ...roster }, lineupSnapshot: { ...startingLineup },
+          configSnapshot: { ...teamConfig }, formationsSnapshot: { ...receptionFormations },
+        };
+        setCurrentMatch(match); setServingTeam('us'); setShowNewMatch(false); setOpponentName(''); setView('match');
+      };
+
+      const updateMatch = (fn) => setCurrentMatch(prev => fn(prev));
+
+      const recordEvent = (type, forTeam = true) => {
+        if (!currentMatch) return;
+        if (forTeam && !selectedSlot && !['opp_point', 'opp_error'].includes(type)) return;
+        const event = {
+          id: Date.now().toString() + Math.random(),
+          slotId: forTeam ? selectedSlot : null,
+          playerName: forTeam ? roster[selectedSlot]?.name : null,
+          type, forTeam, set: currentMatch.set, rotation: currentMatch.rotation,
+          serving: servingTeam, timestamp: Date.now(),
+        };
+        let teamDelta = 0, oppDelta = 0, rotateUs = false, newServing = servingTeam;
+        if (['kill', 'ace', 'block', 'opp_error'].includes(type)) {
+          teamDelta = 1;
+          if (servingTeam === 'opp') { rotateUs = true; newServing = 'us'; }
+        }
+        if (['error', 'service_error', 'opp_point'].includes(type)) { oppDelta = 1; newServing = 'opp'; }
+        updateMatch(m => ({
+          ...m, events: [...m.events, event],
+          teamScore: m.teamScore + teamDelta, opponentScore: m.opponentScore + oppDelta,
+          rotation: rotateUs ? (m.rotation % 6) + 1 : m.rotation,
+        }));
+        setServingTeam(newServing);
+      };
+
+      const undoLastEvent = () => {
+        if (!currentMatch || currentMatch.events.length === 0) return;
+        const last = currentMatch.events[currentMatch.events.length - 1];
+        let teamDelta = 0, oppDelta = 0, undoRotate = false;
+        if (['kill', 'ace', 'block', 'opp_error'].includes(last.type)) {
+          teamDelta = -1;
+          if (last.serving === 'opp') undoRotate = true;
+        }
+        if (['error', 'service_error', 'opp_point'].includes(last.type)) oppDelta = -1;
+        updateMatch(m => ({
+          ...m, events: m.events.slice(0, -1),
+          teamScore: m.teamScore + teamDelta, opponentScore: m.opponentScore + oppDelta,
+          rotation: undoRotate ? ((m.rotation + 4) % 6) + 1 : m.rotation,
+        }));
+        setServingTeam(last.serving);
+      };
+
+      const manualRotate = () => updateMatch(m => ({ ...m, rotation: (m.rotation % 6) + 1 }));
+      const nextSet = () => {
+        updateMatch(m => ({
+          ...m, set: m.set + 1,
+          setScores: [...m.setScores, { teamScore: m.teamScore, opponentScore: m.opponentScore }],
+          teamScore: 0, opponentScore: 0, rotation: 1,
+        }));
+        setServingTeam('us');
+      };
+
+      const finishMatch = async () => {
+        const finalMatch = {
+          ...currentMatch,
+          setScores: [...currentMatch.setScores, { teamScore: currentMatch.teamScore, opponentScore: currentMatch.opponentScore }],
+          finished: true,
+        };
+        await saveMatches([finalMatch, ...matches]);
+        setCurrentMatch(null); setSelectedSlot(null); setView('home');
+      };
+
+      const cancelMatch = () => {
+        if (confirm('Spiel verwerfen?')) { setCurrentMatch(null); setSelectedSlot(null); setView('home'); }
+      };
+
+      if (loading) return (
+        <div className="min-h-screen bg-gradient-to-br from-purple-600 via-pink-500 to-orange-400 flex items-center justify-center">
+          <div className="text-white text-xl font-bold animate-pulse">Lade... 🏐</div>
+        </div>
+      );
+
+      // === HOME ===
+      if (view === 'home') return (
+        <div className="min-h-screen bg-gradient-to-br from-purple-600 via-pink-500 to-orange-400 p-4">
+          <div className="max-w-md mx-auto">
+            <div className="text-center py-6">
+              <div className="text-6xl mb-2">🏐</div>
+              <h1 className="text-4xl font-black text-white drop-shadow-lg">Coach Tracker</h1>
+              <p className="text-white/90 font-semibold text-sm">Lokale App · Offline-fähig</p>
+            </div>
+            {currentMatch && (
+              <button onClick={() => setView('match')} className="w-full bg-gradient-to-r from-green-400 to-emerald-500 text-white p-5 rounded-3xl shadow-xl mb-4 font-bold active:scale-95 animate-pulse">
+                ▶️ Laufendes Spiel fortsetzen<br/><span className="text-sm opacity-90">vs {currentMatch.opponent} · Satz {currentMatch.set}</span>
+              </button>
+            )}
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              <button onClick={() => setShowNewMatch(true)} disabled={!lineupComplete} className="bg-white/95 p-5 rounded-3xl shadow-xl active:scale-95 disabled:opacity-50">
+                <div className="text-4xl mb-1">🚀</div><div className="font-black text-purple-700">Neues Spiel</div>
+              </button>
+              <button onClick={() => setView('roster')} className="bg-white/95 p-5 rounded-3xl shadow-xl active:scale-95">
+                <div className="text-4xl mb-1">👥</div><div className="font-black text-pink-600">Kader</div>
+                <div className="text-xs text-gray-500">{assignedSlots.length} Spieler</div>
+              </button>
+              <button onClick={() => setView('lineup')} className="bg-white/95 p-5 rounded-3xl shadow-xl active:scale-95">
+                <div className="text-4xl mb-1">📋</div><div className="font-black text-indigo-600">Aufstellung</div>
+                <div className="text-xs text-gray-500">{lineupComplete ? '✓ Bereit' : `${Object.keys(startingLineup).length}/6`}</div>
+              </button>
+              <button onClick={() => { setView('formations'); setFormationEditRotation(1); }} disabled={!lineupComplete} className="bg-white/95 p-5 rounded-3xl shadow-xl active:scale-95 disabled:opacity-50">
+                <div className="text-4xl mb-1">🎯</div><div className="font-black text-cyan-700">Annahme</div>
+                <div className="text-xs text-gray-500">{Object.keys(receptionFormations).length}/6 Z-Positionen</div>
+              </button>
+              <button onClick={() => setView('stats')} className="bg-white/95 p-5 rounded-3xl shadow-xl active:scale-95 col-span-2">
+                <div className="text-4xl mb-1">📊</div><div className="font-black text-orange-600">Statistiken & Historie</div>
+                <div className="text-xs text-gray-500">{matches.length} Spiele</div>
+              </button>
+            </div>
+          </div>
+          {showNewMatch && (
+            <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
+              <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl">
+                <h2 className="text-2xl font-black text-purple-700 mb-4">🚀 Neues Spiel</h2>
+                <input type="text" placeholder="Gegner..." value={opponentName} onChange={e => setOpponentName(e.target.value)} className="w-full p-4 border-2 border-purple-200 rounded-2xl mb-4 font-semibold focus:outline-none focus:border-purple-500" autoFocus />
+                <div className="flex gap-2">
+                  <button onClick={() => { setShowNewMatch(false); setOpponentName(''); }} className="flex-1 bg-gray-200 p-3 rounded-2xl font-bold">Abbrechen</button>
+                  <button onClick={startNewMatch} disabled={!opponentName.trim()} className="flex-1 bg-gradient-to-r from-purple-600 to-pink-500 text-white p-3 rounded-2xl font-bold disabled:opacity-50">Los! 🏐</button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+
+      // === ROSTER ===
+      if (view === 'roster') return (
+        <div className="min-h-screen bg-gradient-to-br from-pink-500 via-purple-600 to-indigo-600 p-4">
+          <div className="max-w-md mx-auto">
+            <div className="flex items-center gap-3 mb-4 pt-2">
+              <button onClick={() => setView('home')} className="bg-white/20 p-2 rounded-full"><ArrowLeft /></button>
+              <h1 className="text-2xl font-black text-white flex-1">👥 Kader</h1>
+              <button onClick={() => setShowConfig(!showConfig)} className="bg-white/20 text-white px-3 py-1.5 rounded-full text-xs font-bold">{showConfig ? 'Fertig' : '⚙️ Config'}</button>
+            </div>
+            {showConfig && (
+              <div className="bg-white/95 rounded-2xl p-4 shadow-xl mb-4">
+                <h3 className="font-black text-purple-700 mb-2">⚙️ Kader-Größe</h3>
+                <div className="space-y-2">
+                  {Object.entries(POSITION_TYPES).map(([type, p]) => (
+                    <div key={type} className="flex items-center gap-2">
+                      <div className={`w-10 h-10 bg-gradient-to-br ${p.color} rounded-xl flex items-center justify-center text-white font-black text-xs`}>{p.short}</div>
+                      <div className="flex-1 text-sm font-bold">{p.label}</div>
+                      <button onClick={() => updateConfigCount(type, -1)} disabled={(teamConfig[type] || 0) === 0} className="w-8 h-8 bg-red-100 text-red-600 rounded-lg font-black disabled:opacity-30">−</button>
+                      <div className="w-8 text-center font-black text-lg">{teamConfig[type] || 0}</div>
+                      <button onClick={() => updateConfigCount(type, 1)} className="w-8 h-8 bg-green-100 text-green-600 rounded-lg font-black">+</button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div className="space-y-2">
+              {slots.map(slot => {
+                const p = POSITION_TYPES[slot.type];
+                const player = roster[slot.id];
+                return (
+                  <div key={slot.id} className="bg-white/95 rounded-2xl p-3 flex items-center gap-3 shadow-lg">
+                    <div className={`w-14 h-14 bg-gradient-to-br ${p.color} rounded-2xl flex items-center justify-center text-white font-black text-xs`}>{slot.short}</div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs text-gray-500 font-bold">{slot.label}</div>
+                      <div className="font-bold text-gray-800 truncate">{player ? player.name : <span className="text-gray-400 italic">Nicht zugewiesen</span>}</div>
+                    </div>
+                    {editingSlot === slot.id ? (
+                      <div className="flex gap-1">
+                        <input autoFocus value={nameInput} onChange={e => setNameInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && setPlayerName(slot.id, nameInput)} className="w-24 p-2 border-2 border-purple-300 rounded-lg text-sm" placeholder="Name" />
+                        <button onClick={() => setPlayerName(slot.id, nameInput)} className="bg-green-500 text-white px-2 rounded-lg text-sm font-bold">✓</button>
+                      </div>
+                    ) : (
+                      <div className="flex gap-1">
+                        <button onClick={() => { setEditingSlot(slot.id); setNameInput(player?.name || ''); }} className="bg-purple-100 text-purple-700 px-3 py-2 rounded-lg text-xs font-bold">{player ? 'Edit' : '+'}</button>
+                        {player && <button onClick={() => setPlayerName(slot.id, '')} className="text-red-500 p-2"><Trash2 size={16} /></button>}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      );
+
+      // === LINEUP ===
+      if (view === 'lineup') return (
+        <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-blue-600 to-cyan-600 p-4">
+          <div className="max-w-md mx-auto">
+            <div className="flex items-center gap-3 mb-4 pt-2">
+              <button onClick={() => setView('home')} className="bg-white/20 p-2 rounded-full"><ArrowLeft /></button>
+              <h1 className="text-2xl font-black text-white">📋 Aufstellung</h1>
+            </div>
+            <div className="bg-white/10 backdrop-blur rounded-2xl p-3 mb-3 text-white text-xs">
+              Tippe auf eine Position, um einen Spieler zuzuweisen. Pos 1 = hinten rechts.
+            </div>
+            <div className="bg-white/95 rounded-2xl p-3 shadow-xl mb-4">
+              <div className="relative bg-gradient-to-b from-orange-100 via-yellow-50 to-orange-100 rounded-xl h-72 border-2 border-orange-400 overflow-hidden">
+                <div className="absolute top-0 left-0 right-0 h-1 bg-gray-700"></div>
+                <div className="absolute top-1 left-0 right-0 text-center text-[9px] font-bold text-gray-600">— NETZ —</div>
+                <div className="absolute top-[47%] left-0 right-0 border-t-2 border-dashed border-orange-400"></div>
+                {COURT_POSITIONS.map(c => {
+                  const slotId = startingLineup[c.pos];
+                  const slot = slots.find(s => s.id === slotId);
+                  const p = slot ? POSITION_TYPES[slot.type] : null;
+                  const player = slotId ? roster[slotId] : null;
+                  return (
+                    <button key={c.pos} onClick={() => setShowLineupEditor(c.pos)} className="absolute transform -translate-x-1/2 -translate-y-1/2 active:scale-90 transition z-10" style={{ left: `${c.x}%`, top: `${c.y}%` }}>
+                      <div className="relative">
+                        <div className={`w-[68px] h-[68px] rounded-2xl flex flex-col items-center justify-center text-white shadow-xl ${slot ? `bg-gradient-to-br ${p.color}` : 'bg-gray-300/80 border-2 border-dashed border-gray-500'}`}>
+                          <div className="absolute -top-1.5 -left-1.5 w-5 h-5 bg-white border-2 border-orange-500 text-orange-600 rounded-full flex items-center justify-center text-[10px] font-black shadow">{c.pos}</div>
+                          {slot ? <><div className="text-xs font-black">{slot.short}</div><div className="text-[9px] opacity-90 mt-0.5">{c.label}</div></> : <div className="text-xs font-bold text-gray-600">+</div>}
+                        </div>
+                        {player && <div className="text-[10px] text-center font-black text-gray-800 mt-1 max-w-[72px] truncate bg-white/80 rounded px-1">{player.name}</div>}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="bg-white/95 rounded-2xl p-3 shadow-xl mb-3">
+              <div className="text-xs font-bold text-gray-700 mb-2">🪑 BANK</div>
+              <div className="flex flex-wrap gap-1.5">
+                {assignedSlots.filter(s => !Object.values(startingLineup).includes(s.id)).map(slot => {
+                  const p = POSITION_TYPES[slot.type];
+                  return <div key={slot.id} className={`bg-gradient-to-r ${p.color} text-white px-2 py-1 rounded-lg text-xs font-bold flex items-center gap-1`}><span className="opacity-80">{slot.short}</span><span>{roster[slot.id].name}</span></div>;
+                })}
+                {assignedSlots.filter(s => !Object.values(startingLineup).includes(s.id)).length === 0 && <span className="text-xs text-gray-400 italic">Alle aufgestellt</span>}
+              </div>
+            </div>
+          </div>
+          {showLineupEditor && (
+            <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50" onClick={() => setShowLineupEditor(false)}>
+              <div className="bg-white rounded-3xl p-4 w-full max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
+                <h2 className="text-xl font-black text-purple-700 mb-3">Position {showLineupEditor}</h2>
+                <div className="space-y-1.5 max-h-80 overflow-y-auto">
+                  {assignedSlots.filter(s => s.type !== 'L' && s.type !== 'DS').map(slot => {
+                    const p = POSITION_TYPES[slot.type];
+                    const currentPos = Object.entries(startingLineup).find(([_, sid]) => sid === slot.id)?.[0];
+                    return (
+                      <button key={slot.id} onClick={() => { assignToPosition(showLineupEditor, slot.id); setShowLineupEditor(false); }} className="w-full flex items-center gap-2 p-2 bg-gray-50 hover:bg-purple-50 rounded-xl active:scale-95">
+                        <div className={`w-10 h-10 bg-gradient-to-br ${p.color} rounded-lg flex items-center justify-center text-white font-black text-xs`}>{slot.short}</div>
+                        <div className="flex-1 text-left"><div className="font-bold text-sm">{roster[slot.id]?.name}</div><div className="text-xs text-gray-500">{slot.label}</div></div>
+                        {currentPos && <div className="text-[10px] bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full font-bold">Pos {currentPos}</div>}
+                      </button>
+                    );
+                  })}
+                </div>
+                {startingLineup[showLineupEditor] && (
+                  <button onClick={() => { const newL = { ...startingLineup }; delete newL[showLineupEditor]; saveLineup(newL); setShowLineupEditor(false); }} className="w-full mt-3 bg-red-100 text-red-700 p-2 rounded-xl font-bold text-sm">Position leeren</button>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      );
+
+      if (view === 'formations') return <FormationsEditor rotation={formationEditRotation} setRotation={setFormationEditRotation} startingLineup={startingLineup} roster={roster} slots={slots} receptionFormations={receptionFormations} saveFormations={saveFormations} onBack={() => setView('home')} />;
+
+      // === MATCH ===
+      if (view === 'match' && currentMatch) {
+        const lineup = getLineupForRotation(currentMatch.lineupSnapshot, currentMatch.rotation);
+        const rosterSnap = currentMatch.rosterSnapshot;
+        const matchSlots = generateSlots(currentMatch.configSnapshot);
+        const formations = currentMatch.formationsSnapshot || {};
+        const setterSlot = matchSlots.find(s => s.type === 'S');
+        const setterPos = setterSlot ? Object.entries(lineup).find(([_, sid]) => sid === setterSlot.id)?.[0] : null;
+        const isReceiving = servingTeam === 'opp';
+        let positionLayout;
+        if (isReceiving) {
+          const setterPosNum = parseInt(setterPos);
+          positionLayout = formations[setterPosNum] || getDefaultReception(setterPosNum);
+        } else {
+          const layout = {};
+          COURT_POSITIONS.forEach(c => { layout[c.pos] = { x: c.x, y: c.y }; });
+          positionLayout = layout;
+        }
+
+        const StatBtn = ({ emoji, label, type, color, forTeam = true }) => (
+          <button onClick={() => recordEvent(type, forTeam)} disabled={forTeam && !selectedSlot && !['opp_point', 'opp_error'].includes(type)} className={`${color} text-white p-3 rounded-2xl font-black shadow-lg active:scale-90 disabled:opacity-40`}>
+            <div className="text-2xl">{emoji}</div><div className="text-xs mt-1">{label}</div>
+          </button>
+        );
+
+        return (
+          <div className="min-h-screen bg-gradient-to-br from-indigo-700 via-purple-700 to-pink-600 p-3 pb-6">
+            <div className="max-w-md mx-auto">
+              <div className="bg-white/95 rounded-2xl p-3 shadow-xl mb-3">
+                <div className="flex justify-between items-center mb-1">
+                  <button onClick={cancelMatch} className="text-red-500 text-xs font-bold">✕ Ende</button>
+                  <div className="text-xs font-bold text-gray-500">SATZ {currentMatch.set}</div>
+                  <button onClick={finishMatch} className="text-green-600 text-xs font-bold">✓ Fertig</button>
+                </div>
+                <div className="flex items-center justify-around">
+                  <div className="text-center">
+                    <div className="text-xs font-bold text-purple-600 flex items-center justify-center gap-1">WIR {servingTeam === 'us' && <span>🏐</span>}</div>
+                    <div className="text-5xl font-black text-purple-700">{currentMatch.teamScore}</div>
+                  </div>
+                  <div className="text-2xl text-gray-400">:</div>
+                  <div className="text-center">
+                    <div className="text-xs font-bold text-orange-600 flex items-center justify-center gap-1">{servingTeam === 'opp' && <span>🏐</span>} {currentMatch.opponent.toUpperCase()}</div>
+                    <div className="text-5xl font-black text-orange-600">{currentMatch.opponentScore}</div>
+                  </div>
+                </div>
+                {currentMatch.setScores.length > 0 && <div className="text-center text-xs text-gray-500 mt-1">{currentMatch.setScores.map(s => `${s.teamScore}-${s.opponentScore}`).join(' | ')}</div>}
+              </div>
+              <div className="bg-white/95 rounded-2xl p-3 shadow-xl mb-3">
+                <div className="flex justify-between items-center mb-2">
+                  <div className="text-sm font-black text-indigo-700">🔄 Rot. {currentMatch.rotation} · {isReceiving ? '📥 Annahme' : '🏐 Aufschlag'}</div>
+                  <button onClick={manualRotate} className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1"><RotateCw size={12} /> Rot</button>
+                </div>
+                <div className="relative bg-gradient-to-b from-orange-100 via-yellow-50 to-orange-100 rounded-xl h-72 border-2 border-orange-400 overflow-hidden">
+                  <div className="absolute top-0 left-0 right-0 h-1 bg-gray-700"></div>
+                  <div className="absolute top-1 left-0 right-0 text-center text-[9px] font-bold text-gray-600">— NETZ —</div>
+                  <div className="absolute top-[47%] left-0 right-0 border-t-2 border-dashed border-orange-400"></div>
+                  {Object.entries(lineup).map(([pos, slotId]) => {
+                    const posNum = parseInt(pos);
+                    const slot = matchSlots.find(s => s.id === slotId);
+                    if (!slot) return null;
+                    const p = POSITION_TYPES[slot.type];
+                    const player = rosterSnap[slotId];
+                    const isSetter = slot.type === 'S';
+                    const isServing = posNum === 1 && servingTeam === 'us';
+                    const coords = positionLayout[posNum] || { x: 50, y: 50 };
+                    return (
+                      <div key={pos} className="absolute transform -translate-x-1/2 -translate-y-1/2 z-10 transition-all duration-500 ease-in-out" style={{ left: `${coords.x}%`, top: `${coords.y}%` }}>
+                        <div className="relative">
+                          <div className={`w-[60px] h-[60px] bg-gradient-to-br ${p.color} rounded-full flex flex-col items-center justify-center text-white shadow-xl ${isSetter ? 'ring-4 ring-yellow-300' : ''} ${isServing ? 'ring-4 ring-green-400 animate-pulse' : ''}`}>
+                            {isSetter && <div className="absolute -top-1 -right-1"><Star size={10} fill="#fbbf24" /></div>}
+                            <div className="text-[11px] font-black">{slot.short}</div>
+                          </div>
+                          {player && <div className="text-[10px] text-center font-black text-gray-900 mt-1 max-w-[70px] truncate bg-white/80 rounded px-1">{player.name}</div>}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="text-[10px] text-gray-500 mt-2 text-center">{isReceiving ? `📥 Annahme · Z auf Pos ${setterPos}` : '🏐 Grundaufstellung'} · ⭐ Zuspieler · 🟢 Aufschläger</div>
+              </div>
+              <div className="bg-white/95 rounded-2xl p-3 shadow-xl mb-3">
+                <div className="text-xs font-bold text-gray-600 mb-2">SPIELER WÄHLEN</div>
+                <div className="grid grid-cols-4 gap-1.5">
+                  {matchSlots.filter(s => rosterSnap[s.id]).map(slot => {
+                    const p = POSITION_TYPES[slot.type];
+                    const isSelected = selectedSlot === slot.id;
+                    return (
+                      <button key={slot.id} onClick={() => setSelectedSlot(isSelected ? null : slot.id)} className={`p-2 rounded-xl font-bold text-xs transition ${isSelected ? `bg-gradient-to-r ${p.color} text-white shadow-lg scale-105 ring-2 ring-white` : 'bg-gray-100 text-gray-700'}`}>
+                        <div className="font-black">{slot.short}</div><div className="text-[9px] truncate">{rosterSnap[slot.id]?.name}</div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              <div className="bg-white/95 rounded-2xl p-3 shadow-xl mb-3">
+                <div className="text-xs font-bold text-gray-600 mb-2">{selectedSlot ? `📝 ${matchSlots.find(s => s.id === selectedSlot)?.short} · ${rosterSnap[selectedSlot]?.name}` : '👆 Spieler wählen'}</div>
+                <div className="grid grid-cols-3 gap-2 mb-2">
+                  <StatBtn emoji="💥" label="Kill" type="kill" color="bg-gradient-to-br from-green-500 to-emerald-600" />
+                  <StatBtn emoji="🎯" label="Ace" type="ace" color="bg-gradient-to-br from-blue-500 to-cyan-600" />
+                  <StatBtn emoji="🧱" label="Block" type="block" color="bg-gradient-to-br from-purple-500 to-indigo-600" />
+                  <StatBtn emoji="❌" label="Fehler" type="error" color="bg-gradient-to-br from-red-500 to-rose-600" />
+                  <StatBtn emoji="📉" label="Service-F." type="service_error" color="bg-gradient-to-br from-orange-500 to-red-500" />
+                  <StatBtn emoji="🛡️" label="Dig" type="dig" color="bg-gradient-to-br from-teal-500 to-cyan-500" />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <StatBtn emoji="✅" label="Annahme +" type="reception_good" color="bg-gradient-to-br from-lime-500 to-green-600" />
+                  <StatBtn emoji="⚠️" label="Annahme -" type="reception_bad" color="bg-gradient-to-br from-amber-500 to-orange-600" />
+                </div>
+              </div>
+              <div className="bg-white/95 rounded-2xl p-3 shadow-xl mb-3">
+                <div className="text-xs font-bold text-gray-600 mb-2">🆚 GEGNER</div>
+                <div className="grid grid-cols-2 gap-2">
+                  <button onClick={() => recordEvent('opp_point', false)} className="bg-gradient-to-r from-orange-500 to-red-500 text-white p-3 rounded-2xl font-black shadow-lg active:scale-95 text-sm">+1 Gegner</button>
+                  <button onClick={() => recordEvent('opp_error', false)} className="bg-gradient-to-r from-emerald-500 to-green-600 text-white p-3 rounded-2xl font-black shadow-lg active:scale-95 text-sm">Gegner-Fehler</button>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2 mb-3">
+                <button onClick={undoLastEvent} disabled={currentMatch.events.length === 0} className="bg-gray-700 text-white p-3 rounded-2xl font-bold disabled:opacity-40">↶ Rückgängig</button>
+                <button onClick={() => { if (confirm('Nächster Satz?')) nextSet(); }} className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white p-3 rounded-2xl font-bold">Satz {currentMatch.set + 1} →</button>
+              </div>
+              {currentMatch.events.length > 0 && (
+                <div className="bg-white/95 rounded-2xl p-3 shadow-xl">
+                  <div className="text-xs font-bold text-gray-600 mb-2">📜 LETZTE</div>
+                  <div className="space-y-1 max-h-28 overflow-y-auto">
+                    {currentMatch.events.slice(-5).reverse().map(e => {
+                      const labels = { kill: '💥 Kill', ace: '🎯 Ace', block: '🧱 Block', error: '❌ Fehler', service_error: '📉 Service-F.', dig: '🛡️ Dig', opp_point: '🆚 Gegner +1', opp_error: '✨ Gegner-Fehler', reception_good: '✅ Annahme+', reception_bad: '⚠️ Annahme-' };
+                      return (
+                        <div key={e.id} className="text-xs flex justify-between bg-gray-50 rounded-lg px-2 py-1">
+                          <span className="font-semibold">{labels[e.type]}</span>
+                          <span className="text-gray-500 truncate ml-2">{e.slotId ? `${matchSlots.find(s => s.id === e.slotId)?.short} · ${e.playerName}` : '—'}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      }
+
+      // === STATS ===
+      if (view === 'stats') {
+        if (viewingMatch) {
+          const m = viewingMatch;
+          const matchSlots = generateSlots(m.configSnapshot || DEFAULT_CONFIG);
+          const bySlot = {};
+          m.events.forEach(e => { if (!e.slotId) return; if (!bySlot[e.slotId]) bySlot[e.slotId] = {}; bySlot[e.slotId][e.type] = (bySlot[e.slotId][e.type] || 0) + 1; });
+          return (
+            <div className="min-h-screen bg-gradient-to-br from-orange-400 via-pink-500 to-purple-600 p-4">
+              <div className="max-w-md mx-auto">
+                <div className="flex items-center gap-3 mb-4 pt-2">
+                  <button onClick={() => setViewingMatch(null)} className="bg-white/20 p-2 rounded-full"><ArrowLeft /></button>
+                  <h1 className="text-2xl font-black text-white">vs {m.opponent}</h1>
+                </div>
+                <div className="bg-white/95 rounded-2xl p-4 shadow-xl mb-3">
+                  <div className="text-xs text-gray-500 mb-2">{new Date(m.date).toLocaleDateString('de-DE')}</div>
+                  {m.setScores.map((s, i) => <div key={i} className="flex justify-between font-bold"><span>Satz {i + 1}</span><span className={s.teamScore > s.opponentScore ? 'text-green-600' : 'text-red-500'}>{s.teamScore} : {s.opponentScore}</span></div>)}
+                </div>
+                <div className="bg-white/95 rounded-2xl p-4 shadow-xl">
+                  <h3 className="font-black text-purple-700 mb-3">📊 Nach Spieler</h3>
+                  {Object.entries(bySlot).map(([slotId, s]) => {
+                    const slot = matchSlots.find(x => x.id === slotId);
+                    if (!slot) return null;
+                    const p = POSITION_TYPES[slot.type];
+                    const player = m.rosterSnapshot[slotId];
+                    return (
+                      <div key={slotId} className="mb-3 pb-3 border-b last:border-b-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <div className={`w-8 h-8 bg-gradient-to-br ${p.color} rounded-lg flex items-center justify-center text-white text-xs font-black`}>{slot.short}</div>
+                          <div className="font-bold">{player?.name}</div>
+                        </div>
+                        <div className="grid grid-cols-4 gap-1 text-xs">
+                          <div className="bg-green-100 p-1 rounded text-center">💥 {s.kill || 0}</div>
+                          <div className="bg-blue-100 p-1 rounded text-center">🎯 {s.ace || 0}</div>
+                          <div className="bg-purple-100 p-1 rounded text-center">🧱 {s.block || 0}</div>
+                          <div className="bg-red-100 p-1 rounded text-center">❌ {s.error || 0}</div>
+                          <div className="bg-orange-100 p-1 rounded text-center">📉 {s.service_error || 0}</div>
+                          <div className="bg-teal-100 p-1 rounded text-center">🛡️ {s.dig || 0}</div>
+                          <div className="bg-lime-100 p-1 rounded text-center">✅ {s.reception_good || 0}</div>
+                          <div className="bg-amber-100 p-1 rounded text-center">⚠️ {s.reception_bad || 0}</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          );
+        }
+        return (
+          <div className="min-h-screen bg-gradient-to-br from-orange-400 via-pink-500 to-purple-600 p-4">
+            <div className="max-w-md mx-auto">
+              <div className="flex items-center gap-3 mb-4 pt-2">
+                <button onClick={() => setView('home')} className="bg-white/20 p-2 rounded-full"><ArrowLeft /></button>
+                <h1 className="text-3xl font-black text-white">📊 Historie</h1>
+              </div>
+              {matches.length === 0 ? (
+                <div className="bg-white/95 rounded-2xl p-8 text-center shadow-xl">
+                  <div className="text-5xl mb-3">🏐</div>
+                  <div className="font-bold text-gray-700">Noch keine Spiele</div>
+                </div>
+              ) : (
+                <div className="bg-white/95 rounded-2xl p-4 shadow-xl">
+                  <div className="space-y-2">
+                    {matches.map(m => {
+                      const setsWon = m.setScores.filter(s => s.teamScore > s.opponentScore).length;
+                      const setsLost = m.setScores.length - setsWon;
+                      const won = setsWon > setsLost;
+                      return (
+                        <div key={m.id} className="flex items-center gap-2">
+                          <button onClick={() => setViewingMatch(m)} className={`flex-1 p-3 rounded-xl text-left ${won ? 'bg-gradient-to-r from-green-100 to-emerald-100' : 'bg-gradient-to-r from-red-100 to-rose-100'}`}>
+                            <div className="flex justify-between items-center">
+                              <div><div className="font-bold text-gray-800">vs {m.opponent}</div><div className="text-xs text-gray-500">{new Date(m.date).toLocaleDateString('de-DE')}</div></div>
+                              <div className={`font-black text-lg ${won ? 'text-green-700' : 'text-red-600'}`}>{setsWon}:{setsLost}</div>
+                            </div>
+                          </button>
+                          <button onClick={async () => { if (confirm('Löschen?')) await saveMatches(matches.filter(x => x.id !== m.id)); }} className="text-red-500 p-2"><Trash2 size={18} /></button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      }
+
+      return null;
+    }
+
+    // === Formations Editor ===
+    function FormationsEditor({ rotation: setterRotation, setRotation: setSetterRotation, startingLineup, roster, slots, receptionFormations, saveFormations, onBack }) {
+      const courtRef = useRef(null);
+      const [localFormation, setLocalFormation] = useState(() => receptionFormations[setterRotation] || getDefaultReception(setterRotation));
+      const [dirty, setDirty] = useState(false);
+      const [draggingPos, setDraggingPos] = useState(null);
+
+      useEffect(() => {
+        setLocalFormation(receptionFormations[setterRotation] || getDefaultReception(setterRotation));
+        setDirty(false);
+      }, [setterRotation, receptionFormations]);
+
+      const internalRotation = setterRotToInternal(setterRotation);
+      const lineup = getLineupForRotation(startingLineup, internalRotation);
+      const setterFrontRow = [2, 3, 4].includes(setterRotation);
+
+      const handlePointerDown = (pos, e) => { e.preventDefault(); setDraggingPos(pos); };
+      const handlePointerMove = (e) => {
+        if (draggingPos === null || !courtRef.current) return;
+        e.preventDefault();
+        const rect = courtRef.current.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        const x = Math.max(5, Math.min(95, ((clientX - rect.left) / rect.width) * 100));
+        const y = Math.max(5, Math.min(95, ((clientY - rect.top) / rect.height) * 100));
+        setLocalFormation(prev => ({ ...prev, [draggingPos]: { x, y } }));
+        setDirty(true);
+      };
+      const handlePointerUp = () => setDraggingPos(null);
+
+      useEffect(() => {
+        if (draggingPos !== null) {
+          const move = (e) => handlePointerMove(e);
+          const up = () => handlePointerUp();
+          window.addEventListener('mousemove', move);
+          window.addEventListener('mouseup', up);
+          window.addEventListener('touchmove', move, { passive: false });
+          window.addEventListener('touchend', up);
+          return () => {
+            window.removeEventListener('mousemove', move); window.removeEventListener('mouseup', up);
+            window.removeEventListener('touchmove', move); window.removeEventListener('touchend', up);
+          };
+        }
+      }, [draggingPos]);
+
+      const handleSave = () => { saveFormations({ ...receptionFormations, [setterRotation]: localFormation }); setDirty(false); };
+      const handleReset = () => { if (confirm('Auf Grundaufstellung zurücksetzen?')) { setLocalFormation(getDefaultReception(setterRotation)); setDirty(true); } };
+
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-cyan-600 via-blue-600 to-indigo-700 p-4">
+          <div className="max-w-md mx-auto">
+            <div className="flex items-center gap-3 mb-4 pt-2">
+              <button onClick={onBack} className="bg-white/20 p-2 rounded-full"><ArrowLeft /></button>
+              <h1 className="text-2xl font-black text-white flex-1">🎯 Annahme-Formation</h1>
+            </div>
+            <div className="bg-white/95 rounded-2xl p-3 shadow-xl mb-3">
+              <div className="text-xs font-bold text-gray-600 mb-2">ZUSPIELER (Z) AUF POSITION</div>
+              <div className="grid grid-cols-6 gap-1">
+                {[1, 6, 5, 4, 3, 2].map((n, idx) => {
+                  const saved = receptionFormations[n];
+                  return (
+                    <button key={n} onClick={() => setSetterRotation(n)} className={`p-2 rounded-xl font-black text-sm transition relative ${setterRotation === n ? 'bg-gradient-to-br from-yellow-400 to-orange-500 text-white shadow-lg scale-105' : 'bg-gray-100 text-gray-700'}`}>
+                      <div className="text-[9px] opacity-70 font-normal">{idx + 1}.</div>{n}
+                      {saved && <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="text-[10px] text-gray-500 mt-2">⭐ Z steht auf Pos {setterRotation} · Z {setterFrontRow ? 'vorne' : 'hinten'} · {receptionFormations[setterRotation] ? '✓ Gespeichert' : '⚠️ Standard'}</div>
+            </div>
+            <div className="bg-white/95 rounded-2xl p-3 shadow-xl mb-3">
+              <div className="text-xs font-bold text-cyan-800 mb-2 text-center">✋ Ziehe die Spieler dorthin, wo sie bei Z auf Pos {setterRotation} stehen sollen</div>
+              <div ref={courtRef} className="relative bg-gradient-to-b from-orange-100 via-yellow-50 to-orange-100 rounded-xl border-2 border-orange-400 overflow-hidden touch-none" style={{ height: '400px' }}>
+                <div className="absolute top-0 left-0 right-0 h-1 bg-gray-700"></div>
+                <div className="absolute top-1 left-0 right-0 text-center text-[9px] font-bold text-gray-600">— NETZ —</div>
+                <div className="absolute top-[47%] left-0 right-0 border-t-2 border-dashed border-orange-400"></div>
+                {Object.entries(lineup).map(([pos, slotId]) => {
+                  const posNum = parseInt(pos);
+                  const slot = slots.find(s => s.id === slotId);
+                  if (!slot) return null;
+                  const p = POSITION_TYPES[slot.type];
+                  const player = roster[slotId];
+                  const coords = localFormation[posNum] || { x: 50, y: 50 };
+                  const isDragging = draggingPos === posNum;
+                  return (
+                    <div key={pos} onMouseDown={(e) => handlePointerDown(posNum, e)} onTouchStart={(e) => handlePointerDown(posNum, e)} className="absolute transform -translate-x-1/2 -translate-y-1/2 z-10 cursor-grab active:cursor-grabbing select-none" style={{ left: `${coords.x}%`, top: `${coords.y}%`, transition: isDragging ? 'none' : 'all 0.3s ease', touchAction: 'none' }}>
+                      <div className={`relative ${isDragging ? 'scale-110' : ''}`}>
+                        <div className={`w-[60px] h-[60px] bg-gradient-to-br ${p.color} rounded-full flex flex-col items-center justify-center text-white shadow-xl ${isDragging ? 'ring-4 ring-white' : ''}`}>
+                          {slot.type === 'S' && <div className="absolute -top-1 -right-1"><Star size={10} fill="#fbbf24" /></div>}
+                          <div className="text-[11px] font-black">{slot.short}</div>
+                        </div>
+                        {player && <div className="text-[10px] text-center font-black text-gray-900 mt-1 max-w-[70px] truncate bg-white/90 rounded px-1 pointer-events-none">{player.name}</div>}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2 mb-3">
+              <button onClick={handleReset} className="bg-gray-200 text-gray-700 p-3 rounded-2xl font-bold active:scale-95 flex items-center justify-center gap-2"><RefreshCw size={16} /> Reset</button>
+              <button onClick={handleSave} disabled={!dirty} className="bg-gradient-to-r from-green-500 to-emerald-600 text-white p-3 rounded-2xl font-bold active:scale-95 disabled:opacity-40 flex items-center justify-center gap-2"><Save size={16} /> Speichern</button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Service Worker registration
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(err => console.log('SW registration failed:', err));
+      });
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<VolleyballTracker />);
+  </script>
+</body>
+</html>
