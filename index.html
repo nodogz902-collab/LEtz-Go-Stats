@@ -264,8 +264,9 @@ function MatchVideoPlayer({matchId,events,matchSlots,rosterSnap,matchSetScores,o
           {!selectedAction&&(
             <>
               <div className="text-[10px] font-bold text-gray-500 mb-1">① AKTION WÄHLEN</div>
-              <div className="grid grid-cols-4 gap-1 mb-1.5">
-                {pointActions.map(a=>(
+              {/* Row 1: good */}
+              <div className="grid grid-cols-4 gap-1 mb-1">
+                {[ACTIONS.find(a=>a.type==='kill'),ACTIONS.find(a=>a.type==='block'),ACTIONS.find(a=>a.type==='ace'),ACTIONS.find(a=>a.type==='reception_good')].map(a=>(
                   <button key={a.type} onClick={()=>setSelectedAction(a)}
                     className={`${a.color} text-white p-1.5 rounded-lg text-center active:scale-90`}>
                     <div className="text-base">{a.emoji}</div>
@@ -273,17 +274,30 @@ function MatchVideoPlayer({matchId,events,matchSlots,rosterSnap,matchSetScores,o
                   </button>
                 ))}
               </div>
-              <div className="grid grid-cols-2 gap-1 mb-1.5">
-                {softActions.map(a=>(
+              {/* Row 2: bad + big Ann.- */}
+              <div className="grid grid-cols-4 gap-1 mb-1">
+                {[ACTIONS.find(a=>a.type==='error'),ACTIONS.find(a=>a.type==='block_error'),ACTIONS.find(a=>a.type==='service_error')].map(a=>(
                   <button key={a.type} onClick={()=>setSelectedAction(a)}
-                    className={`${a.color} text-white p-1.5 rounded-lg text-center active:scale-90 flex items-center gap-1`}>
-                    <span className="text-base">{a.emoji}</span>
-                    <span className="text-[9px] font-bold">{a.label}</span>
+                    className={`${a.color} text-white p-1.5 rounded-lg text-center active:scale-90`}>
+                    <div className="text-base">{a.emoji}</div>
+                    <div className="text-[8px] font-bold leading-tight">{a.label}</div>
                   </button>
                 ))}
+                {(()=>{const a=ACTIONS.find(x=>x.type==='reception_bad');return(
+                  <button onClick={()=>setSelectedAction(a)} className={`${a.color} text-white p-1.5 rounded-lg text-center active:scale-90`}>
+                    <div className="text-base">{a.emoji}</div>
+                    <div className="text-[8px] font-bold leading-tight">{a.label}</div>
+                  </button>
+                );})()}
               </div>
-              <div className="text-[10px] font-bold text-gray-500 mb-1">GEGNER (direkt)</div>
-              <div className="grid grid-cols-2 gap-1">
+              {/* Row 3: soft + opp */}
+              <div className="grid grid-cols-3 gap-1">
+                {(()=>{const a=ACTIONS.find(x=>x.type==='attack_attempt');return(
+                  <button onClick={()=>setSelectedAction(a)} className={`${a.color} text-white p-1.5 rounded-lg text-center active:scale-90`}>
+                    <div className="text-base">{a.emoji}</div>
+                    <div className="text-[8px] font-bold leading-tight">{a.label}</div>
+                  </button>
+                );})()}
                 {oppActions.map(a=>(
                   <button key={a.type} onClick={()=>recordOppAtTime(a.type)}
                     className={`${a.color} text-white p-1.5 rounded-lg font-bold text-[10px] active:scale-90`}>
