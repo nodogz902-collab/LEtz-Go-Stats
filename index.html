@@ -837,9 +837,14 @@ function VolleyballTracker(){
                 ? <span className="text-purple-700">✅ {selectedAction.emoji} <b>{selectedAction.label}</b> — Spieler auf Feld tippen</span>
                 : '① AKTION WÄHLEN'}
             </div>
-            <div className="text-[10px] font-bold text-gray-400 mb-1.5">PUNKTE-AKTIONEN</div>
-            <div className="grid grid-cols-4 gap-1.5 mb-2">
-              {pointActions.map(a=>{
+            {/* Row 1: good actions */}
+            <div className="grid grid-cols-4 gap-1.5 mb-1">
+              {[
+                ACTIONS.find(a=>a.type==='kill'),
+                ACTIONS.find(a=>a.type==='block'),
+                ACTIONS.find(a=>a.type==='ace'),
+                ACTIONS.find(a=>a.type==='reception_good'),
+              ].map(a=>{
                 const isSel=selectedAction?.type===a.type;
                 return<button key={a.type} onClick={()=>setSelectedAction(isSel?null:a)}
                   className={`p-2 rounded-xl font-black text-xs transition-all active:scale-90 ${isSel?`${a.color} text-white ring-4 ring-yellow-300 scale-105 shadow-lg`:`${a.color} text-white opacity-80`}`}>
@@ -847,22 +852,39 @@ function VolleyballTracker(){
                 </button>;
               })}
             </div>
-            <div className="text-[10px] font-bold text-gray-400 mb-1.5">SOFT-TRACKING</div>
-            <div className="grid grid-cols-2 gap-1.5 mb-2">
-              {softActions.map(a=>{
+            {/* Row 2: bad actions + big Ann.- btn */}
+            <div className="grid grid-cols-4 gap-1.5 mb-2">
+              {[
+                ACTIONS.find(a=>a.type==='error'),
+                ACTIONS.find(a=>a.type==='block_error'),
+                ACTIONS.find(a=>a.type==='service_error'),
+              ].map(a=>{
                 const isSel=selectedAction?.type===a.type;
                 return<button key={a.type} onClick={()=>setSelectedAction(isSel?null:a)}
                   className={`p-2 rounded-xl font-black text-xs transition-all active:scale-90 ${isSel?`${a.color} text-white ring-4 ring-yellow-300 scale-105 shadow-lg`:`${a.color} text-white opacity-80`}`}>
-                  <div className="text-lg">{a.emoji}</div><div className="text-[9px] mt-0.5">{a.label}</div>
+                  <div className="text-xl">{a.emoji}</div><div className="text-[9px] mt-0.5 leading-tight">{a.label}</div>
                 </button>;
               })}
+              {/* Big Ann.- button */}
+              {(()=>{const a=ACTIONS.find(x=>x.type==='reception_bad');const isSel=selectedAction?.type===a.type;
+                return<button onClick={()=>setSelectedAction(isSel?null:a)}
+                  className={`p-2 rounded-xl font-black text-xs transition-all active:scale-90 row-span-1 ${isSel?`${a.color} text-white ring-4 ring-yellow-300 scale-105 shadow-lg`:`${a.color} text-white opacity-80`}`}>
+                  <div className="text-2xl">{a.emoji}</div><div className="text-[9px] mt-0.5 leading-tight font-black">{a.label}</div>
+                </button>;
+              })()}
             </div>
-            <div className="text-[10px] font-bold text-gray-400 mb-1.5">GEGNER (direkt)</div>
-            <div className="grid grid-cols-2 gap-1.5">
+            {/* Soft + Opp row */}
+            <div className="grid grid-cols-3 gap-1.5">
+              {(()=>{const a=ACTIONS.find(x=>x.type==='attack_attempt');const isSel=selectedAction?.type===a.type;
+                return<button onClick={()=>setSelectedAction(isSel?null:a)}
+                  className={`p-2 rounded-xl font-black text-xs transition-all active:scale-90 ${isSel?`${a.color} text-white ring-4 ring-yellow-300 scale-105 shadow-lg`:`${a.color} text-white opacity-80`}`}>
+                  <div className="text-lg">{a.emoji}</div><div className="text-[9px] mt-0.5">{a.label}</div>
+                </button>;
+              })()}
               {oppActions.map(a=>(
                 <button key={a.type} onClick={()=>recordOppAction(a.type)}
                   className={`${a.color} text-white p-2 rounded-xl font-black text-xs active:scale-90`}>
-                  {a.emoji} {a.label}
+                  <div className="text-lg">{a.emoji}</div><div className="text-[9px] mt-0.5">{a.label}</div>
                 </button>
               ))}
             </div>
