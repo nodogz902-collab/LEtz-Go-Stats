@@ -1,6 +1,4 @@
-              {selectedAction
-                ?<span className="text-purple-700">✅ {selectedAction.emoji} <b>{selectedAction.label}</b> — Spieler auf Feld tippen</span>
-                :'① AKTION WÄHLEN'}<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="de">
 <head>
   <meta charset="UTF-8" />
@@ -27,13 +25,11 @@
 <div id="root"></div>
 <script type="text/babel" data-presets="react">
 const { useState, useEffect, useRef } = React;
-
 // ── Storage ──────────────────────────────────────────────────────────────────
 const storage = {
   async get(k){try{const v=localStorage.getItem('vbt_'+k);return v?{value:v}:null;}catch(e){return null;}},
   async set(k,v){try{localStorage.setItem('vbt_'+k,v);return{value:v};}catch(e){return null;}},
 };
-
 const videoDB = {
   async open(){
     return new Promise((res,rej)=>{
@@ -46,7 +42,6 @@ const videoDB = {
   async get(matchId){const db=await this.open();return new Promise((res,rej)=>{const tx=db.transaction('videos','readonly');const req=tx.objectStore('videos').get(matchId);req.onsuccess=()=>res(req.result);req.onerror=()=>rej(req.error);});},
   async delete(matchId){const db=await this.open();return new Promise((res,rej)=>{const tx=db.transaction('videos','readwrite');tx.objectStore('videos').delete(matchId);tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error);});},
 };
-
 // ── Icons ────────────────────────────────────────────────────────────────────
 const Icon=({children,size=16})=><svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{children}</svg>;
 const ArrowLeft=({size})=><Icon size={size}><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></Icon>;
@@ -58,7 +53,6 @@ const RefreshCw=({size})=><Icon size={size}><polyline points="23 4 23 10 17 10"/
 const Download=({size})=><Icon size={size}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></Icon>;
 const Upload=({size})=><Icon size={size}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></Icon>;
 const Settings=({size})=><Icon size={size}><circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 6v6m11-7h-6m-6 0H1"/></Icon>;
-
 // ── Constants ────────────────────────────────────────────────────────────────
 const POSITION_TYPES={
   S:{label:'Setter / Zuspieler',color:'from-yellow-400 to-orange-500',short:'Z'},
@@ -69,7 +63,6 @@ const POSITION_TYPES={
   DS:{label:'Defensive Spec.',color:'from-green-600 to-teal-700',short:'DS'},
 };
 const DEFAULT_CONFIG={S:1,OPP:1,OH:2,MB:2,L:1,DS:0};
-
 const ACTIONS=[
   {type:'kill',    emoji:'💥',label:'Kill',       color:'bg-gradient-to-br from-green-500 to-emerald-600',  forTeam:true, highlight:'front', isPoint:true},
   {type:'block',   emoji:'🧱',label:'Stuff',      color:'bg-gradient-to-br from-purple-500 to-indigo-600',  forTeam:true, highlight:'front', isPoint:true},
@@ -83,16 +76,13 @@ const ACTIONS=[
   {type:'opp_point',emoji:'🆚',label:'+1 Gegner',  color:'bg-gradient-to-br from-orange-500 to-red-500',   forTeam:false,highlight:'none',  isPoint:true},
   {type:'opp_error',emoji:'✨',label:'Geg.-Fehler', color:'bg-gradient-to-br from-emerald-500 to-green-600',forTeam:false,highlight:'none',  isPoint:true},
 ];
-
 const EVENT_LABELS={kill:'💥 Kill',ace:'🎯 Ace',block:'🧱 Stuff',error:'❌ Angriff-F.',service_error:'📉 Svc-F.',block_error:'🚫 Block-F.',attack_attempt:'⚔️ Angriffsv.',opp_point:'🆚 +1 Gegner',opp_error:'✨ Geg.-Fehler',reception_good:'✅ Ann.+',reception_bad:'⚠️ Ann.-'};
-
 const COURT_POSITIONS=[
   {pos:4,x:18,y:28,label:'LF'},{pos:3,x:50,y:28,label:'MF'},{pos:2,x:82,y:28,label:'RF'},
   {pos:5,x:18,y:72,label:'LB'},{pos:6,x:50,y:72,label:'MB'},{pos:1,x:82,y:72,label:'RB'},
 ];
 const FRONT_POSITIONS=[2,3,4];
 const BACK_POSITIONS=[1,5,6];
-
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function generateSlots(config){
   const s=[];
@@ -104,11 +94,9 @@ function generateSlots(config){
   });
   return s;
 }
-
 function getDefaultReception(){
   return{1:{x:75,y:40},2:{x:30,y:62},3:{x:50,y:22},4:{x:20,y:25},5:{x:55,y:68},6:{x:80,y:68}};
 }
-
 function getLineupForRotation(startingLineup,rotation){
   const cw=[1,6,5,4,3,2];const lineup={};
   Object.entries(startingLineup).forEach(([pos,slotId])=>{
@@ -117,9 +105,7 @@ function getLineupForRotation(startingLineup,rotation){
   });
   return lineup;
 }
-
 function setterRotToInternal(r){return{1:1,2:6,3:5,4:4,5:3,6:2}[r]||1;}
-
 function getHighlightedPositions(highlight,lineup){
   if(!highlight||highlight==='none')return null;
   if(highlight==='front')return new Set(FRONT_POSITIONS);
@@ -134,9 +120,7 @@ function getHighlightedPositions(highlight,lineup){
   }
   return null;
 }
-
 function fmtTime(s){const m=Math.floor(s/60);return`${m}:${Math.floor(s%60).toString().padStart(2,'0')}`;}
-
 // ── MatchVideoPlayer ──────────────────────────────────────────────────────────
 function MatchVideoPlayer({matchId,events,matchSlots,rosterSnap,matchSetScores,onEventsChange,onSetScoresChange,editMode,onToggleEdit}){
   const [videoUrl,setVideoUrl]=useState(null);
@@ -148,7 +132,6 @@ function MatchVideoPlayer({matchId,events,matchSlots,rosterSnap,matchSetScores,o
   const [showScoreEditor,setShowScoreEditor]=useState(false);
   const [draftScores,setDraftScores]=useState([]);
   const videoEl=useRef(null);
-
   useEffect(()=>{
     let mounted=true;let url=null;
     async function load(){
@@ -162,16 +145,13 @@ function MatchVideoPlayer({matchId,events,matchSlots,rosterSnap,matchSetScores,o
     load();
     return()=>{mounted=false;if(url)URL.revokeObjectURL(url);};
   },[matchId]);
-
   const jumpTo=(sec)=>{
     if(videoEl.current&&sec!=null){videoEl.current.currentTime=Math.max(0,sec-2);videoEl.current.play().catch(()=>{});}
   };
-
   const deleteVideo=async()=>{
     if(!confirm('Video löschen? Stats bleiben.'))return;
     try{await videoDB.delete(matchId);setVideoUrl(null);setErr('Video gelöscht');}catch(e){}
   };
-
   const openScoreEditor=()=>{
     setDraftScores(matchSetScores&&matchSetScores.length>0?[...matchSetScores]:[{teamScore:0,opponentScore:0}]);
     setShowScoreEditor(true);
@@ -185,8 +165,6 @@ function MatchVideoPlayer({matchId,events,matchSlots,rosterSnap,matchSetScores,o
     const n=[...draftScores];if(!n[idx])n[idx]={teamScore:0,opponentScore:0};
     n[idx][field]=Math.max(0,parseInt(val)||0);setDraftScores(n);
   };
-
-  // commit a retroactive event at current video time
   const commitAtTime=(details)=>{
     const event={
       id:Date.now().toString()+Math.random(),
@@ -200,39 +178,29 @@ function MatchVideoPlayer({matchId,events,matchSlots,rosterSnap,matchSetScores,o
     setTimeout(()=>setPendingFlash(null),600);
     setSelectedAction(null);
   };
-
   const recordOppAtTime=(type)=>commitAtTime({type,slotId:null,playerName:null,forTeam:false});
-
   const tapPlayerOnVideo=(slotId)=>{
     if(!selectedAction)return;
     const slot=matchSlots.find(s=>s.id===slotId);
     commitAtTime({type:selectedAction.type,slotId,playerName:rosterSnap[slotId]?.name,slotShort:slot?.short,forTeam:true});
   };
-
   const deleteEvent=(id)=>{if(confirm('Event löschen?'))onEventsChange(events.filter(e=>e.id!==id));};
-
   if(loading)return<div className="bg-white/95 rounded-2xl p-4 shadow-xl mb-3 text-center text-xs text-gray-500">🎬 Lade Video...</div>;
   if(err||!videoUrl)return<div className="bg-yellow-100 border-2 border-yellow-400 rounded-2xl p-3 mb-3 text-xs text-yellow-800 text-center">🎬 {err||'Kein Video'}</div>;
-
   const eventsWithTime=events.filter(e=>e.videoTime!=null).sort((a,b)=>a.videoTime-b.videoTime);
   const teamActions=ACTIONS.filter(a=>a.forTeam);
   const oppActions=ACTIONS.filter(a=>!a.forTeam);
   const pointActions=teamActions.filter(a=>!a.soft);
   const softActions=teamActions.filter(a=>a.soft);
-
-  // highlight logic in video edit mode
-  const lineup={};// dummy — we just highlight by type without rotation context in retro mode
-  // use slotId type directly
   const getHighlightForSlot=(slotId)=>{
     if(!selectedAction||!selectedAction.forTeam)return false;
     if(!selectedAction.highlight||selectedAction.highlight==='none')return true;
     const type=slotId.replace(/\d+$/,'');
-    if(selectedAction.highlight==='server')return false; // can't know who served retroactively without rotation
-    if(selectedAction.highlight==='front')return!['S','OPP'].includes(type)||['OPP'].includes(type);// all offensive
+    if(selectedAction.highlight==='server')return false;
+    if(selectedAction.highlight==='front')return!['S','OPP'].includes(type)||['OPP'].includes(type);
     if(selectedAction.highlight==='back')return type!=='S'&&type!=='OPP';
     return true;
   };
-
   return(
     <div className="bg-white/95 rounded-2xl p-3 shadow-xl mb-3">
       <div className="flex justify-between items-center mb-2">
@@ -245,8 +213,6 @@ function MatchVideoPlayer({matchId,events,matchSlots,rosterSnap,matchSetScores,o
           <button onClick={deleteVideo} className="text-red-500 text-xs p-1"><Trash2 size={14}/></button>
         </div>
       </div>
-
-      {/* Score editor modal */}
       {showScoreEditor&&(
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-3xl p-5 w-full max-w-sm shadow-2xl">
@@ -281,25 +247,20 @@ function MatchVideoPlayer({matchId,events,matchSlots,rosterSnap,matchSetScores,o
           </div>
         </div>
       )}
-
       <video ref={videoEl} src={videoUrl} controls playsInline className="w-full rounded-xl mb-2"
         onTimeUpdate={e=>setCurrentTime(e.target.currentTime)}/>
-
       {editMode&&(
         <div className="bg-gradient-to-br from-purple-50 to-indigo-50 border-2 border-purple-300 rounded-xl p-2 mb-2">
           <div className="text-[10px] font-bold text-purple-700 mb-2 flex items-center justify-between">
             <span>✏️ NACHTRACKEN · <span className="font-mono bg-purple-200 px-1 rounded">{fmtTime(currentTime)}</span></span>
             <span className="text-gray-500">Pausiere → Aktion → Spieler</span>
           </div>
-
           {selectedAction&&(
             <div className="bg-purple-700 text-white text-[10px] font-bold px-2 py-1 rounded-lg mb-2 flex items-center justify-between">
               <span>② {selectedAction.emoji} {selectedAction.label} → Spieler wählen</span>
               <button onClick={()=>setSelectedAction(null)} className="text-purple-200 ml-2">✕</button>
             </div>
           )}
-
-          {/* Action picker */}
           {!selectedAction&&(
             <>
               <div className="text-[10px] font-bold text-gray-500 mb-1">① AKTION WÄHLEN</div>
@@ -332,8 +293,6 @@ function MatchVideoPlayer({matchId,events,matchSlots,rosterSnap,matchSetScores,o
               </div>
             </>
           )}
-
-          {/* Player picker when action selected */}
           {selectedAction&&(
             <div className="grid grid-cols-3 gap-1">
               {matchSlots.filter(s=>rosterSnap[s.id]).map(slot=>{
@@ -352,15 +311,13 @@ function MatchVideoPlayer({matchId,events,matchSlots,rosterSnap,matchSetScores,o
           )}
         </div>
       )}
-
-      {/* Timeline */}
       {eventsWithTime.length>0&&(
         <>
           <div className="text-xs font-bold text-gray-600 mb-1">📍 {eventsWithTime.length} Events</div>
           <div className="space-y-1 max-h-52 overflow-y-auto">
             {eventsWithTime.map(e=>{
               const label=EVENT_LABELS[e.type]||e.type;
-              const outcomeEmoji=e.type==='kill'||e.type==='ace'||e.type==='block'||e.type==='opp_error'?'🟢':e.type==='error'||e.type==='service_error'||e.type==='block_error'||e.type==='reception_bad'||e.type==='opp_point'?'🔴':'⚪';
+              const outcomeEmoji=['kill','ace','block','opp_error'].includes(e.type)?'🟢':['error','service_error','block_error','reception_bad','opp_point'].includes(e.type)?'🔴':'⚪';
               return(
                 <div key={e.id} className="flex items-center gap-1.5 bg-gray-50 rounded-lg px-2 py-1 text-xs">
                   <button onClick={()=>jumpTo(e.videoTime)} className="flex-1 flex items-center gap-1.5 text-left active:scale-95">
@@ -379,7 +336,6 @@ function MatchVideoPlayer({matchId,events,matchSlots,rosterSnap,matchSetScores,o
     </div>
   );
 }
-
 // ── Main App ─────────────────────────────────────────────────────────────────
 function VolleyballTracker(){
   const [view,setView]=useState('home');
@@ -405,8 +361,6 @@ function VolleyballTracker(){
   const [selectedAction,setSelectedAction]=useState(null);
   const [pendingFlash,setPendingFlash]=useState(null);
   const [editingVideo,setEditingVideo]=useState(false);
-
-  // Recording
   const [recordingEnabled,setRecordingEnabled]=useState(false);
   const [isRecording,setIsRecording]=useState(false);
   const [recordingStart,setRecordingStart]=useState(null);
@@ -415,7 +369,6 @@ function VolleyballTracker(){
   const [cameraPreviewOpen,setCameraPreviewOpen]=useState(false);
   const mediaRecorderRef=useRef(null);
   const recordedChunksRef=useRef([]);
-
   useEffect(()=>{
     async function load(){
       try{const c=await storage.get('team_config');if(c)setTeamConfig(JSON.parse(c.value));}catch(e){}
@@ -427,8 +380,6 @@ function VolleyballTracker(){
     }
     load();
   },[]);
-
-  // ── Recording helpers ──
   const startRecording=async()=>{
     try{
       setRecordingError('');
@@ -448,7 +399,6 @@ function VolleyballTracker(){
       return true;
     }catch(err){setRecordingError('Kamera: '+err.message);return false;}
   };
-
   const stopRecording=async()=>new Promise(res=>{
     if(!mediaRecorderRef.current){res(null);return;}
     const rec=mediaRecorderRef.current;
@@ -460,14 +410,11 @@ function VolleyballTracker(){
     };
     rec.stop();
   });
-
-  // ── Persistence ──
   const saveConfig=async c=>{setTeamConfig(c);await storage.set('team_config',JSON.stringify(c));};
   const saveRoster=async r=>{setRoster(r);await storage.set('roster_v3',JSON.stringify(r));};
   const saveLineup=async l=>{setStartingLineup(l);await storage.set('starting_lineup_v2',JSON.stringify(l));};
   const saveFormations=async f=>{setReceptionFormations(f);await storage.set('reception_formations_v2',JSON.stringify(f));};
   const saveMatches=async m=>{setMatches(m);await storage.set('matches_v3',JSON.stringify(m));};
-
   const exportData=()=>{
     const data={version:1,exportDate:new Date().toISOString(),teamConfig,roster,startingLineup,receptionFormations,matches};
     const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
@@ -476,7 +423,6 @@ function VolleyballTracker(){
     document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
     setImportMessage('✓ Backup heruntergeladen');setTimeout(()=>setImportMessage(''),3000);
   };
-
   const importData=event=>{
     const file=event.target.files[0];if(!file)return;
     const reader=new FileReader();
@@ -493,27 +439,21 @@ function VolleyballTracker(){
     };
     reader.readAsText(file);
   };
-
   const slots=generateSlots(teamConfig);
   const assignedSlots=slots.filter(s=>roster[s.id]);
-
   const setPlayerName=(slotId,name)=>{
     const nr={...roster};
     if(!name.trim()){delete nr[slotId];const nl={...startingLineup};Object.entries(nl).forEach(([p,s])=>{if(s===slotId)delete nl[p];});saveLineup(nl);}
     else nr[slotId]={name:name.trim()};
     saveRoster(nr);setEditingSlot(null);setNameInput('');
   };
-
   const updateConfigCount=(type,delta)=>{
     const c=teamConfig[type]||0;saveConfig({...teamConfig,[type]:Math.max(0,Math.min(6,c+delta))});
   };
-
   const assignToPosition=(pos,slotId)=>{
     const nl={};Object.entries(startingLineup).forEach(([p,s])=>{if(s!==slotId)nl[p]=s;});nl[pos]=slotId;saveLineup(nl);
   };
-
   const lineupComplete=[1,2,3,4,5,6].every(p=>startingLineup[p]);
-
   const startNewMatch=async()=>{
     if(!opponentName.trim())return;
     let recStarted=false;
@@ -533,9 +473,7 @@ function VolleyballTracker(){
     };
     setCurrentMatch(match);setServingTeam('us');setShowNewMatch(false);setOpponentName('');setSelectedAction(null);setView('match');
   };
-
   const updateMatch=fn=>setCurrentMatch(prev=>fn(prev));
-
   const recordEventForPlayer=slotId=>{
     if(!selectedAction||!currentMatch)return;
     const action=selectedAction;
@@ -558,7 +496,6 @@ function VolleyballTracker(){
     setPendingFlash({slotId,type:action.type});setTimeout(()=>setPendingFlash(null),600);
     setSelectedAction(null);
   };
-
   const recordOppAction=type=>{
     if(!currentMatch)return;
     const videoTime=isRecording&&recordingStart?Math.floor((Date.now()-recordingStart)/1000):null;
@@ -569,7 +506,6 @@ function VolleyballTracker(){
     updateMatch(m=>({...m,events:[...m.events,event],teamScore:m.teamScore+td,opponentScore:m.opponentScore+od}));
     setServingTeam(newServing);setSelectedAction(null);
   };
-
   const undoLastEvent=()=>{
     if(!currentMatch||currentMatch.events.length===0)return;
     const last=currentMatch.events[currentMatch.events.length-1];
@@ -579,14 +515,11 @@ function VolleyballTracker(){
     updateMatch(m=>({...m,events:m.events.slice(0,-1),teamScore:m.teamScore+td,opponentScore:m.opponentScore+od,rotation:undoRotate?((m.rotation+4)%6)+1:m.rotation}));
     setServingTeam(last.serving);setSelectedAction(null);
   };
-
   const manualRotate=()=>updateMatch(m=>({...m,rotation:(m.rotation%6)+1}));
-
   const nextSet=()=>{
     updateMatch(m=>({...m,set:m.set+1,setScores:[...m.setScores,{teamScore:m.teamScore,opponentScore:m.opponentScore}],teamScore:0,opponentScore:0,rotation:1}));
     setServingTeam('us');setSelectedAction(null);
   };
-
   const finishMatch=async()=>{
     let videoBlob=null;
     if(isRecording)videoBlob=await stopRecording();
@@ -595,20 +528,17 @@ function VolleyballTracker(){
     await saveMatches([finalMatch,...matches]);
     setCurrentMatch(null);setSelectedAction(null);setView('home');
   };
-
   const cancelMatch=async()=>{
     if(confirm('Spiel verwerfen?')){
       if(isRecording)await stopRecording();
       setCurrentMatch(null);setSelectedAction(null);setView('home');
     }
   };
-
   if(loading)return(
     <div className="min-h-screen bg-gradient-to-br from-purple-600 via-pink-500 to-orange-400 flex items-center justify-center">
       <div className="text-white text-xl font-bold animate-pulse">Lade... 🏐</div>
     </div>
   );
-
   // ═══ HOME ═══════════════════════════════════════════════════════════════════
   if(view==='home')return(
     <div className="min-h-screen bg-gradient-to-br from-purple-600 via-pink-500 to-orange-400 p-4">
@@ -648,7 +578,6 @@ function VolleyballTracker(){
           </button>
         </div>
       </div>
-
       {showSettings&&(
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50" onClick={()=>setShowSettings(false)}>
           <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl" onClick={e=>e.stopPropagation()}>
@@ -671,7 +600,6 @@ function VolleyballTracker(){
           </div>
         </div>
       )}
-
       {showNewMatch&&(
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl">
@@ -687,7 +615,6 @@ function VolleyballTracker(){
                 ))}
               </div>
             </div>
-            {/* Video recording toggle */}
             <label className="flex items-start gap-2 p-3 rounded-2xl bg-gradient-to-r from-pink-50 to-purple-50 border-2 border-pink-200 cursor-pointer mb-4">
               <input type="checkbox" checked={recordingEnabled} onChange={e=>setRecordingEnabled(e.target.checked)} className="mt-0.5 w-5 h-5"/>
               <div>
@@ -704,7 +631,6 @@ function VolleyballTracker(){
       )}
     </div>
   );
-
   // ═══ ROSTER ══════════════════════════════════════════════════════════════════
   if(view==='roster')return(
     <div className="min-h-screen bg-gradient-to-br from-pink-500 via-purple-600 to-indigo-600 p-4">
@@ -758,7 +684,6 @@ function VolleyballTracker(){
       </div>
     </div>
   );
-
   // ═══ LINEUP ══════════════════════════════════════════════════════════════════
   if(view==='lineup')return(
     <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-blue-600 to-cyan-600 p-4">
@@ -825,9 +750,7 @@ function VolleyballTracker(){
       )}
     </div>
   );
-
   if(view==='formations')return<FormationsEditor rotation={formationEditRotation} setRotation={setFormationEditRotation} startingLineup={startingLineup} roster={roster} slots={slots} receptionFormations={receptionFormations} saveFormations={saveFormations} onBack={()=>setView('home')}/>;
-
   // ═══ MATCH ═══════════════════════════════════════════════════════════════════
   if(view==='match'&&currentMatch){
     const lineup=getLineupForRotation(currentMatch.lineupSnapshot,currentMatch.rotation);
@@ -837,7 +760,6 @@ function VolleyballTracker(){
     const setterSlot=matchSlots.find(s=>s.type==='S');
     const setterPos=setterSlot?Object.entries(lineup).find(([_,sid])=>sid===setterSlot.id)?.[0]:null;
     const isReceiving=servingTeam==='opp';
-
     const setTargetPoints=25;
     const setWonBy=(currentMatch.teamScore>=setTargetPoints&&currentMatch.teamScore-currentMatch.opponentScore>=2)?'us':(currentMatch.opponentScore>=setTargetPoints&&currentMatch.opponentScore-currentMatch.teamScore>=2)?'opp':null;
     const setsWonUs=currentMatch.setScores.filter(s=>s.teamScore>s.opponentScore).length+(setWonBy==='us'?1:0);
@@ -847,7 +769,6 @@ function VolleyballTracker(){
     const setBallUs=currentMatch.teamScore>=setTargetPoints-1&&currentMatch.teamScore>=currentMatch.opponentScore&&!setWonBy;
     const setBallOpp=currentMatch.opponentScore>=setTargetPoints-1&&currentMatch.opponentScore>=currentMatch.teamScore&&!setWonBy;
     const isExtension=currentMatch.teamScore>=setTargetPoints||currentMatch.opponentScore>=setTargetPoints;
-
     let positionLayout;
     if(isReceiving){
       const setterPosNum=parseInt(setterPos);
@@ -856,23 +777,19 @@ function VolleyballTracker(){
       const layout={};COURT_POSITIONS.forEach(c=>{layout[c.pos]={x:c.x,y:c.y};});
       positionLayout=layout;
     }
-
     const highlightedPositions=selectedAction?getHighlightedPositions(selectedAction.highlight,lineup):null;
     const isPosSelectable=(pos)=>{
       if(!selectedAction||!selectedAction.forTeam)return false;
       if(!highlightedPositions)return true;
       return highlightedPositions.has(pos);
     };
-
     const teamActions=ACTIONS.filter(a=>a.forTeam);
     const oppActions=ACTIONS.filter(a=>!a.forTeam);
     const pointActions=teamActions.filter(a=>!a.soft);
     const softActions=teamActions.filter(a=>a.soft);
-
     return(
       <div className="min-h-screen bg-gradient-to-br from-indigo-700 via-purple-700 to-pink-600 p-3 pb-6">
         <div className="max-w-md mx-auto">
-
           {/* Score */}
           <div className="bg-white/95 rounded-2xl p-3 shadow-xl mb-3">
             <div className="flex justify-between items-center mb-1">
@@ -889,7 +806,6 @@ function VolleyballTracker(){
               <button onClick={finishMatch} className="text-green-600 text-xs font-bold">✓ Fertig</button>
             </div>
             <div className="flex items-center justify-around gap-2">
-              {/* WIR */}
               <div className="flex items-center gap-1.5">
                 <button onClick={()=>updateMatch(m=>({...m,teamScore:Math.max(0,m.teamScore-1)}))} className="w-8 h-8 bg-gray-200 text-gray-600 rounded-lg font-black text-lg active:scale-90">−</button>
                 <button onClick={()=>setServingTeam('us')} className="text-center min-w-[60px] active:scale-95">
@@ -898,10 +814,7 @@ function VolleyballTracker(){
                 </button>
                 <button onClick={()=>updateMatch(m=>({...m,teamScore:m.teamScore+1}))} className="w-8 h-8 bg-gray-200 text-gray-600 rounded-lg font-black text-lg active:scale-90">+</button>
               </div>
-
               <div className="text-2xl text-gray-300 font-black">:</div>
-
-              {/* OPP */}
               <div className="flex items-center gap-1.5">
                 <button onClick={()=>updateMatch(m=>({...m,opponentScore:Math.max(0,m.opponentScore-1)}))} className="w-8 h-8 bg-gray-200 text-gray-600 rounded-lg font-black text-lg active:scale-90">−</button>
                 <button onClick={()=>setServingTeam('opp')} className="text-center min-w-[60px] active:scale-95">
@@ -917,14 +830,12 @@ function VolleyballTracker(){
             {matchWonBy&&<div className="mt-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-white p-2 rounded-xl font-black text-center animate-pulse">🏆 MATCH {matchWonBy==='us'?'GEWONNEN':'verloren'}!</div>}
             {!setWonBy&&(setBallUs||setBallOpp)&&<div className="mt-1 text-center text-[10px] font-bold text-orange-600">{setBallUs&&'🎯 Satzball WIR'}{setBallOpp&&`⚠️ Satzball ${currentMatch.opponent}`}</div>}
           </div>
-
           {/* ① Action picker */}
           <div className="bg-white/95 rounded-2xl p-3 shadow-xl mb-3">
             <div className="text-xs font-bold text-gray-500 mb-2">
               {selectedAction
                 ? <span className="text-purple-700">✅ {selectedAction.emoji} <b>{selectedAction.label}</b> — Spieler auf Feld tippen</span>
                 : '① AKTION WÄHLEN'}
-            </div>
             </div>
             <div className="text-[10px] font-bold text-gray-400 mb-1.5">PUNKTE-AKTIONEN</div>
             <div className="grid grid-cols-4 gap-1.5 mb-2">
@@ -946,27 +857,16 @@ function VolleyballTracker(){
                 </button>;
               })}
             </div>
-            <div className="text-[10px] font-bold text-gray-400 mb-1.5">SPIELSTAND MANUELL</div>
-            <div className="grid grid-cols-4 gap-1.5">
-              <div className="bg-purple-50 border border-purple-200 rounded-xl p-2">
-                <div className="text-[9px] font-bold text-purple-600 mb-1 text-center">WIR</div>
-                <div className="flex items-center justify-between gap-1">
-                  <button onClick={()=>updateMatch(m=>({...m,teamScore:Math.max(0,m.teamScore-1)}))} className="bg-red-400 text-white w-8 h-8 rounded-lg font-black text-lg active:scale-90">−</button>
-                  <span className="font-black text-lg text-purple-700">{currentMatch.teamScore}</span>
-                  <button onClick={()=>updateMatch(m=>({...m,teamScore:m.teamScore+1}))} className="bg-green-500 text-white w-8 h-8 rounded-lg font-black text-lg active:scale-90">+</button>
-                </div>
-              </div>
-              <div className="bg-orange-50 border border-orange-200 rounded-xl p-2">
-                <div className="text-[9px] font-bold text-orange-600 mb-1 text-center">{currentMatch.opponent.toUpperCase().slice(0,10)}</div>
-                <div className="flex items-center justify-between gap-1">
-                  <button onClick={()=>updateMatch(m=>({...m,opponentScore:Math.max(0,m.opponentScore-1)}))} className="bg-red-400 text-white w-8 h-8 rounded-lg font-black text-lg active:scale-90">−</button>
-                  <span className="font-black text-lg text-orange-600">{currentMatch.opponentScore}</span>
-                  <button onClick={()=>updateMatch(m=>({...m,opponentScore:m.opponentScore+1}))} className="bg-green-500 text-white w-8 h-8 rounded-lg font-black text-lg active:scale-90">+</button>
-                </div>
-              </div>
+            <div className="text-[10px] font-bold text-gray-400 mb-1.5">GEGNER (direkt)</div>
+            <div className="grid grid-cols-2 gap-1.5">
+              {oppActions.map(a=>(
+                <button key={a.type} onClick={()=>recordOppAction(a.type)}
+                  className={`${a.color} text-white p-2 rounded-xl font-black text-xs active:scale-90`}>
+                  {a.emoji} {a.label}
+                </button>
+              ))}
             </div>
           </div>
-
           {/* ② Court */}
           <div className="bg-white/95 rounded-2xl p-3 shadow-xl mb-3">
             <div className="flex justify-between items-center mb-2">
@@ -1021,7 +921,6 @@ function VolleyballTracker(){
               )}
             </div>
           </div>
-
           {/* Controls */}
           <div className="grid grid-cols-2 gap-2 mb-3">
             <button onClick={undoLastEvent} disabled={currentMatch.events.length===0} className="bg-gray-700 text-white p-3 rounded-2xl font-bold disabled:opacity-40">↶ Rückgängig</button>
@@ -1032,7 +931,6 @@ function VolleyballTracker(){
               </button>
             }
           </div>
-
           {/* Event log */}
           {currentMatch.events.length>0&&(
             <div className="bg-white/95 rounded-2xl p-3 shadow-xl">
@@ -1054,8 +952,6 @@ function VolleyballTracker(){
             </div>
           )}
         </div>
-
-        {/* Camera preview */}
         {cameraPreviewOpen&&cameraStream&&(
           <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4" onClick={()=>setCameraPreviewOpen(false)}>
             <div className="relative w-full max-w-md">
@@ -1070,7 +966,6 @@ function VolleyballTracker(){
       </div>
     );
   }
-
   // ═══ STATS ════════════════════════════════════════════════════════════════════
   if(view==='stats'){
     if(viewingMatch){
@@ -1095,8 +990,6 @@ function VolleyballTracker(){
                 </div>
               ))}
             </div>
-
-            {/* Video player with nachtracken */}
             {m.hasVideo&&(
               <MatchVideoPlayer
                 matchId={m.id}
@@ -1118,7 +1011,6 @@ function VolleyballTracker(){
                 }}
               />
             )}
-
             <div className="bg-white/95 rounded-2xl p-4 shadow-xl">
               <h3 className="font-black text-purple-700 mb-3">📊 Nach Spieler</h3>
               {Object.entries(bySlot).map(([slotId,s])=>{
@@ -1187,19 +1079,15 @@ function VolleyballTracker(){
   }
   return null;
 }
-
 // ═══ FormationsEditor ═════════════════════════════════════════════════════════
 function FormationsEditor({rotation:setterRotation,setRotation:setSetterRotation,startingLineup,roster,slots,receptionFormations,saveFormations,onBack}){
   const courtRef=useRef(null);
   const [localFormation,setLocalFormation]=useState(()=>receptionFormations[setterRotation]||getDefaultReception());
   const [dirty,setDirty]=useState(false);
   const [draggingPos,setDraggingPos]=useState(null);
-
   useEffect(()=>{setLocalFormation(receptionFormations[setterRotation]||getDefaultReception());setDirty(false);},[setterRotation,receptionFormations]);
-
   const internalRotation=setterRotToInternal(setterRotation);
   const lineup=getLineupForRotation(startingLineup,internalRotation);
-
   const handlePointerDown=(pos,e)=>{e.preventDefault();setDraggingPos(pos);};
   const handlePointerMove=e=>{
     if(draggingPos===null||!courtRef.current)return;e.preventDefault();
@@ -1211,7 +1099,6 @@ function FormationsEditor({rotation:setterRotation,setRotation:setSetterRotation
     setLocalFormation(prev=>({...prev,[draggingPos]:{x,y}}));setDirty(true);
   };
   const handlePointerUp=()=>setDraggingPos(null);
-
   useEffect(()=>{
     if(draggingPos!==null){
       const move=e=>handlePointerMove(e);const up=()=>handlePointerUp();
@@ -1220,7 +1107,6 @@ function FormationsEditor({rotation:setterRotation,setRotation:setSetterRotation
       return()=>{window.removeEventListener('mousemove',move);window.removeEventListener('mouseup',up);window.removeEventListener('touchmove',move);window.removeEventListener('touchend',up);};
     }
   },[draggingPos]);
-
   return(
     <div className="min-h-screen bg-gradient-to-br from-cyan-600 via-blue-600 to-indigo-700 p-4">
       <div className="max-w-md mx-auto">
@@ -1276,7 +1162,6 @@ function FormationsEditor({rotation:setterRotation,setRotation:setSetterRotation
     </div>
   );
 }
-
 ReactDOM.createRoot(document.getElementById('root')).render(<VolleyballTracker/>);
 </script>
 </body>
