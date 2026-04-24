@@ -133,6 +133,7 @@
       const [onboardingStep, setOnboardingStep] = useState(0);
       const [showSettings, setShowSettings] = useState(false);
       const [importMessage, setImportMessage] = useState('');
+      const [matchFormat, setMatchFormat] = useState('bo3'); // bo1, bo3, bo5
 
       useEffect(() => {
         async function load() {
@@ -249,11 +250,14 @@
 
       const startNewMatch = () => {
         if (!opponentName.trim()) return;
+        const maxSets = matchFormat === 'bo1' ? 1 : matchFormat === 'bo3' ? 3 : 5;
+        const setsToWin = matchFormat === 'bo1' ? 1 : matchFormat === 'bo3' ? 2 : 3;
         const match = {
           id: Date.now().toString(), opponent: opponentName.trim(), date: new Date().toISOString(),
           events: [], set: 1, rotation: 1, teamScore: 0, opponentScore: 0, setScores: [],
           rosterSnapshot: { ...roster }, lineupSnapshot: { ...startingLineup },
           configSnapshot: { ...teamConfig }, formationsSnapshot: { ...receptionFormations },
+          format: matchFormat, maxSets, setsToWin,
         };
         setCurrentMatch(match); setServingTeam('us'); setShowNewMatch(false); setOpponentName(''); setView('match');
       };
@@ -507,6 +511,22 @@
               <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl">
                 <h2 className="text-2xl font-black text-purple-700 mb-4">🚀 Neues Spiel</h2>
                 <input type="text" placeholder="Gegner..." value={opponentName} onChange={e => setOpponentName(e.target.value)} className="w-full p-4 border-2 border-purple-200 rounded-2xl mb-4 font-semibold focus:outline-none focus:border-purple-500" autoFocus />
+                <div className="mb-4">
+                  <div className="text-sm font-bold text-gray-700 mb-2">🏆 Match-Format</div>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { id: 'bo1', label: 'Best of 1', sub: '1 Satz' },
+                      { id: 'bo3', label: 'Best of 3', sub: 'max 3' },
+                      { id: 'bo5', label: 'Best of 5', sub: 'max 5' },
+                    ].map(f => (
+                      <button key={f.id} onClick={() => setMatchFormat(f.id)} className={`p-3 rounded-2xl font-black transition ${matchFormat === f.id ? 'bg-gradient-to-br from-purple-600 to-pink-500 text-white shadow-lg scale-105' : 'bg-gray-100 text-gray-700'}`}>
+                        <div className="text-sm">{f.label}</div>
+                        <div className="text-[10px] opacity-80 font-normal">{f.sub}</div>
+                      </button>
+                    ))}
+                  </div>
+                  <div className="text-[10px] text-gray-500 mt-2">Sätze bis 25 (mit 2 Punkten Vorsprung, sonst Verlängerung)</div>
+                </div>
                 <div className="flex gap-2">
                   <button onClick={() => { setShowNewMatch(false); setOpponentName(''); }} className="flex-1 bg-gray-200 p-3 rounded-2xl font-bold">Abbrechen</button>
                   <button onClick={startNewMatch} disabled={!opponentName.trim()} className="flex-1 bg-gradient-to-r from-purple-600 to-pink-500 text-white p-3 rounded-2xl font-bold disabled:opacity-50">Los! 🏐</button>
@@ -655,6 +675,23 @@
         const setterSlot = matchSlots.find(s => s.type === 'S');
         const setterPos = setterSlot ? Object.entries(lineup).find(([_, sid]) => sid === setterSlot.id)?.[0] : null;
         const isReceiving = servingTeam === 'opp';
+
+        // Satz-Ende Logik: 25 Punkte mit 2 Vorsprung, sonst Verlängerung
+        const setTargetPoints = 25;
+        const teamScore = currentMatch.teamScore;
+        const oppScore = currentMatch.opponentScore;
+        const setWonBy = (teamScore >= setTargetPoints && teamScore - oppScore >= 2) ? 'us' :
+                        (oppScore >= setTargetPoints && oppScore - teamScore >= 2) ? 'opp' : null;
+        // Match-Ende Logik
+        const setsWonUs = currentMatch.setScores.filter(s => s.teamScore > s.opponentScore).length + (setWonBy === 'us' ? 1 : 0);
+        const setsWonOpp = currentMatch.setScores.filter(s => s.opponentScore > s.teamScore).length + (setWonBy === 'opp' ? 1 : 0);
+        const setsToWin = currentMatch.setsToWin || 2;
+        const matchWonBy = setsWonUs >= setsToWin ? 'us' : setsWonOpp >= setsToWin ? 'opp' : null;
+        // Satzball / Matchball Anzeige
+        const setBallUs = teamScore >= setTargetPoints - 1 && teamScore >= oppScore - 0 && !setWonBy;
+        const setBallOpp = oppScore >= setTargetPoints - 1 && oppScore >= teamScore - 0 && !setWonBy;
+        const isExtension = teamScore >= setTargetPoints || oppScore >= setTargetPoints;
+
         let positionLayout;
         if (isReceiving) {
           const setterPosNum = parseInt(setterPos);
@@ -677,7 +714,10 @@
               <div className="bg-white/95 rounded-2xl p-3 shadow-xl mb-3">
                 <div className="flex justify-between items-center mb-1">
                   <button onClick={cancelMatch} className="text-red-500 text-xs font-bold">✕ Ende</button>
-                  <div className="text-xs font-bold text-gray-500">SATZ {currentMatch.set}</div>
+                  <div className="text-xs font-bold text-gray-500">
+                    SATZ {currentMatch.set}/{currentMatch.maxSets || 3} · {(currentMatch.format || 'bo3').toUpperCase()}
+                    {isExtension && <span className="ml-1 text-orange-600">· 🔥 VERL.</span>}
+                  </div>
                   <button onClick={finishMatch} className="text-green-600 text-xs font-bold">✓ Fertig</button>
                 </div>
                 <div className="flex items-center justify-around">
@@ -696,7 +736,27 @@
                   </button>
                 </div>
                 <div className="text-center text-[10px] text-gray-400 mt-0.5">tippe 🏐 zum Aufschlag wechseln</div>
-                {currentMatch.setScores.length > 0 && <div className="text-center text-xs text-gray-500 mt-1">{currentMatch.setScores.map(s => `${s.teamScore}-${s.opponentScore}`).join(' | ')}</div>}
+                {currentMatch.setScores.length > 0 && (
+                  <div className="text-center text-xs text-gray-500 mt-1">
+                    Sätze: {setsWonUs - (setWonBy === 'us' ? 1 : 0)}:{setsWonOpp - (setWonBy === 'opp' ? 1 : 0)} · {currentMatch.setScores.map(s => `${s.teamScore}-${s.opponentScore}`).join(' | ')}
+                  </div>
+                )}
+                {setWonBy && !matchWonBy && (
+                  <div className="mt-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white p-2 rounded-xl font-black text-center animate-pulse">
+                    🎉 SATZ GEWONNEN {setWonBy === 'us' ? '(WIR)' : `(${currentMatch.opponent})`}! → Satz {currentMatch.set + 1} starten
+                  </div>
+                )}
+                {matchWonBy && (
+                  <div className="mt-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-white p-2 rounded-xl font-black text-center animate-pulse">
+                    🏆 MATCH GEWONNEN {matchWonBy === 'us' ? '(WIR)' : `(${currentMatch.opponent})`}! → Fertig tippen
+                  </div>
+                )}
+                {!setWonBy && (setBallUs || setBallOpp) && (
+                  <div className="mt-1 text-center text-[10px] font-bold text-orange-600">
+                    {setBallUs && '🎯 Satzball WIR'}
+                    {setBallOpp && `⚠️ Satzball ${currentMatch.opponent}`}
+                  </div>
+                )}
               </div>
               <div className="bg-white/95 rounded-2xl p-3 shadow-xl mb-3">
                 <div className="flex justify-between items-center mb-2">
@@ -772,7 +832,16 @@
               </div>
               <div className="grid grid-cols-2 gap-2 mb-3">
                 <button onClick={undoLastEvent} disabled={currentMatch.events.length === 0} className="bg-gray-700 text-white p-3 rounded-2xl font-bold disabled:opacity-40">↶ Rückgängig</button>
-                <button onClick={() => { if (confirm('Nächster Satz?')) nextSet(); }} className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white p-3 rounded-2xl font-bold">Satz {currentMatch.set + 1} →</button>
+                {matchWonBy ? (
+                  <button onClick={finishMatch} className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white p-3 rounded-2xl font-black animate-pulse">🏆 Match beenden</button>
+                ) : (
+                  <button onClick={() => {
+                    if (!setWonBy && !confirm('Satz ist noch nicht gewonnen. Trotzdem weiter?')) return;
+                    nextSet();
+                  }} disabled={currentMatch.set >= currentMatch.maxSets} className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white p-3 rounded-2xl font-bold disabled:opacity-40">
+                    {setWonBy ? `✓ Satz ${currentMatch.set + 1} →` : `Satz ${currentMatch.set + 1} →`}
+                  </button>
+                )}
               </div>
               {currentMatch.events.length > 0 && (
                 <div className="bg-white/95 rounded-2xl p-3 shadow-xl">
