@@ -19,8 +19,6 @@ input,button{-webkit-user-select:auto;user-select:auto;}
 @keyframes achieveIn{0%{transform:translateY(-80px);opacity:0}18%{transform:none;opacity:1}78%{transform:none;opacity:1}100%{transform:translateY(-80px);opacity:0}}
 @keyframes drawPath{from{stroke-dashoffset:120}to{stroke-dashoffset:0}}
 @keyframes fall{0%{transform:translateY(0) rotate(0deg);opacity:1}100%{transform:translateY(105vh) rotate(540deg);opacity:0}}
-@keyframes barIn{from{width:0}to{width:var(--w)}}
-@keyframes xpFlash{0%,100%{opacity:.7}50%{opacity:1}}
 @keyframes starPop{0%{transform:scale(0)}60%{transform:scale(1.3)}100%{transform:scale(1)}}
 .float{animation:float 3s ease-in-out infinite}
 .fade-up{animation:fadeUp .4s ease-out both}
@@ -34,21 +32,21 @@ input,button{-webkit-user-select:auto;user-select:auto;}
 <body>
 <div id="root" style="height:100vh"></div>
 <script type="text/babel" data-presets="react">
-const {useState,useEffect,useMemo,useRef}=React;
+const {useState,useEffect,useMemo}=React;
 
 const ACHIEVEMENTS=[
-  {emoji:'🏗️',title:'Team Builder',   desc:'Kader-System gemeistert',   grad:'from-orange-500 to-yellow-400'},
-  {emoji:'📋',title:'Lineup Pro',      desc:'Aufstellung im Griff',      grad:'from-indigo-500 to-blue-500'},
-  {emoji:'🎯',title:'Formation Master',desc:'5-1 System gecheckt',       grad:'from-cyan-500 to-teal-500'},
-  {emoji:'⚡',title:'Match Tracker',   desc:'Live-Tracking bereit',      grad:'from-yellow-500 to-orange-400'},
-  {emoji:'📊',title:'Data Coach',      desc:'Analytics entsperrt',       grad:'from-pink-500 to-purple-500'},
+  {emoji:'🏗️',title:'Team Builder',   desc:'Kader-System gemeistert',  grad:'from-orange-500 to-yellow-400'},
+  {emoji:'📋',title:'Lineup Pro',      desc:'Aufstellung im Griff',     grad:'from-indigo-500 to-blue-500'},
+  {emoji:'🎯',title:'Formation Master',desc:'5-1 System gecheckt',      grad:'from-cyan-500 to-teal-500'},
+  {emoji:'⚡',title:'Match Tracker',   desc:'Live-Tracking bereit',     grad:'from-yellow-500 to-orange-400'},
+  {emoji:'📊',title:'Data Coach',      desc:'Analytics entsperrt',      grad:'from-pink-500 to-purple-500'},
 ];
 const LEVELS=[
-  {min:0,  name:'Rookie Coach',   icon:'🌱'},
-  {min:100,name:'Junior Coach',   icon:'🌿'},
-  {min:300,name:'Team Coach',     icon:'⭐'},
-  {min:500,name:'Pro Coach',      icon:'🌟'},
-  {min:600,name:'Coach Pro ★★★', icon:'🏆'},
+  {min:0,  name:'Rookie Coach',  icon:'🌱'},
+  {min:100,name:'Junior Coach',  icon:'🌿'},
+  {min:300,name:'Team Coach',    icon:'⭐'},
+  {min:500,name:'Pro Coach',     icon:'🌟'},
+  {min:600,name:'Coach Pro ★★★',icon:'🏆'},
 ];
 const BGS=[
   'from-purple-900 via-pink-800 to-orange-700',
@@ -61,7 +59,14 @@ const BGS=[
 ];
 const getLevel=xp=>[...LEVELS].reverse().find(l=>xp>=l.min)||LEVELS[0];
 
-// ── Mini components ────────────────────────────────────────────────────────
+const PCOLS={
+  S:'linear-gradient(135deg,#f59e0b,#f97316)',
+  OPP:'linear-gradient(135deg,#ef4444,#ec4899)',
+  OH:'linear-gradient(135deg,#3b82f6,#06b6d4)',
+  MB:'linear-gradient(135deg,#8b5cf6,#6366f1)',
+  L:'linear-gradient(135deg,#4b5563,#1f2937)',
+};
+
 function Court({h=168,children}){
   return(
     <div className="relative rounded-2xl overflow-hidden border-2 border-orange-400 flex-shrink-0"
@@ -73,13 +78,15 @@ function Court({h=168,children}){
     </div>
   );
 }
+
 function Dot({x,y,color,label,name,num,size=42,glow=false,dim=false,delay=0,ring}){
   return(
     <div className="absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center z-10 pop"
-         style={{left:`${x}%`,top:`${y}%`,animationDelay:`${delay}s`,opacity:dim?.25:1,transition:'opacity .2s'}}>
+         style={{left:`${x}%`,top:`${y}%`,animationDelay:`${delay}s`,opacity:dim?0.25:1,transition:'opacity .2s'}}>
       <div className="rounded-full flex items-center justify-center text-white font-black shadow-lg"
            style={{width:size,height:size,background:color,fontSize:size>38?11:9,
-             boxShadow:glow?`0 0 0 3px rgba(250,204,21,.9),0 4px 12px rgba(0,0,0,.3)`:ring?`0 0 0 2px ${ring},0 2px 6px rgba(0,0,0,.3)`:'0 2px 8px rgba(0,0,0,.3)'}}>
+             boxShadow:glow?'0 0 0 3px rgba(250,204,21,.9),0 4px 12px rgba(0,0,0,.3)':
+               ring?`0 0 0 2px ${ring},0 2px 6px rgba(0,0,0,.3)`:'0 2px 8px rgba(0,0,0,.3)'}}>
         {label}
       </div>
       {name&&<div className="mt-0.5 text-[8px] font-bold text-gray-800 bg-white/85 rounded px-1 truncate" style={{maxWidth:50}}>{name}</div>}
@@ -87,6 +94,7 @@ function Dot({x,y,color,label,name,num,size=42,glow=false,dim=false,delay=0,ring
     </div>
   );
 }
+
 function Tip({icon,text,delay=0}){
   return(
     <div className="flex items-start gap-2 bg-white/10 rounded-xl px-3 py-2 fade-up" style={{animationDelay:`${delay}s`}}>
@@ -96,15 +104,6 @@ function Tip({icon,text,delay=0}){
   );
 }
 
-const PCOLS={
-  S:'linear-gradient(135deg,#f59e0b,#f97316)',
-  OPP:'linear-gradient(135deg,#ef4444,#ec4899)',
-  OH:'linear-gradient(135deg,#3b82f6,#06b6d4)',
-  MB:'linear-gradient(135deg,#8b5cf6,#6366f1)',
-  L:'linear-gradient(135deg,#4b5563,#1f2937)',
-};
-
-// ── Screens ────────────────────────────────────────────────────────────────
 function S0_Welcome(){
   return(
     <div className="flex flex-col items-center justify-center h-full px-5 text-center gap-4">
@@ -115,8 +114,7 @@ function S0_Welcome(){
       </div>
       <div className="grid grid-cols-2 gap-2.5 w-full max-w-xs">
         {[['📍','Live Tracking'],['🎯','5-1 System'],['📊','Analytics'],['📄','PDF Export']].map(([ic,lb],i)=>(
-          <div key={i} className="bg-white/15 backdrop-blur-sm rounded-2xl p-3 fade-up flex items-center gap-2.5"
-               style={{animationDelay:`${i*.08}s`}}>
+          <div key={i} className="bg-white/15 rounded-2xl p-3 fade-up flex items-center gap-2.5" style={{animationDelay:`${i*.08}s`}}>
             <span className="text-xl">{ic}</span>
             <span className="text-white font-bold text-sm">{lb}</span>
           </div>
@@ -132,19 +130,18 @@ function S0_Welcome(){
 
 function S1_Roster(){
   const pos=[
-    {l:'Z', n:'Zuspieler',c:PCOLS.S, cnt:'×1'},
+    {l:'Z', n:'Zuspieler',c:PCOLS.S,  cnt:'×1'},
     {l:'D', n:'Diagonal', c:PCOLS.OPP,cnt:'×1'},
-    {l:'AA',n:'Außen',   c:PCOLS.OH, cnt:'×2'},
-    {l:'MB',n:'Mittel',  c:PCOLS.MB, cnt:'×2'},
-    {l:'L', n:'Libero',  c:PCOLS.L,  cnt:'×1'},
+    {l:'AA',n:'Außen',    c:PCOLS.OH, cnt:'×2'},
+    {l:'MB',n:'Mittel',   c:PCOLS.MB, cnt:'×2'},
+    {l:'L', n:'Libero',   c:PCOLS.L,  cnt:'×1'},
   ];
   return(
     <div className="flex flex-col h-full px-4 gap-3 py-1">
       <div className="flex justify-around py-1">
         {pos.map((p,i)=>(
           <div key={i} className="flex flex-col items-center pop" style={{animationDelay:`${i*.07}s`}}>
-            <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-black text-sm shadow-lg mb-1"
-                 style={{background:p.c}}>{p.l}</div>
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-black text-sm shadow-lg mb-1" style={{background:p.c}}>{p.l}</div>
             <div className="text-white/80 text-[9px] font-bold">{p.n}</div>
             <div className="text-yellow-300 text-[9px] font-black">{p.cnt}</div>
           </div>
@@ -153,8 +150,7 @@ function S1_Roster(){
       <div className="bg-white/10 rounded-2xl p-3 fade-up" style={{animationDelay:'.4s'}}>
         <div className="text-white/45 text-[9px] font-bold uppercase tracking-widest mb-2">Beispiel Spielerkarte</div>
         <div className="flex items-center gap-3 bg-white rounded-xl p-2.5 shadow">
-          <div className="w-11 h-11 rounded-xl flex items-center justify-center text-white font-black text-xs shadow flex-shrink-0"
-               style={{background:PCOLS.MB}}>MB1</div>
+          <div className="w-11 h-11 rounded-xl flex items-center justify-center text-white font-black text-xs shadow flex-shrink-0" style={{background:PCOLS.MB}}>MB1</div>
           <div className="flex-1 min-w-0">
             <div className="text-[10px] text-gray-400 font-bold">Middle / Mittel 1</div>
             <div className="font-bold text-gray-800 text-sm truncate">Max Müller</div>
@@ -173,12 +169,12 @@ function S1_Roster(){
 
 function S2_Lineup(){
   const pl=[
-    {x:18,y:28,color:PCOLS.OPP,label:'D',   name:'Klara',num:4,delay:.04},
-    {x:50,y:28,color:PCOLS.MB, label:'MB2',  name:'Tom',  num:3,delay:.08},
-    {x:82,y:28,color:PCOLS.OH, label:'AA2',  name:'Sara', num:2,delay:.12},
-    {x:18,y:72,color:PCOLS.OH, label:'AA1',  name:'Mia',  num:5,delay:.16},
-    {x:50,y:72,color:PCOLS.MB, label:'MB1',  name:'Klaus',num:6,delay:.20},
-    {x:82,y:72,color:PCOLS.S,  label:'Z',    name:'Lena', num:1,delay:.24,ring:'rgba(250,204,21,.9)'},
+    {x:18,y:28,color:PCOLS.OPP,label:'D',  name:'Klara',num:4,delay:.04},
+    {x:50,y:28,color:PCOLS.MB, label:'MB2', name:'Tom',  num:3,delay:.08},
+    {x:82,y:28,color:PCOLS.OH, label:'AA2', name:'Sara', num:2,delay:.12},
+    {x:18,y:72,color:PCOLS.OH, label:'AA1', name:'Mia',  num:5,delay:.16},
+    {x:50,y:72,color:PCOLS.MB, label:'MB1', name:'Klaus',num:6,delay:.20},
+    {x:82,y:72,color:PCOLS.S,  label:'Z',   name:'Lena', num:1,delay:.24,ring:'rgba(250,204,21,.9)'},
   ];
   return(
     <div className="flex flex-col h-full px-4 gap-3 py-1">
@@ -210,38 +206,38 @@ function S3_Formations(){
   const [drawn,setDrawn]=useState(false);
   useEffect(()=>{const t=setTimeout(()=>setDrawn(true),500);return()=>clearTimeout(t);},[]);
   const recv=[
-    {x:65,y:52,color:PCOLS.OH, label:'AA2',name:'Sara',  delay:.1},
-    {x:30,y:52,color:PCOLS.OH, label:'AA1',name:'Mia',   delay:.15},
-    {x:14,y:72,color:PCOLS.L,  label:'L',  name:'Laura', delay:.2},
-    {x:48,y:82,color:PCOLS.L,  label:'MB2',name:'Tom',   delay:.25},
-    {x:76,y:70,color:PCOLS.MB, label:'MB1',name:'Klaus', delay:.3},
+    {x:65,y:52,color:PCOLS.OH,label:'AA2',name:'Sara', delay:.1},
+    {x:30,y:52,color:PCOLS.OH,label:'AA1',name:'Mia',  delay:.15},
+    {x:14,y:72,color:PCOLS.L, label:'L',  name:'Laura',delay:.2},
+    {x:48,y:82,color:PCOLS.MB,label:'MB2',name:'Tom',  delay:.25},
+    {x:76,y:70,color:PCOLS.MB,label:'MB1',name:'Klaus',delay:.3},
   ];
   return(
     <div className="flex flex-col h-full px-4 gap-3 py-1">
       <Court h={178}>
-        {/* Setter ghost at rotation start pos 1 */}
-        <div className="absolute z-5 fade-up" style={{left:'82%',top:'73%',transform:'translate(-50%,-50%)',animationDelay:'.2s'}}>
+        <div className="absolute fade-up" style={{left:'82%',top:'73%',transform:'translate(-50%,-50%)',animationDelay:'.2s',zIndex:5}}>
           <div className="w-8 h-8 rounded-full border-2 border-dashed border-yellow-500/60 flex items-center justify-center">
             <span style={{fontSize:8,fontWeight:900,color:'#f59e0b',opacity:.7}}>Z</span>
           </div>
         </div>
-        {/* Animated SVG path */}
         <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 100 100" preserveAspectRatio="none" style={{zIndex:7}}>
-          {drawn&&<>
-            <line x1="82" y1="68" x2="82" y2="26" stroke="#f59e0b" strokeWidth="1.6" strokeDasharray="120" strokeDashoffset="0" strokeLinecap="round" opacity=".9"
-              style={{animation:'drawPath 1s ease-out forwards',strokeDasharray:'4,2.5'}}/>
-            <polygon points="82,22 79,28 85,28" fill="#f59e0b" opacity=".95"
-              style={{animation:'fadeUp .3s ease-out .9s both'}}/>
-            <text x="72" y="46" textAnchor="middle" style={{fontSize:'3px',fill:'#92400e',opacity:.85,fontWeight:'bold',animation:'fadeUp .3s .9s both'}}>Laufweg Z</text>
-          </>}
+          {drawn&&(
+            <g>
+              <line x1="82" y1="68" x2="82" y2="26" stroke="#f59e0b" strokeWidth="1.6"
+                strokeDasharray="4,2.5" strokeLinecap="round" opacity=".9"
+                style={{animation:'drawPath 1s ease-out forwards'}}/>
+              <polygon points="82,22 79,28 85,28" fill="#f59e0b" opacity=".95"
+                style={{animation:'fadeUp .3s ease-out .9s both'}}/>
+              <text x="72" y="46" textAnchor="middle"
+                style={{fontSize:'3px',fill:'#92400e',opacity:.85,fontWeight:'bold',animation:'fadeUp .3s .9s both'}}>Laufweg Z</text>
+            </g>
+          )}
         </svg>
-        {/* Zuspielzone */}
-        <div className="absolute z-8 fade-up" style={{left:'82%',top:'17%',transform:'translate(-50%,-50%)',animationDelay:'.4s'}}>
+        <div className="absolute fade-up" style={{left:'82%',top:'17%',transform:'translate(-50%,-50%)',animationDelay:'.4s',zIndex:8}}>
           <div className="w-7 h-7 rounded-full border-2 border-dashed border-yellow-500/60 flex items-center justify-center">
             <span style={{fontSize:8,fontWeight:900,color:'#78350f'}}>Z♟</span>
           </div>
         </div>
-        {/* Z final pos */}
         <Dot x={82} y={20} color={PCOLS.S} label="Z" name="Lena" size={40} glow={true} delay={.35}/>
         {recv.map((p,i)=><Dot key={i} {...p} size={38}/>)}
       </Court>
@@ -265,15 +261,15 @@ function S3_Formations(){
 function S4_Match(){
   const [sel,setSel]=useState(null);
   const acts=[
-    {t:'kill', e:'💥',l:'Kill',   c:'from-green-500 to-emerald-600', hi:'front'},
-    {t:'block',e:'🧱',l:'Stuff',  c:'from-purple-500 to-indigo-600', hi:'front'},
-    {t:'ace',  e:'🎯',l:'Ace',    c:'from-blue-500 to-cyan-600',     hi:'server',svc:true},
-    {t:'err',  e:'❌',l:'Angr.F.',c:'from-red-500 to-rose-600',      hi:'front'},
-    {t:'berr', e:'🚫',l:'Blk.F.', c:'from-red-600 to-pink-700',     hi:'front'},
-    {t:'svc',  e:'📉',l:'Svc.F.', c:'from-orange-500 to-red-500',   hi:'server',svc:true},
-    {t:'annp', e:'✅',l:'Ann.+',  c:'from-lime-500 to-green-600',   hi:'receive',soft:true},
-    {t:'annm', e:'⚠️',l:'Ann.-',  c:'from-amber-500 to-orange-600', hi:'receive'},
-    {t:'angr', e:'⚔️',l:'Angr.v.',c:'from-teal-500 to-cyan-500',   hi:'front',soft:true},
+    {t:'kill', e:'💥',l:'Kill',   c:'from-green-500 to-emerald-600',hi:'front'},
+    {t:'block',e:'🧱',l:'Stuff',  c:'from-purple-500 to-indigo-600',hi:'front'},
+    {t:'ace',  e:'🎯',l:'Ace',    c:'from-blue-500 to-cyan-600',    hi:'server',svc:true},
+    {t:'err',  e:'❌',l:'Angr.F.',c:'from-red-500 to-rose-600',     hi:'front'},
+    {t:'berr', e:'🚫',l:'Blk.F.', c:'from-red-600 to-pink-700',    hi:'front'},
+    {t:'svc',  e:'📉',l:'Svc.F.', c:'from-orange-500 to-red-500',  hi:'server',svc:true},
+    {t:'annp', e:'✅',l:'Ann.+',  c:'from-lime-500 to-green-600',  hi:'receive',soft:true},
+    {t:'annm', e:'⚠️',l:'Ann.-',  c:'from-amber-500 to-orange-600',hi:'receive'},
+    {t:'angr', e:'⚔️',l:'Angr.v.',c:'from-teal-500 to-cyan-500',  hi:'front',soft:true},
   ];
   const pl=[
     {x:18,y:28,c:PCOLS.OPP,l:'D',  front:true},
@@ -283,8 +279,15 @@ function S4_Match(){
     {x:50,y:72,c:PCOLS.MB, l:'MB1',front:false},
     {x:82,y:72,c:PCOLS.S,  l:'Z',  front:false},
   ];
-  const hi=sel?acts.find(a=>a.t===sel)?.hi:null;
-  const isSug=(p)=>!hi?false:hi==='front'?p.front:hi==='receive'?p.l!=='Z'&&p.l!=='D':hi==='server'?p.l==='Z':false;
+  const hi=sel?acts.find(a=>a.t===sel)||null:null;
+  const hiType=hi?hi.hi:null;
+  const isSug=(p)=>{
+    if(!hiType)return false;
+    if(hiType==='front')return p.front;
+    if(hiType==='receive')return p.l!=='Z'&&p.l!=='D';
+    if(hiType==='server')return p.l==='Z';
+    return false;
+  };
   return(
     <div className="flex flex-col h-full px-4 gap-2.5 py-1">
       <div className="flex gap-2.5">
@@ -294,7 +297,7 @@ function S4_Match(){
             {acts.map(a=>(
               <button key={a.t} onClick={()=>setSel(sel===a.t?null:a.t)}
                 className={`bg-gradient-to-br ${a.c} text-white rounded-lg p-1.5 text-center transition-all active:scale-90 relative
-                  ${sel===a.t?'ring-2 ring-yellow-300 scale-105 shadow-lg':a.svc?'opacity-40':a.soft?'opacity-55 border border-dashed border-white/30':'opacity-70'}`}>
+                  ${sel===a.t?'ring-2 ring-yellow-300 scale-105 shadow-lg':a.svc?'opacity-40':a.soft?'opacity-55':'opacity-70'}`}>
                 <div className="text-sm">{a.e}</div>
                 <div className="text-[7px] font-bold leading-none mt-0.5">{a.l}</div>
                 {a.svc&&<div className="absolute -top-1 -right-1 bg-black/60 text-white text-[5px] px-0.5 rounded-full leading-tight">✋</div>}
@@ -302,18 +305,19 @@ function S4_Match(){
             ))}
           </div>
           {sel
-            ?<div className="text-yellow-300 text-[9px] font-bold mt-1.5 text-center animate-pulse">→ Spieler auf Feld tippen!</div>
+            ?<div className="text-yellow-300 text-[9px] font-bold mt-1.5 text-center animate-pulse">Spieler auf Feld leuchten auf!</div>
             :<div className="text-white/40 text-[9px] mt-1.5 text-center">Tippe eine Aktion zum Ausprobieren</div>}
         </div>
         <div style={{width:126}}>
           <div className="text-white/50 text-[9px] font-bold uppercase tracking-widest mb-1.5">② Spieler tippen</div>
           <Court h={108}>
             {pl.map((p,i)=>{
-              const sug=isSug(p);const dim=!!sel&&!sug;
+              const sug=isSug(p);
+              const dim=!!sel&&!sug;
               return(
                 <div key={i} className="absolute -translate-x-1/2 -translate-y-1/2 z-10 transition-all duration-200"
-                     style={{left:`${p.x}%`,top:`${p.y}%`,opacity:dim?.2:1}}>
-                  <div className={`w-7 h-7 rounded-full flex items-center justify-center text-white font-black text-[8px] shadow`}
+                     style={{left:`${p.x}%`,top:`${p.y}%`,opacity:dim?0.2:1}}>
+                  <div className="w-7 h-7 rounded-full flex items-center justify-center text-white font-black text-[8px] shadow"
                        style={{background:p.c,boxShadow:sug&&sel?'0 0 0 3px rgba(250,204,21,.9)':'0 1px 4px rgba(0,0,0,.3)'}}>
                     {p.l}
                   </div>
@@ -327,9 +331,9 @@ function S4_Match(){
         {[['🤝','Auto-Assist bei Kill – Z bekommt automatisch +1 Assist'],
           ['💡','Highlight-Toggle – Vorschläge ein/ausschalten'],
           ['↶','Undo bis 30× – nie wieder falsch getrackt'],
-          ['🪑','Auswechslung – Bankbank direkt im Match verwalten'],
+          ['🪑','Auswechslung – Bank direkt im Match verwalten'],
           ['🔄','Manuelle Rotation – jederzeit korrigierbar'],
-          ['🎬','Video-Aufnahme – Events mit Zeitstempel verknüpfen'],
+          ['🎬','Video-Aufnahme – Events mit Zeitstempel'],
         ].map(([ic,t],i)=>(
           <div key={i} className="flex items-start gap-1.5 bg-white/10 rounded-xl px-2 py-1.5 fade-up" style={{animationDelay:`${.3+i*.04}s`}}>
             <span className="text-sm flex-shrink-0">{ic}</span>
@@ -342,8 +346,8 @@ function S4_Match(){
 }
 
 function S5_Analytics(){
-  const [a,setA]=useState(false);
-  useEffect(()=>{const t=setTimeout(()=>setA(true),200);return()=>clearTimeout(t);},[]);
+  const [anim,setAnim]=useState(false);
+  useEffect(()=>{const t=setTimeout(()=>setAnim(true),250);return()=>clearTimeout(t);},[]);
   const rots=[{r:1,w:75,so:60},{r:2,w:52,so:44},{r:3,w:28,so:25},{r:4,w:82,so:72},{r:5,w:44,so:38},{r:6,w:67,so:55}];
   const setterD=[{n:'AA1',p:42,c:PCOLS.OH},{n:'AA2',p:30,c:PCOLS.OH},{n:'MB1',p:18,c:PCOLS.MB},{n:'D',p:10,c:PCOLS.OPP}];
   const recP=[{n:'Mia',h:[72,66,78,68,74]},{n:'Sara',h:[48,52,46,55,50]},{n:'Klaus',h:[34,40,36,30,42]}];
@@ -357,10 +361,10 @@ function S5_Analytics(){
               <span className="text-white/55 text-[9px] font-black w-9">Rot.{d.r}</span>
               <div className="flex-1 h-3 bg-white/10 rounded-full overflow-hidden">
                 <div className={`h-full rounded-full transition-all duration-700 ${d.w>=50?'bg-gradient-to-r from-green-400 to-emerald-500':'bg-gradient-to-r from-red-400 to-rose-500'}`}
-                     style={{width:a?`${d.w}%`:'0%'}}/>
+                     style={{width:anim?`${d.w}%`:'0%'}}/>
               </div>
               <span className={`text-[9px] font-black w-7 text-right ${d.w>=50?'text-green-400':'text-red-400'}`}>{d.w}%</span>
-              {d.so&&<span className="text-[8px] text-blue-300 font-bold w-14">SO {d.so}%</span>}
+              <span className="text-[8px] text-blue-300 font-bold w-14">SO {d.so}%</span>
             </div>
           ))}
         </div>
@@ -374,7 +378,7 @@ function S5_Analytics(){
               <span className="text-white/90 font-black">{d.p}%</span>
             </div>
             <div className="h-2.5 bg-white/10 rounded-full overflow-hidden">
-              <div className="h-full rounded-full transition-all duration-700" style={{width:a?`${d.p}%`:'0%',background:d.c}}/>
+              <div className="h-full rounded-full transition-all duration-700" style={{width:anim?`${d.p}%`:'0%',background:d.c}}/>
             </div>
           </div>
         ))}
@@ -386,10 +390,13 @@ function S5_Analytics(){
             <span className="text-white/60 text-[9px] font-bold w-9">{p.n}</span>
             <div className="flex gap-1">
               {p.h.map((v,i)=>(
-                <div key={i} className={`w-6 h-6 rounded-full flex items-center justify-center text-[7px] font-black text-white shadow-sm ${v>=60?'bg-green-500':v>=40?'bg-orange-400':'bg-red-400'}`}>{v}</div>
+                <div key={i} className={`w-6 h-6 rounded-full flex items-center justify-center text-[7px] font-black text-white shadow-sm
+                  ${v>=60?'bg-green-500':v>=40?'bg-orange-400':'bg-red-400'}`}>{v}</div>
               ))}
             </div>
-            <span className={`text-[9px] font-black ml-auto ${p.h.reduce((s,v)=>s+v,0)/p.h.length>=60?'text-green-400':'text-orange-300'}`}>{Math.round(p.h.reduce((s,v)=>s+v,0)/p.h.length)}%</span>
+            <span className={`text-[9px] font-black ml-auto ${Math.round(p.h.reduce((s,v)=>s+v,0)/p.h.length)>=60?'text-green-400':'text-orange-300'}`}>
+              {Math.round(p.h.reduce((s,v)=>s+v,0)/p.h.length)}%
+            </span>
           </div>
         ))}
       </div>
@@ -404,11 +411,11 @@ function S5_Analytics(){
   );
 }
 
-function S6_Complete({unlocked}){
+function S6_Complete(){
   const conf=useMemo(()=>Array.from({length:32},(_,i)=>({
-    id:i, x:Math.random()*100, delay:Math.random()*.7, dur:1.4+Math.random()*1.4,
+    id:i,x:Math.random()*100,delay:Math.random()*.7,dur:1.4+Math.random()*1.4,
     color:['#f59e0b','#ef4444','#3b82f6','#10b981','#8b5cf6','#ec4899','#f97316'][i%7],
-    size:5+Math.random()*7, rot:Math.random()*360,
+    size:5+Math.random()*7,rot:Math.random()*360,
   })),[]);
   return(
     <div className="flex flex-col items-center h-full px-5 py-3 overflow-hidden relative">
@@ -436,7 +443,8 @@ function S6_Complete({unlocked}){
       <div className="grid grid-cols-2 gap-2 w-full max-w-xs fade-up" style={{animationDelay:'.8s'}}>
         {[['✅','5 Features gemeistert'],['🎯','5 Badges freigeschaltet'],['📊','Analytics verstanden'],['🏐','Bereit zum Coachen!']].map(([ic,t],i)=>(
           <div key={i} className="bg-white/10 rounded-xl px-2.5 py-2 flex items-center gap-2">
-            <span className="text-sm">{ic}</span><span className="text-white/80 text-[10px] font-bold">{t}</span>
+            <span className="text-sm">{ic}</span>
+            <span className="text-white/80 text-[10px] font-bold">{t}</span>
           </div>
         ))}
       </div>
@@ -444,11 +452,11 @@ function S6_Complete({unlocked}){
   );
 }
 
-// ── Achievement popup ──────────────────────────────────────────────────────
 function AchievePop({a}){
   if(!a)return null;
   return(
-    <div className="fixed top-0 inset-x-0 z-50 flex justify-center pt-2.5 pointer-events-none achieve" style={{animation:'achieveIn 2.6s ease-in-out both'}}>
+    <div className="fixed top-0 inset-x-0 z-50 flex justify-center pt-2.5 pointer-events-none"
+         style={{animation:'achieveIn 2.6s ease-in-out both'}}>
       <div className={`bg-gradient-to-r ${a.grad} rounded-2xl px-4 py-2.5 flex items-center gap-3 shadow-2xl border border-white/25 mx-4`}>
         <div className="text-3xl star-pop">{a.emoji}</div>
         <div>
@@ -461,7 +469,6 @@ function AchievePop({a}){
   );
 }
 
-// ── XP bar ──────────────────────────────────────────────────────────────────
 function XPBar({xp,screen,total}){
   const lvl=getLevel(xp);
   const pct=(xp/600)*100;
@@ -487,16 +494,18 @@ function XPBar({xp,screen,total}){
   );
 }
 
-// ── Bottom nav ──────────────────────────────────────────────────────────────
 function BottomNav({screen,total,onNext,onBack,onSkip}){
   const last=screen===total-1;
   const first=screen===0;
   return(
     <div className="px-4 pb-4 pt-2 flex items-center gap-3">
       {!first
-        ?<button onClick={onBack} className="w-11 h-11 rounded-full flex items-center justify-center text-white font-black text-xl active:scale-90 transition" style={{background:'rgba(255,255,255,.18)'}}>←</button>
+        ?<button onClick={onBack} className="w-11 h-11 rounded-full flex items-center justify-center text-white font-black text-xl active:scale-90 transition"
+                 style={{background:'rgba(255,255,255,.18)'}}>←</button>
         :<div className="w-11"/>}
-      <button onClick={onNext} className={`flex-1 py-3.5 rounded-2xl font-black text-base shadow-xl active:scale-95 transition-all ${last?'bg-gradient-to-r from-yellow-400 to-orange-500 text-white':'bg-white text-purple-800'}`}>
+      <button onClick={onNext}
+        className={`flex-1 py-3.5 rounded-2xl font-black text-base shadow-xl active:scale-95 transition-all
+          ${last?'bg-gradient-to-r from-yellow-400 to-orange-500 text-white':'bg-white text-purple-800'}`}>
         {first?'Tutorial starten 🚀':last?'Jetzt loslegen 🏐':'Weiter → +100 XP'}
       </button>
       {first&&<button onClick={onSkip} className="text-white/35 text-xs font-bold active:scale-95 whitespace-nowrap">Überspringen</button>}
@@ -505,18 +514,16 @@ function BottomNav({screen,total,onNext,onBack,onSkip}){
   );
 }
 
-// ── Screen titles ──────────────────────────────────────────────────────────
 const TITLES=[
   null,
-  {icon:'👥',title:'Kader aufbauen',sub:'Positionen & Spieler'},
-  {icon:'📋',title:'Aufstellung',sub:'6 Startpositionen setzen'},
-  {icon:'🎯',title:'5-1 Annahme',sub:'Läufersystem mit Formationen'},
-  {icon:'⚡',title:'Live Match',sub:'Tracken · Highlights · Undo'},
-  {icon:'📊',title:'Auswertung',sub:'Analytics · PDF Export'},
-  {icon:'🏆',title:'Fertig!',sub:'Du bist Coach Pro bereit'},
+  {icon:'👥',title:'Kader aufbauen',    sub:'Positionen & Spieler'},
+  {icon:'📋',title:'Aufstellung',        sub:'6 Startpositionen setzen'},
+  {icon:'🎯',title:'5-1 Annahme',       sub:'Läufersystem mit Formationen'},
+  {icon:'⚡',title:'Live Match',         sub:'Tracken · Highlights · Undo'},
+  {icon:'📊',title:'Auswertung',         sub:'Analytics · PDF Export'},
+  {icon:'🏆',title:'Fertig!',            sub:'Du bist Coach Pro bereit'},
 ];
 
-// ── App ─────────────────────────────────────────────────────────────────────
 const TOTAL=7;
 function App(){
   const [screen,setScreen]=useState(0);
@@ -538,21 +545,29 @@ function App(){
       setTimeout(()=>setPop(null),2600);
     }
   };
-  const back=()=>{if(screen>0){setAnimCls('slide-l');setAnimKey(k=>k+1);setScreen(s=>s-1);}};
+  const back=()=>{
+    if(screen>0){setAnimCls('slide-l');setAnimKey(k=>k+1);setScreen(s=>s-1);}
+  };
   const skip=()=>{setScreen(TOTAL-1);setXp(600);setUnlocked([0,1,2,3,4]);};
 
-  const screens=[<S0_Welcome/>,<S1_Roster/>,<S2_Lineup/>,<S3_Formations/>,<S4_Match/>,<S5_Analytics/>,<S6_Complete unlocked={unlocked}/>];
-  const bg=BGS[screen]||BGS[0];
+  const screens=[
+    <S0_Welcome key="s0"/>,<S1_Roster key="s1"/>,<S2_Lineup key="s2"/>,
+    <S3_Formations key="s3"/>,<S4_Match key="s4"/>,<S5_Analytics key="s5"/>,
+    <S6_Complete key="s6"/>,
+  ];
   const title=TITLES[screen];
 
   return(
-    <div className={`min-h-screen flex flex-col bg-gradient-to-br ${bg} transition-colors duration-500`} style={{maxWidth:440,margin:'0 auto',height:'100vh'}}>
+    <div className={`flex flex-col bg-gradient-to-br ${BGS[screen]||BGS[0]} transition-colors duration-500`}
+         style={{maxWidth:440,margin:'0 auto',height:'100vh'}}>
       <XPBar xp={xp} screen={screen} total={TOTAL}/>
       {title&&(
         <div className="px-4 pt-2 pb-1 flex items-center gap-2 fade-up">
           <span className="text-2xl">{title.icon}</span>
-          <div><div className="text-white font-black text-lg leading-tight">{title.title}</div>
-            <div className="text-white/55 text-xs">{title.sub}</div></div>
+          <div>
+            <div className="text-white font-black text-lg leading-tight">{title.title}</div>
+            <div className="text-white/55 text-xs">{title.sub}</div>
+          </div>
         </div>
       )}
       <div key={animKey} className={`flex-1 overflow-hidden ${animCls}`} style={{minHeight:0}}>
