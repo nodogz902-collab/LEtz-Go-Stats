@@ -105,19 +105,8 @@ function getLineupForRotation(startingLineup,rotation){
   return lineup;
 }
 function setterRotToInternal(r){return{1:1,2:6,3:5,4:4,5:3,6:2}[r]||1;}
-// Auto-libero: swap libero in for back-row MB, but only if libero has a player assigned
-function getEffectiveLineup(lineupSnapshot,matchSlots,rotation,rosterSnap){
-  const rotated=getLineupForRotation(lineupSnapshot,rotation);
-  const liberoSlot=matchSlots.find(s=>s.type==='L');
-  if(!liberoSlot)return rotated;
-  // Only activate if libero player is actually assigned
-  const roster=rosterSnap||{};
-  if(!roster[liberoSlot.id])return rotated;
-  const mbSlots=matchSlots.filter(s=>s.type==='MB');
-  if(!mbSlots.length)return rotated;
-  const backMBEntry=Object.entries(rotated).find(([pos,slotId])=>BACK_POSITIONS.includes(parseInt(pos))&&mbSlots.some(mb=>mb.id===slotId));
-  if(!backMBEntry)return rotated;
-  return{...rotated,[backMBEntry[0]]:liberoSlot.id};
+function getEffectiveLineup(lineupSnapshot,matchSlots,rotation){
+  return getLineupForRotation(lineupSnapshot,rotation);
 }
 function getSlotSuggestions(action,lineup){
   if(!action||!action.forTeam)return{suggested:null,allowed:null};
@@ -515,7 +504,7 @@ function VolleyballTracker(){
     if(!selectedAction||!currentMatch)return;
     const action=selectedAction;
     const matchSlotsLocal=generateSlots(currentMatch.configSnapshot);
-    const lineupLocal=getEffectiveLineup(currentMatch.lineupSnapshot,matchSlotsLocal,currentMatch.rotation,currentMatch.rosterSnapshot);
+    const lineupLocal=getEffectiveLineup(currentMatch.lineupSnapshot,matchSlotsLocal,currentMatch.rotation);
     const {suggested}=getSlotSuggestions(action,lineupLocal);
     if(suggested&&!suggested.has(slotId)){
       if(pendingOverride===slotId){setPendingOverride(null);}
@@ -835,13 +824,11 @@ function VolleyballTracker(){
     const matchSlots=generateSlots(currentMatch.configSnapshot);
     const formations=currentMatch.formationsSnapshot||{};
     const trueLineup=getLineupForRotation(currentMatch.lineupSnapshot,currentMatch.rotation);
-    const lineup=getEffectiveLineup(currentMatch.lineupSnapshot,matchSlots,currentMatch.rotation,rosterSnap);
+    const lineup=getEffectiveLineup(currentMatch.lineupSnapshot,matchSlots,currentMatch.rotation);
     const liberoSlot=matchSlots.find(s=>s.type==='L');
-    const liberoActive=liberoSlot&&rosterSnap[liberoSlot.id];
-    const autoLiberoPos=liberoActive
-      ?Object.entries(lineup).find(([pos,sid])=>sid===liberoSlot.id&&trueLineup[pos]!==liberoSlot.id)?.[0]
-      :null;
+    const autoLiberoPos=null;
     const setterSlot=matchSlots.find(s=>s.type==='S');
+    // setterPos: which court position (1-6) the setter is currently in after rotation
     const setterPos=setterSlot?Object.entries(lineup).find(([_,sid])=>sid===setterSlot.id)?.[0]:null;
     const isReceiving=servingTeam==='opp';
     const setTargetPoints=25;
@@ -853,18 +840,14 @@ function VolleyballTracker(){
     const setBallUs=currentMatch.teamScore>=setTargetPoints-1&&currentMatch.teamScore>=currentMatch.opponentScore&&!setWonBy;
     const setBallOpp=currentMatch.opponentScore>=setTargetPoints-1&&currentMatch.opponentScore>=currentMatch.teamScore&&!setWonBy;
     const isExtension=currentMatch.teamScore>=setTargetPoints||currentMatch.opponentScore>=setTargetPoints;
+    // Use trueLineup for setter position lookup — immune to any manual subs that affect lineup
+    const setterPosForFormation=setterSlot
+      ?Object.entries(trueLineup).find(([_,sid])=>sid===setterSlot.id)?.[0]
+      :null;
     let positionLayout;
     if(isReceiving){
-      const baseFormation=formations[parseInt(setterPos)]||getDefaultReception();
-      if(liberoActive){
-        // Find which position the back-row MB is in (in trueLineup) and use that pos for libero
-        const mbSlots=matchSlots.filter(s=>s.type==='MB');
-        const backMBPos=Object.entries(trueLineup).find(([pos,sid])=>BACK_POSITIONS.includes(parseInt(pos))&&mbSlots.some(mb=>mb.id===sid))?.[0];
-        if(backMBPos){
-          // Swap: libero takes MB's formation position, MB gets libero's default off-court (not shown)
-          positionLayout=baseFormation;
-        }else{positionLayout=baseFormation;}
-      }else{positionLayout=baseFormation;}
+      const formationKey=setterPosForFormation?parseInt(setterPosForFormation):parseInt(setterPos);
+      positionLayout=formations[formationKey]||getDefaultReception();
     }else{const l={};COURT_POSITIONS.forEach(c=>{l[c.pos]={x:c.x,y:c.y};});positionLayout=l;}
     const {suggested:suggestedSlots}=getSlotSuggestions(selectedAction,lineup);
     const isPosSelectable=()=>selectedAction&&selectedAction.forTeam;
@@ -1010,7 +993,7 @@ function VolleyballTracker(){
           {/* Bench panel */}
           {(()=>{
             const onField=new Set(Object.values(trueLineup));
-            const benchSlots=matchSlots.filter(s=>rosterSnap[s.id]&&!onField.has(s.id)&&s.type!=='L'&&s.type!=='DS');
+            const benchSlots=matchSlots.filter(s=>rosterSnap[s.id]&&!onField.has(s.id));
             if(benchSlots.length===0)return null;
             return(
               <div className="bg-white/95 rounded-2xl shadow-xl mb-3 overflow-hidden">
