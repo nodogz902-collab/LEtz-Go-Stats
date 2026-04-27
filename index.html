@@ -74,7 +74,7 @@ const ACTIONS=[
   {type:'reception_good',emoji:'✅',label:'Ann. +',   color:'bg-gradient-to-br from-lime-500 to-green-600',     forTeam:true,highlight:'receive',isPoint:false,soft:true},
   {type:'attack_attempt',emoji:'⚔️',label:'Angr.v.',  color:'bg-gradient-to-br from-teal-500 to-cyan-500',      forTeam:true,highlight:'front', isPoint:false,soft:true},
 ];
-const EVENT_LABELS={kill:'💥 Kill',ace:'🎯 Ace',block:'🧱 Stuff',error:'❌ Angriff-F.',service_error:'📉 Svc-F.',block_error:'🚫 Block-F.',attack_attempt:'⚔️ Angriffsv.',opp_point:'🆚 +1 Gegner',opp_error:'🎁 Geg.-Fehler',reception_good:'✅ Ann.+',reception_bad:'⚠️ Ann.-'};
+const EVENT_LABELS={kill:'💥 Kill',ace:'🎯 Ace',block:'🧱 Stuff',error:'❌ Angriff-F.',service_error:'📉 Svc-F.',block_error:'🚫 Block-F.',attack_attempt:'⚔️ Angriffsv.',opp_point:'🆚 +1 Gegner',opp_error:'🎁 Geg.-Fehler',reception_good:'✅ Ann.+',reception_bad:'⚠️ Ann.-',assist:'🤝 Assist'};
 const COURT_POSITIONS=[
   {pos:4,x:18,y:28,label:'LF'},{pos:3,x:50,y:28,label:'MF'},{pos:2,x:82,y:28,label:'RF'},
   {pos:5,x:18,y:72,label:'LB'},{pos:6,x:50,y:72,label:'MB'},{pos:1,x:82,y:72,label:'RB'},
@@ -202,6 +202,7 @@ function MatchVideoPlayer({matchId,events,matchSlots,rosterSnap,matchSetScores,o
   const [selectedAction,setSelectedAction]=useState(null);
   const [pendingFlash,setPendingFlash]=useState(null);
   const [pendingOverride,setPendingOverride]=useState(null);
+  const [highlightSuggestions,setHighlightSuggestions]=useState(true);
   const [showScoreEditor,setShowScoreEditor]=useState(false);
   const [draftScores,setDraftScores]=useState([]);
   const videoEl=useRef(null);
@@ -237,7 +238,14 @@ function MatchVideoPlayer({matchId,events,matchSlots,rosterSnap,matchSetScores,o
   const updateDraft=(idx,field,val)=>{const n=[...draftScores];if(!n[idx])n[idx]={teamScore:0,opponentScore:0};n[idx][field]=Math.max(0,parseInt(val)||0);setDraftScores(n);};
   const commitAtTime=(details)=>{
     const event={id:Date.now().toString()+Math.random(),set:1,serving:'us',teamScore:0,opponentScore:0,timestamp:Date.now(),videoTime:Math.floor(currentTime),retroactive:true,...details};
-    onEventsChange([...events,event].sort((a,b)=>(a.videoTime??0)-(b.videoTime??0)));
+    const newEvents=[event];
+    if(details.type==='kill'){
+      const setterSlot=matchSlots.find(s=>s.type==='S');
+      if(setterSlot&&setterSlot.id!==details.slotId&&rosterSnap[setterSlot.id]){
+        newEvents.push({id:Date.now().toString()+Math.random()+'_a',set:1,serving:'us',videoTime:Math.floor(currentTime),retroactive:true,auto:true,slotId:setterSlot.id,playerName:rosterSnap[setterSlot.id]?.name,slotShort:setterSlot.short,type:'assist',forTeam:true,timestamp:Date.now()});
+      }
+    }
+    onEventsChange([...events,...newEvents].sort((a,b)=>(a.videoTime??0)-(b.videoTime??0)));
     setPendingFlash({slotId:details.slotId,type:details.type});setTimeout(()=>setPendingFlash(null),600);
     setSelectedAction(null);
   };
@@ -309,9 +317,17 @@ function MatchVideoPlayer({matchId,events,matchSlots,rosterSnap,matchSetScores,o
                   <button key={a.type} onClick={()=>setSelectedAction(a)} className={`${a.color} text-white p-1.5 rounded-lg text-center active:scale-90`}><div className="text-base">{a.emoji}</div><div className="text-[8px] font-bold leading-tight">{a.label}</div></button>
                 ))}
               </div>
-              <div className="grid grid-cols-3 gap-1">
+              <div className="grid grid-cols-3 gap-1 mb-1">
                 {[ACTIONS.find(a=>a.type==='error'),ACTIONS.find(a=>a.type==='block_error'),ACTIONS.find(a=>a.type==='service_error')].map(a=>(
                   <button key={a.type} onClick={()=>setSelectedAction(a)} className={`${a.color} text-white p-1.5 rounded-lg text-center active:scale-90`}><div className="text-base">{a.emoji}</div><div className="text-[8px] font-bold leading-tight">{a.label}</div></button>
+                ))}
+              </div>
+              <div className="grid grid-cols-3 gap-1">
+                {[ACTIONS.find(a=>a.type==='reception_good'),ACTIONS.find(a=>a.type==='reception_bad'),ACTIONS.find(a=>a.type==='attack_attempt')].map(a=>(
+                  <button key={a.type} onClick={()=>setSelectedAction(a)} className={`${a.color} text-white p-1.5 rounded-lg text-center active:scale-90 relative ${a.soft?'opacity-60 border border-dashed border-white/40':''}`}>
+                    {a.soft&&<span className="absolute -top-1 -right-1 bg-gray-600 text-white text-[6px] font-black px-0.5 rounded-full leading-none">~stat</span>}
+                    <div className="text-base">{a.emoji}</div><div className="text-[8px] font-bold leading-tight">{a.label}</div>
+                  </button>
                 ))}
               </div>
             </>
@@ -362,6 +378,38 @@ function MatchVideoPlayer({matchId,events,matchSlots,rosterSnap,matchSetScores,o
       )}
     </div>
   );
+}
+
+// ── Analytics helpers ────────────────────────────────────────────────────────
+function computeRotationStats(events){
+  const s={};for(let r=1;r<=6;r++)s[r]={won:0,lost:0,soWon:0,soTotal:0};
+  const wonT=['kill','ace','block','opp_error'],lostT=['error','service_error','block_error','opp_point'];
+  events.forEach(e=>{
+    const r=e.rotation;if(!r||!s[r])return;
+    if(wonT.includes(e.type)){s[r].won++;if(e.serving==='opp'){s[r].soWon++;s[r].soTotal++;}}
+    else if(lostT.includes(e.type)){s[r].lost++;if(e.serving==='opp')s[r].soTotal++;}
+  });
+  return s;
+}
+function computeSetterDist(events,slots){
+  const dist={};
+  slots.filter(s=>!['S','L','DS'].includes(s.type)).forEach(s=>{dist[s.id]={slot:s,kills:0};});
+  events.filter(e=>e.type==='kill'&&e.slotId&&!e.auto).forEach(e=>{if(dist[e.slotId])dist[e.slotId].kills++;});
+  return dist;
+}
+function computeReceptionEff(matches){
+  const bySlot={};
+  [...matches].reverse().forEach(m=>{
+    if(!m.events)return;
+    m.events.filter(e=>['reception_good','reception_bad'].includes(e.type)&&e.slotId).forEach(e=>{
+      if(!bySlot[e.slotId])bySlot[e.slotId]={name:m.rosterSnapshot?.[e.slotId]?.name||'?',hist:[]};
+      const h=bySlot[e.slotId].hist;
+      if(!h.length||h[h.length-1].id!==m.id)h.push({id:m.id,opp:m.opponent,g:0,b:0});
+      const c=h[h.length-1];
+      if(e.type==='reception_good')c.g++;else c.b++;
+    });
+  });
+  return bySlot;
 }
 
 // ── Main App ──────────────────────────────────────────────────────────────────
@@ -427,6 +475,10 @@ function VolleyballTracker(){
   },[]);
   useEffect(()=>{if(!persistReady.current)return;storage.set('current_match',currentMatch?JSON.stringify(currentMatch):'null');},[currentMatch]);
   useEffect(()=>{if(!persistReady.current)return;storage.set('serving_team',servingTeam);},[servingTeam]);
+  useEffect(()=>{
+    if(selectedAction&&(selectedAction.type==='ace'||selectedAction.type==='service_error')&&servingTeam!=='us')
+      setSelectedAction(null);
+  },[servingTeam]);
 
   // ── Recording ──
   const startRecording=async()=>{
@@ -546,10 +598,7 @@ function VolleyballTracker(){
     const matchSlotsLocal=generateSlots(currentMatch.configSnapshot);
     const lineupLocal=getEffectiveLineup(currentMatch.lineupSnapshot,matchSlotsLocal,currentMatch.rotation);
     const {suggested}=getSlotSuggestions(action,lineupLocal,servingTeam);
-    if(suggested&&!suggested.has(slotId)){
-      if(pendingOverride===slotId){setPendingOverride(null);}
-      else{setPendingOverride(slotId);return;}
-    }else{setPendingOverride(null);}
+    setPendingOverride(null);
     pushUndo();
     const videoTime=isRecording&&recordingStart?Math.floor((Date.now()-recordingStart)/1000):null;
     const slot=matchSlotsLocal.find(s=>s.id===slotId);
@@ -559,10 +608,17 @@ function VolleyballTracker(){
       slotShort:action.forTeam?slot?.short:null,type:action.type,forTeam:action.forTeam,
       set:currentMatch.set,rotation:currentMatch.rotation,serving:servingTeam,timestamp:Date.now(),videoTime,
     };
+    const eventsToAdd=[event];
+    if(action.type==='kill'){
+      const setterSlotLocal=matchSlotsLocal.find(s=>s.type==='S');
+      if(setterSlotLocal&&setterSlotLocal.id!==slotId&&currentMatch.rosterSnapshot[setterSlotLocal.id]){
+        eventsToAdd.push({id:Date.now().toString()+Math.random()+'_a',slotId:setterSlotLocal.id,playerName:currentMatch.rosterSnapshot[setterSlotLocal.id]?.name,slotShort:setterSlotLocal.short,type:'assist',forTeam:true,set:currentMatch.set,rotation:currentMatch.rotation,serving:servingTeam,timestamp:Date.now(),videoTime,auto:true});
+      }
+    }
     let td=0,od=0,rotateUs=false,newServing=servingTeam;
     if(['kill','ace','block'].includes(action.type)){td=1;if(servingTeam==='opp'){rotateUs=true;newServing='us';}}
     if(['error','service_error','block_error','reception_bad'].includes(action.type)){od=1;newServing='opp';}
-    updateMatch(m=>({...m,events:[...m.events,event],teamScore:m.teamScore+td,opponentScore:m.opponentScore+od,rotation:rotateUs?(m.rotation%6)+1:m.rotation}));
+    updateMatch(m=>({...m,events:[...m.events,...eventsToAdd],teamScore:m.teamScore+td,opponentScore:m.opponentScore+od,rotation:rotateUs?(m.rotation%6)+1:m.rotation}));
     setServingTeam(newServing);
     setPendingFlash({slotId,type:action.type});setTimeout(()=>setPendingFlash(null),600);
     setSelectedAction(null);
@@ -949,16 +1005,20 @@ function VolleyballTracker(){
             <div className="grid grid-cols-3 gap-1.5 mb-1">
               {[ACTIONS.find(a=>a.type==='kill'),ACTIONS.find(a=>a.type==='block'),ACTIONS.find(a=>a.type==='ace')].map(a=>{
                 const isSel=selectedAction?.type===a.type;
-                return<button key={a.type} onClick={()=>setSelectedAction(isSel?null:a)} className={`p-2 rounded-xl font-black text-xs transition-all active:scale-90 ${isSel?`${a.color} text-white ring-4 ring-yellow-300 scale-105 shadow-lg`:`${a.color} text-white opacity-80`}`}>
+                const svcOnly=a.type==='ace'&&servingTeam!=='us';
+                return<button key={a.type} disabled={svcOnly} onClick={()=>!svcOnly&&setSelectedAction(isSel?null:a)} className={`p-2 rounded-xl font-black text-xs transition-all relative ${svcOnly?'opacity-25 grayscale cursor-not-allowed':isSel?`${a.color} text-white ring-4 ring-yellow-300 scale-105 shadow-lg active:scale-90`:`${a.color} text-white opacity-80 active:scale-90`}`}>
                   <div className="text-xl">{a.emoji}</div><div className="text-[9px] mt-0.5 leading-tight">{a.label}</div>
+                  {svcOnly&&<div className="absolute inset-0 rounded-xl flex items-center justify-center bg-black/10"><span className="text-[8px] font-black text-white/70 rotate-[-20deg]">🚫 Gegner</span></div>}
                 </button>;
               })}
             </div>
             <div className="grid grid-cols-3 gap-1.5 mb-1">
               {[ACTIONS.find(a=>a.type==='error'),ACTIONS.find(a=>a.type==='block_error'),ACTIONS.find(a=>a.type==='service_error')].map(a=>{
                 const isSel=selectedAction?.type===a.type;
-                return<button key={a.type} onClick={()=>setSelectedAction(isSel?null:a)} className={`p-2 rounded-xl font-black text-xs transition-all active:scale-90 ${isSel?`${a.color} text-white ring-4 ring-yellow-300 scale-105 shadow-lg`:`${a.color} text-white opacity-80`}`}>
+                const svcOnly=a.type==='service_error'&&servingTeam!=='us';
+                return<button key={a.type} disabled={svcOnly} onClick={()=>!svcOnly&&setSelectedAction(isSel?null:a)} className={`p-2 rounded-xl font-black text-xs transition-all relative ${svcOnly?'opacity-25 grayscale cursor-not-allowed':isSel?`${a.color} text-white ring-4 ring-yellow-300 scale-105 shadow-lg active:scale-90`:`${a.color} text-white opacity-80 active:scale-90`}`}>
                   <div className="text-xl">{a.emoji}</div><div className="text-[9px] mt-0.5 leading-tight">{a.label}</div>
+                  {svcOnly&&<div className="absolute inset-0 rounded-xl flex items-center justify-center bg-black/10"><span className="text-[8px] font-black text-white/70 rotate-[-20deg]">🚫 Gegner</span></div>}
                 </button>;
               })}
             </div>
@@ -989,6 +1049,7 @@ function VolleyballTracker(){
               </div>
               <div className="flex gap-1.5">
                 {selectedAction&&<button onClick={()=>setSelectedAction(null)} className="bg-gray-200 text-gray-600 px-2 py-1 rounded-full text-xs font-bold">✕</button>}
+                <button onClick={()=>setHighlightSuggestions(v=>!v)} title="Vorschläge ein/aus" className={`px-2 py-1 rounded-full text-xs font-bold transition ${highlightSuggestions?'bg-yellow-300 text-yellow-900':'bg-gray-200 text-gray-500'}`}>💡</button>
                 <button onClick={manualRotate} className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1"><RotateCw size={12}/> Rot</button>
               </div>
             </div>
@@ -1010,12 +1071,10 @@ function VolleyballTracker(){
                 const coords=positionLayout[posNum]||{x:50,y:50};
                 const selectable=isPosSelectable();
                 const suggested=isPosSuggested(posNum);
-                const dimmed=selectedAction&&selectable&&!suggested;
-                const isOverridePending=pendingOverride===slotId;
+                const dimmed=highlightSuggestions&&selectedAction&&selectable&&!suggested;
                 const isFlashing=pendingFlash?.slotId===slotId;
                 let ringClass='';
-                if(suggested&&selectable)ringClass='ring-4 ring-yellow-300 highlight-pulse';
-                if(isOverridePending)ringClass='ring-4 ring-orange-400 highlight-pulse';
+                if(highlightSuggestions&&suggested&&selectable)ringClass='ring-4 ring-yellow-300 highlight-pulse';
                 if(isSetter&&!selectedAction)ringClass='ring-2 ring-yellow-400';
                 if(isServing&&!selectedAction)ringClass='ring-4 ring-green-400';
                 if(isFlashing)ringClass='ring-4 ring-white';
@@ -1216,6 +1275,7 @@ function VolleyballTracker(){
                     </div>
                     <div className="grid grid-cols-4 gap-1 text-xs">
                       <div className="bg-green-100 p-1 rounded text-center">💥 {s.kill||0}</div>
+                      <div className="bg-indigo-100 p-1 rounded text-center font-bold">🤝 {s.assist||0}</div>
                       <div className="bg-blue-100 p-1 rounded text-center">🎯 {s.ace||0}</div>
                       <div className="bg-purple-100 p-1 rounded text-center">🧱 {s.block||0}</div>
                       <div className="bg-red-100 p-1 rounded text-center">❌ {s.error||0}</div>
@@ -1228,6 +1288,64 @@ function VolleyballTracker(){
                 );
               })}
             </div>
+            {(()=>{
+              const rs=computeRotationStats(m.events);
+              return(
+                <div className="bg-white/95 rounded-2xl p-4 shadow-xl mt-3">
+                  <h3 className="font-black text-purple-700 mb-3">🔄 Rotationsanalyse</h3>
+                  {[1,2,3,4,5,6].map(r=>{
+                    const d=rs[r];const tot=d.won+d.lost;
+                    const wp=tot>0?Math.round(d.won/tot*100):0;
+                    const sp=d.soTotal>0?Math.round(d.soWon/d.soTotal*100):0;
+                    return(
+                      <div key={r} className="mb-3">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span className="text-xs font-black text-gray-600 w-12 flex-shrink-0">Rot. {r}</span>
+                          <div className="flex-1 h-4 bg-gray-100 rounded-full overflow-hidden">
+                            {tot>0&&<div className={`h-full rounded-full transition-all ${wp>=50?'bg-gradient-to-r from-green-400 to-emerald-500':'bg-gradient-to-r from-red-400 to-rose-500'}`} style={{width:`${Math.max(wp,2)}%`}}/>}
+                          </div>
+                          <span className={`text-xs font-black w-9 text-right ${wp>=50?'text-green-600':'text-red-500'}`}>{tot>0?`${wp}%`:'—'}</span>
+                        </div>
+                        <div className="flex gap-3 pl-12 text-[9px] text-gray-400">
+                          <span className="text-green-600 font-bold">✓{d.won}</span>
+                          <span className="text-red-400 font-bold">✗{d.lost}</span>
+                          <span>{tot} Rallies</span>
+                          {d.soTotal>0&&<span className="ml-auto text-blue-500 font-bold">Sideout {sp}%</span>}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+            {(()=>{
+              const dist=computeSetterDist(m.events,matchSlots);
+              const tot=Object.values(dist).reduce((s,d)=>s+d.kills,0);
+              if(tot===0)return null;
+              const sorted=Object.entries(dist).sort((a,b)=>b[1].kills-a[1].kills);
+              return(
+                <div className="bg-white/95 rounded-2xl p-4 shadow-xl mt-3">
+                  <h3 className="font-black text-purple-700 mb-1">🎯 Setter-Verteilung</h3>
+                  <p className="text-[10px] text-gray-400 mb-3">Wer bekam die meisten Zuspiele? ({tot} Kills total)</p>
+                  {sorted.map(([sid,d])=>{
+                    const pct=Math.round(d.kills/tot*100);
+                    const p=POSITION_TYPES[d.slot.type];
+                    return(
+                      <div key={sid} className="mb-2.5">
+                        <div className="flex items-center gap-2 mb-1">
+                          <div className={`w-6 h-6 flex-shrink-0 bg-gradient-to-br ${p.color} rounded flex items-center justify-center text-white text-[9px] font-black`}>{d.slot.short}</div>
+                          <span className="text-xs flex-1 truncate">{m.rosterSnapshot[sid]?.name||sid}</span>
+                          <span className="text-xs font-black text-gray-700">{d.kills}× · {pct}%</span>
+                        </div>
+                        <div className="h-3 bg-gray-100 rounded-full overflow-hidden ml-8">
+                          <div className={`h-full bg-gradient-to-r ${p.color} rounded-full`} style={{width:`${pct}%`}}/>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </div>
         </div>
       );
@@ -1264,6 +1382,46 @@ function VolleyballTracker(){
               </div>
             </div>
           }
+          {matches.length>0&&(()=>{
+            const effData=computeReceptionEff(matches);
+            const players=Object.values(effData).filter(d=>d.hist.length>0);
+            if(!players.length)return null;
+            return(
+              <div className="bg-white/95 rounded-2xl p-4 shadow-xl mt-3">
+                <h3 className="font-black text-purple-700 mb-1">✅ Annahme-Effizienz</h3>
+                <p className="text-[10px] text-gray-400 mb-3">Ann+ / (Ann+ + Ann−) gesamt · Verlauf pro Spiel</p>
+                {players.map((d,i)=>{
+                  const tg=d.hist.reduce((s,h)=>s+h.g,0);
+                  const tb=d.hist.reduce((s,h)=>s+h.b,0);
+                  const tot=tg+tb;const pct=tot>0?Math.round(tg/tot*100):0;
+                  return(
+                    <div key={i} className="mb-4 pb-3 border-b last:border-b-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-bold text-sm">{d.name}</span>
+                        <span className={`font-black text-sm ${pct>=60?'text-green-600':pct>=40?'text-orange-500':'text-red-500'}`}>
+                          {pct}% <span className="text-[10px] font-normal text-gray-400">({tg}+ / {tb}−)</span>
+                        </span>
+                      </div>
+                      <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden mb-2">
+                        <div className="h-full bg-gradient-to-r from-lime-400 to-green-500 rounded-full transition-all" style={{width:`${pct}%`}}/>
+                      </div>
+                      <div className="flex gap-1.5 flex-wrap">
+                        {d.hist.slice(-8).map((h,j)=>{
+                          const t=h.g+h.b;const p=t>0?Math.round(h.g/t*100):0;
+                          return(
+                            <div key={j} className="flex flex-col items-center gap-0.5" title={`vs ${h.opp}: ${p}%`}>
+                              <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[8px] font-black text-white shadow-sm ${p>=60?'bg-green-500':p>=40?'bg-orange-400':'bg-red-400'}`}>{p}</div>
+                              <div className="text-[7px] text-gray-400 w-7 truncate text-center">{h.opp?.slice(0,4)}</div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
         </div>
       </div>
     );
