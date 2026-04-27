@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="theme-color" content="#7c3aed" />
+  <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <title>Volleyball Coach Tracker</title>
@@ -25,24 +26,20 @@
 <div id="root"></div>
 <script type="text/babel" data-presets="react">
 const { useState, useEffect, useRef } = React;
-// ── Storage ──────────────────────────────────────────────────────────────────
+
+// ── Storage ───────────────────────────────────────────────────────────────────
 const storage = {
   async get(k){try{const v=localStorage.getItem('vbt_'+k);return v?{value:v}:null;}catch(e){return null;}},
   async set(k,v){try{localStorage.setItem('vbt_'+k,v);return{value:v};}catch(e){return null;}},
 };
 const videoDB = {
-  async open(){
-    return new Promise((res,rej)=>{
-      const req=indexedDB.open('CoachVideos',1);
-      req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains('videos'))db.createObjectStore('videos',{keyPath:'matchId'});};
-      req.onsuccess=()=>res(req.result);req.onerror=()=>rej(req.error);
-    });
-  },
+  async open(){return new Promise((res,rej)=>{const req=indexedDB.open('CoachVideos',1);req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains('videos'))db.createObjectStore('videos',{keyPath:'matchId'});};req.onsuccess=()=>res(req.result);req.onerror=()=>rej(req.error);});},
   async save(matchId,blob){const db=await this.open();return new Promise((res,rej)=>{const tx=db.transaction('videos','readwrite');tx.objectStore('videos').put({matchId,blob,savedAt:Date.now()});tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error);});},
   async get(matchId){const db=await this.open();return new Promise((res,rej)=>{const tx=db.transaction('videos','readonly');const req=tx.objectStore('videos').get(matchId);req.onsuccess=()=>res(req.result);req.onerror=()=>rej(req.error);});},
   async delete(matchId){const db=await this.open();return new Promise((res,rej)=>{const tx=db.transaction('videos','readwrite');tx.objectStore('videos').delete(matchId);tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error);});},
 };
-// ── Icons ────────────────────────────────────────────────────────────────────
+
+// ── Icons ─────────────────────────────────────────────────────────────────────
 const Icon=({children,size=16})=><svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{children}</svg>;
 const ArrowLeft=({size})=><Icon size={size}><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></Icon>;
 const RotateCw=({size})=><Icon size={size}><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></Icon>;
@@ -53,7 +50,8 @@ const RefreshCw=({size})=><Icon size={size}><polyline points="23 4 23 10 17 10"/
 const Download=({size})=><Icon size={size}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></Icon>;
 const Upload=({size})=><Icon size={size}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></Icon>;
 const Settings=({size})=><Icon size={size}><circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 6v6m11-7h-6m-6 0H1"/></Icon>;
-// ── Constants ────────────────────────────────────────────────────────────────
+
+// ── Constants ─────────────────────────────────────────────────────────────────
 const POSITION_TYPES={
   S:{label:'Setter / Zuspieler',color:'from-yellow-400 to-orange-500',short:'Z'},
   OPP:{label:'Opposite / Diagonal',color:'from-red-500 to-pink-600',short:'D'},
@@ -64,17 +62,17 @@ const POSITION_TYPES={
 };
 const DEFAULT_CONFIG={S:1,OPP:1,OH:2,MB:2,L:1,DS:0};
 const ACTIONS=[
-  {type:'kill',    emoji:'💥',label:'Kill',       color:'bg-gradient-to-br from-green-500 to-emerald-600',  forTeam:true, highlight:'front', isPoint:true},
-  {type:'block',   emoji:'🧱',label:'Stuff',      color:'bg-gradient-to-br from-purple-500 to-indigo-600',  forTeam:true, highlight:'front', isPoint:true},
-  {type:'ace',     emoji:'🎯',label:'Ace',         color:'bg-gradient-to-br from-blue-500 to-cyan-600',      forTeam:true, highlight:'server',isPoint:true},
-  {type:'error',   emoji:'❌',label:'Angriff-F.',  color:'bg-gradient-to-br from-red-500 to-rose-600',       forTeam:true, highlight:'front', isPoint:false},
-  {type:'block_error',emoji:'🚫',label:'Block-F.',color:'bg-gradient-to-br from-red-600 to-pink-700',       forTeam:true, highlight:'front', isPoint:false},
-  {type:'service_error',emoji:'📉',label:'Svc-F.',color:'bg-gradient-to-br from-orange-500 to-red-500',    forTeam:true, highlight:'server',isPoint:false},
-  {type:'reception_bad',emoji:'⚠️',label:'Ann. -', color:'bg-gradient-to-br from-amber-500 to-orange-600',  forTeam:true, highlight:'back',  isPoint:false},
-  {type:'reception_good',emoji:'✅',label:'Ann. +', color:'bg-gradient-to-br from-lime-500 to-green-600',   forTeam:true, highlight:'back',  isPoint:false, soft:true},
-  {type:'attack_attempt',emoji:'⚔️',label:'Angr.v.',color:'bg-gradient-to-br from-teal-500 to-cyan-500',  forTeam:true, highlight:'front', isPoint:false, soft:true},
-  {type:'opp_point',emoji:'🆚',label:'+1 Gegner',  color:'bg-gradient-to-br from-orange-500 to-red-500',   forTeam:false,highlight:'none',  isPoint:true},
-  {type:'opp_error',emoji:'✨',label:'Geg.-Fehler', color:'bg-gradient-to-br from-emerald-500 to-green-600',forTeam:false,highlight:'none',  isPoint:true},
+  {type:'kill',       emoji:'💥',label:'Kill',       color:'bg-gradient-to-br from-green-500 to-emerald-600',  forTeam:true, highlight:'front', isPoint:true},
+  {type:'block',      emoji:'🧱',label:'Stuff',      color:'bg-gradient-to-br from-purple-500 to-indigo-600',  forTeam:true, highlight:'front', isPoint:true},
+  {type:'ace',        emoji:'🎯',label:'Ace',         color:'bg-gradient-to-br from-blue-500 to-cyan-600',      forTeam:true, highlight:'server',isPoint:true},
+  {type:'error',      emoji:'❌',label:'Angriff-F.',  color:'bg-gradient-to-br from-red-500 to-rose-600',       forTeam:true, highlight:'front', isPoint:false},
+  {type:'block_error',emoji:'🚫',label:'Block-F.',    color:'bg-gradient-to-br from-red-600 to-pink-700',       forTeam:true, highlight:'front', isPoint:false},
+  {type:'service_error',emoji:'📉',label:'Svc-F.',   color:'bg-gradient-to-br from-orange-500 to-red-500',     forTeam:true, highlight:'server',isPoint:false},
+  {type:'reception_bad',emoji:'⚠️',label:'Ann. -',   color:'bg-gradient-to-br from-amber-500 to-orange-600',   forTeam:true, highlight:'back',  isPoint:false},
+  {type:'reception_good',emoji:'✅',label:'Ann. +',  color:'bg-gradient-to-br from-lime-500 to-green-600',     forTeam:true, highlight:'back',  isPoint:false, soft:true},
+  {type:'attack_attempt',emoji:'⚔️',label:'Angr.v.',color:'bg-gradient-to-br from-teal-500 to-cyan-500',      forTeam:true, highlight:'front', isPoint:false, soft:true},
+  {type:'opp_point',  emoji:'🆚',label:'+1 Gegner',  color:'bg-gradient-to-br from-orange-500 to-red-500',    forTeam:false,highlight:'none',  isPoint:true},
+  {type:'opp_error',  emoji:'✨',label:'Geg.-Fehler', color:'bg-gradient-to-br from-emerald-500 to-green-600', forTeam:false,highlight:'none',  isPoint:true},
 ];
 const EVENT_LABELS={kill:'💥 Kill',ace:'🎯 Ace',block:'🧱 Stuff',error:'❌ Angriff-F.',service_error:'📉 Svc-F.',block_error:'🚫 Block-F.',attack_attempt:'⚔️ Angriffsv.',opp_point:'🆚 +1 Gegner',opp_error:'✨ Geg.-Fehler',reception_good:'✅ Ann.+',reception_bad:'⚠️ Ann.-'};
 const COURT_POSITIONS=[
@@ -83,7 +81,8 @@ const COURT_POSITIONS=[
 ];
 const FRONT_POSITIONS=[2,3,4];
 const BACK_POSITIONS=[1,5,6];
-// ── Helpers ──────────────────────────────────────────────────────────────────
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
 function generateSlots(config){
   const s=[];
   Object.entries(config).forEach(([type,count])=>{
@@ -106,49 +105,34 @@ function getLineupForRotation(startingLineup,rotation){
   return lineup;
 }
 function setterRotToInternal(r){return{1:1,2:6,3:5,4:4,5:3,6:2}[r]||1;}
-function getHighlightedPositions(highlight,lineup){
-  if(!highlight||highlight==='none')return null;
-  if(highlight==='front')return new Set(FRONT_POSITIONS);
-  if(highlight==='server')return new Set([1]);
-  if(highlight==='back'){
-    const s=new Set();
-    Object.entries(lineup).forEach(([pos,slotId])=>{
-      const type=slotId.replace(/\d+$/,'');
-      if(type!=='S'&&type!=='OPP')s.add(parseInt(pos));
-    });
-    return s;
-  }
-  return null;
+// Auto-libero: swap libero in for back-row MB
+function getEffectiveLineup(lineupSnapshot,matchSlots,rotation){
+  const rotated=getLineupForRotation(lineupSnapshot,rotation);
+  const liberoSlot=matchSlots.find(s=>s.type==='L');
+  if(!liberoSlot)return rotated;
+  const mbSlots=matchSlots.filter(s=>s.type==='MB');
+  if(!mbSlots.length)return rotated;
+  const backMBEntry=Object.entries(rotated).find(([pos,slotId])=>BACK_POSITIONS.includes(parseInt(pos))&&mbSlots.some(mb=>mb.id===slotId));
+  if(!backMBEntry)return rotated;
+  return{...rotated,[backMBEntry[0]]:liberoSlot.id};
 }
-// Returns which slotIds are "suggested" (highlighted) vs "allowed but dimmed"
-function getSlotSuggestions(action, lineup){
+function getSlotSuggestions(action,lineup){
   if(!action||!action.forTeam)return{suggested:null,allowed:null};
   const suggested=new Set();
   const allowed=new Set();
-  const allSlotIds=Object.values(lineup);
-  allSlotIds.forEach(sid=>{
+  Object.entries(lineup).forEach(([pos,sid])=>{
+    const posNum=parseInt(pos);
     const type=sid.replace(/\d+$/,'');
-    // Determine suggested
-    if(action.highlight==='none'){suggested.add(sid);}
-    else if(action.highlight==='server'){
-      const pos=Object.entries(lineup).find(([_,s])=>s===sid)?.[0];
-      if(parseInt(pos)===1)suggested.add(sid);
-    } else if(action.highlight==='front'){
-      const pos=Object.entries(lineup).find(([_,s])=>s===sid)?.[0];
-      if(FRONT_POSITIONS.includes(parseInt(pos)))suggested.add(sid);
-    } else if(action.highlight==='back'){
-      const pos=Object.entries(lineup).find(([_,s])=>s===sid)?.[0];
-      if(BACK_POSITIONS.includes(parseInt(pos))&&type!=='S'&&type!=='OPP')suggested.add(sid);
-    }
-    // All slots always allowed (override with 2nd tap)
     allowed.add(sid);
+    if(action.highlight==='none'){suggested.add(sid);}
+    else if(action.highlight==='server'){if(posNum===1)suggested.add(sid);}
+    else if(action.highlight==='front'){if(FRONT_POSITIONS.includes(posNum))suggested.add(sid);}
+    else if(action.highlight==='back'){if(BACK_POSITIONS.includes(posNum)&&type!=='S'&&type!=='OPP')suggested.add(sid);}
   });
-  // Special overrides: reception also allowed for S and OPP
-  // kill also allowed for back-row / defensive players
-  // → all slots are always in allowed, suggested is the highlighted subset
   return{suggested,allowed};
 }
 function fmtTime(s){const m=Math.floor(s/60);return`${m}:${Math.floor(s%60).toString().padStart(2,'0')}`;}
+
 // ── MatchVideoPlayer ──────────────────────────────────────────────────────────
 function MatchVideoPlayer({matchId,events,matchSlots,rosterSnap,matchSetScores,onEventsChange,onSetScoresChange,editMode,onToggleEdit}){
   const [videoUrl,setVideoUrl]=useState(null);
@@ -157,67 +141,40 @@ function MatchVideoPlayer({matchId,events,matchSlots,rosterSnap,matchSetScores,o
   const [currentTime,setCurrentTime]=useState(0);
   const [selectedAction,setSelectedAction]=useState(null);
   const [pendingFlash,setPendingFlash]=useState(null);
+  const [pendingOverride,setPendingOverride]=useState(null);
   const [showScoreEditor,setShowScoreEditor]=useState(false);
   const [draftScores,setDraftScores]=useState([]);
-  const [pendingOverride,setPendingOverride]=useState(null);
   const videoEl=useRef(null);
   useEffect(()=>{
     let mounted=true;let url=null;
     async function load(){
-      try{
-        const rec=await videoDB.get(matchId);
-        if(rec&&rec.blob&&mounted){url=URL.createObjectURL(rec.blob);setVideoUrl(url);}
-        else if(mounted)setErr('Video nicht gefunden');
-      }catch(e){if(mounted)setErr('Fehler: '+e.message);}
+      try{const rec=await videoDB.get(matchId);if(rec&&rec.blob&&mounted){url=URL.createObjectURL(rec.blob);setVideoUrl(url);}else if(mounted)setErr('Video nicht gefunden');}catch(e){if(mounted)setErr('Fehler: '+e.message);}
       if(mounted)setLoading(false);
     }
     load();
     return()=>{mounted=false;if(url)URL.revokeObjectURL(url);};
   },[matchId]);
-  const jumpTo=(sec)=>{
-    if(videoEl.current&&sec!=null){videoEl.current.currentTime=Math.max(0,sec-2);videoEl.current.play().catch(()=>{});}
-  };
-  const deleteVideo=async()=>{
-    if(!confirm('Video löschen? Stats bleiben.'))return;
-    try{await videoDB.delete(matchId);setVideoUrl(null);setErr('Video gelöscht');}catch(e){}
-  };
-  const openScoreEditor=()=>{
-    setDraftScores(matchSetScores&&matchSetScores.length>0?[...matchSetScores]:[{teamScore:0,opponentScore:0}]);
-    setShowScoreEditor(true);
-  };
-  const saveScoreEdit=()=>{
-    const cleaned=draftScores.filter(s=>s.teamScore>0||s.opponentScore>0);
-    if(cleaned.length===0){alert('Mindestens einen Satz eintragen.');return;}
-    onSetScoresChange(cleaned);setShowScoreEditor(false);
-  };
-  const updateDraft=(idx,field,val)=>{
-    const n=[...draftScores];if(!n[idx])n[idx]={teamScore:0,opponentScore:0};
-    n[idx][field]=Math.max(0,parseInt(val)||0);setDraftScores(n);
-  };
+  const jumpTo=(sec)=>{if(videoEl.current&&sec!=null){videoEl.current.currentTime=Math.max(0,sec-2);videoEl.current.play().catch(()=>{});}};
+  const deleteVideo=async()=>{if(!confirm('Video löschen? Stats bleiben.'))return;try{await videoDB.delete(matchId);setVideoUrl(null);setErr('Video gelöscht');}catch(e){}};
+  const openScoreEditor=()=>{setDraftScores(matchSetScores&&matchSetScores.length>0?[...matchSetScores]:[{teamScore:0,opponentScore:0}]);setShowScoreEditor(true);};
+  const saveScoreEdit=()=>{const cleaned=draftScores.filter(s=>s.teamScore>0||s.opponentScore>0);if(cleaned.length===0){alert('Mindestens einen Satz eintragen.');return;}onSetScoresChange(cleaned);setShowScoreEditor(false);};
+  const updateDraft=(idx,field,val)=>{const n=[...draftScores];if(!n[idx])n[idx]={teamScore:0,opponentScore:0};n[idx][field]=Math.max(0,parseInt(val)||0);setDraftScores(n);};
   const commitAtTime=(details)=>{
-    const event={
-      id:Date.now().toString()+Math.random(),
-      set:1,serving:'us',teamScore:0,opponentScore:0,
-      timestamp:Date.now(),videoTime:Math.floor(currentTime),
-      retroactive:true,...details,
-    };
-    const newEvents=[...events,event].sort((a,b)=>(a.videoTime??0)-(b.videoTime??0));
-    onEventsChange(newEvents);
-    setPendingFlash({slotId:details.slotId,type:details.type});
-    setTimeout(()=>setPendingFlash(null),600);
+    const event={id:Date.now().toString()+Math.random(),set:1,serving:'us',teamScore:0,opponentScore:0,timestamp:Date.now(),videoTime:Math.floor(currentTime),retroactive:true,...details};
+    onEventsChange([...events,event].sort((a,b)=>(a.videoTime??0)-(b.videoTime??0)));
+    setPendingFlash({slotId:details.slotId,type:details.type});setTimeout(()=>setPendingFlash(null),600);
     setSelectedAction(null);
   };
   const recordOppAtTime=(type)=>commitAtTime({type,slotId:null,playerName:null,forTeam:false});
   const tapPlayerOnVideo=(slotId)=>{
     if(!selectedAction)return;
-    // Build a fake lineup from matchSlots (no rotation context in retro mode)
     const fakeLineup={};matchSlots.forEach((s,i)=>{fakeLineup[i+1]=s.id;});
     const {suggested}=getSlotSuggestions(selectedAction,fakeLineup);
     const isSuggested=!suggested||suggested.has(slotId);
     if(!isSuggested){
       if(pendingOverride===slotId){setPendingOverride(null);}
       else{setPendingOverride(slotId);return;}
-    } else {setPendingOverride(null);}
+    }else{setPendingOverride(null);}
     const slot=matchSlots.find(s=>s.id===slotId);
     commitAtTime({type:selectedAction.type,slotId,playerName:rosterSnap[slotId]?.name,slotShort:slot?.short,forTeam:true});
   };
@@ -225,27 +182,13 @@ function MatchVideoPlayer({matchId,events,matchSlots,rosterSnap,matchSetScores,o
   if(loading)return<div className="bg-white/95 rounded-2xl p-4 shadow-xl mb-3 text-center text-xs text-gray-500">🎬 Lade Video...</div>;
   if(err||!videoUrl)return<div className="bg-yellow-100 border-2 border-yellow-400 rounded-2xl p-3 mb-3 text-xs text-yellow-800 text-center">🎬 {err||'Kein Video'}</div>;
   const eventsWithTime=events.filter(e=>e.videoTime!=null).sort((a,b)=>a.videoTime-b.videoTime);
-  const teamActions=ACTIONS.filter(a=>a.forTeam);
   const oppActions=ACTIONS.filter(a=>!a.forTeam);
-  const pointActions=teamActions.filter(a=>!a.soft);
-  const softActions=teamActions.filter(a=>a.soft);
-  const getHighlightForSlot=(slotId)=>{
-    if(!selectedAction||!selectedAction.forTeam)return false;
-    if(!selectedAction.highlight||selectedAction.highlight==='none')return true;
-    const type=slotId.replace(/\d+$/,'');
-    if(selectedAction.highlight==='server')return false;
-    if(selectedAction.highlight==='front')return!['S','OPP'].includes(type)||['OPP'].includes(type);
-    if(selectedAction.highlight==='back')return type!=='S'&&type!=='OPP';
-    return true;
-  };
   return(
     <div className="bg-white/95 rounded-2xl p-3 shadow-xl mb-3">
       <div className="flex justify-between items-center mb-2">
         <h3 className="font-black text-purple-700">🎬 Match-Video</h3>
         <div className="flex gap-2">
-          <button onClick={onToggleEdit} className={`text-xs font-bold px-2 py-1 rounded-lg ${editMode?'bg-green-500 text-white':'bg-gray-200 text-gray-700'}`}>
-            {editMode?'✓ Fertig':'✏️ Nachtracken'}
-          </button>
+          <button onClick={onToggleEdit} className={`text-xs font-bold px-2 py-1 rounded-lg ${editMode?'bg-green-500 text-white':'bg-gray-200 text-gray-700'}`}>{editMode?'✓ Fertig':'✏️ Nachtracken'}</button>
           {editMode&&<button onClick={openScoreEditor} className="text-xs font-bold px-2 py-1 rounded-lg bg-blue-100 text-blue-700">📊 Score</button>}
           <button onClick={deleteVideo} className="text-red-500 text-xs p-1"><Trash2 size={14}/></button>
         </div>
@@ -263,15 +206,9 @@ function MatchVideoPlayer({matchId,events,matchSlots,rosterSnap,matchSetScores,o
                     {draftScores.length>1&&<button onClick={()=>setDraftScores(draftScores.filter((_,i)=>i!==idx))} className="text-red-400 text-xs">✕</button>}
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="flex-1">
-                      <div className="text-[10px] text-purple-600 font-bold mb-0.5">WIR</div>
-                      <input type="number" inputMode="numeric" value={s.teamScore} onChange={e=>updateDraft(idx,'teamScore',e.target.value)} className="w-full p-2 border-2 border-purple-200 rounded-lg text-center text-xl font-black focus:outline-none focus:border-purple-500"/>
-                    </div>
+                    <div className="flex-1"><div className="text-[10px] text-purple-600 font-bold mb-0.5">WIR</div><input type="number" inputMode="numeric" value={s.teamScore} onChange={e=>updateDraft(idx,'teamScore',e.target.value)} className="w-full p-2 border-2 border-purple-200 rounded-lg text-center text-xl font-black focus:outline-none focus:border-purple-500"/></div>
                     <div className="text-gray-400 font-black mt-4">:</div>
-                    <div className="flex-1">
-                      <div className="text-[10px] text-orange-600 font-bold mb-0.5">GEGNER</div>
-                      <input type="number" inputMode="numeric" value={s.opponentScore} onChange={e=>updateDraft(idx,'opponentScore',e.target.value)} className="w-full p-2 border-2 border-orange-200 rounded-lg text-center text-xl font-black focus:outline-none focus:border-orange-500"/>
-                    </div>
+                    <div className="flex-1"><div className="text-[10px] text-orange-600 font-bold mb-0.5">GEGNER</div><input type="number" inputMode="numeric" value={s.opponentScore} onChange={e=>updateDraft(idx,'opponentScore',e.target.value)} className="w-full p-2 border-2 border-orange-200 rounded-lg text-center text-xl font-black focus:outline-none focus:border-orange-500"/></div>
                   </div>
                 </div>
               ))}
@@ -284,8 +221,7 @@ function MatchVideoPlayer({matchId,events,matchSlots,rosterSnap,matchSetScores,o
           </div>
         </div>
       )}
-      <video ref={videoEl} src={videoUrl} controls playsInline className="w-full rounded-xl mb-2"
-        onTimeUpdate={e=>setCurrentTime(e.target.currentTime)}/>
+      <video ref={videoEl} src={videoUrl} controls playsInline className="w-full rounded-xl mb-2" onTimeUpdate={e=>setCurrentTime(e.target.currentTime)}/>
       {editMode&&(
         <div className="bg-gradient-to-br from-purple-50 to-indigo-50 border-2 border-purple-300 rounded-xl p-2 mb-2">
           <div className="text-[10px] font-bold text-purple-700 mb-2 flex items-center justify-between">
@@ -301,46 +237,23 @@ function MatchVideoPlayer({matchId,events,matchSlots,rosterSnap,matchSetScores,o
           {!selectedAction&&(
             <>
               <div className="text-[10px] font-bold text-gray-500 mb-1">① AKTION WÄHLEN</div>
-              {/* Row 1: good */}
               <div className="grid grid-cols-4 gap-1 mb-1">
                 {[ACTIONS.find(a=>a.type==='kill'),ACTIONS.find(a=>a.type==='block'),ACTIONS.find(a=>a.type==='ace'),ACTIONS.find(a=>a.type==='reception_good')].map(a=>(
-                  <button key={a.type} onClick={()=>setSelectedAction(a)}
-                    className={`${a.color} text-white p-1.5 rounded-lg text-center active:scale-90`}>
-                    <div className="text-base">{a.emoji}</div>
-                    <div className="text-[8px] font-bold leading-tight">{a.label}</div>
+                  <button key={a.type} onClick={()=>setSelectedAction(a)} className={`${a.color} text-white p-1.5 rounded-lg text-center active:scale-90`}>
+                    <div className="text-base">{a.emoji}</div><div className="text-[8px] font-bold leading-tight">{a.label}</div>
                   </button>
                 ))}
               </div>
-              {/* Row 2: bad + big Ann.- */}
               <div className="grid grid-cols-4 gap-1 mb-1">
-                {[ACTIONS.find(a=>a.type==='error'),ACTIONS.find(a=>a.type==='block_error'),ACTIONS.find(a=>a.type==='service_error')].map(a=>(
-                  <button key={a.type} onClick={()=>setSelectedAction(a)}
-                    className={`${a.color} text-white p-1.5 rounded-lg text-center active:scale-90`}>
-                    <div className="text-base">{a.emoji}</div>
-                    <div className="text-[8px] font-bold leading-tight">{a.label}</div>
+                {[ACTIONS.find(a=>a.type==='error'),ACTIONS.find(a=>a.type==='block_error'),ACTIONS.find(a=>a.type==='service_error'),ACTIONS.find(a=>a.type==='reception_bad')].map(a=>(
+                  <button key={a.type} onClick={()=>setSelectedAction(a)} className={`${a.color} text-white p-1.5 rounded-lg text-center active:scale-90`}>
+                    <div className="text-base">{a.emoji}</div><div className="text-[8px] font-bold leading-tight">{a.label}</div>
                   </button>
                 ))}
-                {(()=>{const a=ACTIONS.find(x=>x.type==='reception_bad');return(
-                  <button onClick={()=>setSelectedAction(a)} className={`${a.color} text-white p-1.5 rounded-lg text-center active:scale-90`}>
-                    <div className="text-base">{a.emoji}</div>
-                    <div className="text-[8px] font-bold leading-tight">{a.label}</div>
-                  </button>
-                );})()}
               </div>
-              {/* Row 3: soft + opp */}
               <div className="grid grid-cols-3 gap-1">
-                {(()=>{const a=ACTIONS.find(x=>x.type==='attack_attempt');return(
-                  <button onClick={()=>setSelectedAction(a)} className={`${a.color} text-white p-1.5 rounded-lg text-center active:scale-90`}>
-                    <div className="text-base">{a.emoji}</div>
-                    <div className="text-[8px] font-bold leading-tight">{a.label}</div>
-                  </button>
-                );})()}
-                {oppActions.map(a=>(
-                  <button key={a.type} onClick={()=>recordOppAtTime(a.type)}
-                    className={`${a.color} text-white p-1.5 rounded-lg font-bold text-[10px] active:scale-90`}>
-                    {a.emoji} {a.label}
-                  </button>
-                ))}
+                {(()=>{const a=ACTIONS.find(x=>x.type==='attack_attempt');return<button onClick={()=>setSelectedAction(a)} className={`${a.color} text-white p-1.5 rounded-lg text-center active:scale-90`}><div className="text-base">{a.emoji}</div><div className="text-[8px] font-bold">{a.label}</div></button>;})()}
+                {oppActions.map(a=><button key={a.type} onClick={()=>recordOppAtTime(a.type)} className={`${a.color} text-white p-1.5 rounded-lg font-bold text-[10px] active:scale-90`}>{a.emoji} {a.label}</button>)}
               </div>
             </>
           )}
@@ -355,11 +268,7 @@ function MatchVideoPlayer({matchId,events,matchSlots,rosterSnap,matchSetScores,o
                 const isFlashing=pendingFlash?.slotId===slot.id;
                 return(
                   <button key={slot.id} onClick={()=>tapPlayerOnVideo(slot.id)}
-                    className={`p-1.5 rounded-xl font-bold text-xs active:scale-90 transition-all relative
-                      ${isSuggested?`bg-gradient-to-br ${p.color} text-white ring-2 ring-yellow-300 shadow-lg`
-                        :isOverride?`bg-gradient-to-br ${p.color} text-white ring-2 ring-orange-400 shadow-lg`
-                        :'bg-gray-100 text-gray-400 opacity-40'}
-                      ${isFlashing?'scale-110 ring-4 ring-white':''}`}>
+                    className={`p-1.5 rounded-xl font-bold text-xs active:scale-90 transition-all relative ${isSuggested?`bg-gradient-to-br ${p.color} text-white ring-2 ring-yellow-300 shadow-lg`:isOverride?`bg-gradient-to-br ${p.color} text-white ring-2 ring-orange-400 shadow-lg`:'bg-gray-100 text-gray-400 opacity-40'} ${isFlashing?'scale-110 ring-4 ring-white':''}`}>
                     <div className="font-black">{slot.short}</div>
                     <div className="text-[9px] truncate">{rosterSnap[slot.id]?.name}</div>
                     {isOverride&&<div className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-orange-500 text-white text-[7px] font-black px-1 rounded-full whitespace-nowrap">nochmal</div>}
@@ -395,7 +304,8 @@ function MatchVideoPlayer({matchId,events,matchSlots,rosterSnap,matchSetScores,o
     </div>
   );
 }
-// ── Main App ─────────────────────────────────────────────────────────────────
+
+// ── Main App ──────────────────────────────────────────────────────────────────
 function VolleyballTracker(){
   const [view,setView]=useState('home');
   const [teamConfig,setTeamConfig]=useState(DEFAULT_CONFIG);
@@ -416,21 +326,23 @@ function VolleyballTracker(){
   const [formationEditRotation,setFormationEditRotation]=useState(1);
   const [showSettings,setShowSettings]=useState(false);
   const [importMessage,setImportMessage]=useState('');
+  const [showPasteImport,setShowPasteImport]=useState(false);
+  const [pasteText,setPasteText]=useState('');
   const [matchFormat,setMatchFormat]=useState('bo3');
   const [selectedAction,setSelectedAction]=useState(null);
-  const [pendingOverride,setPendingOverride]=useState(null); // slotId awaiting 2nd-tap confirm
+  const [pendingOverride,setPendingOverride]=useState(null);
   const [pendingFlash,setPendingFlash]=useState(null);
   const [editingVideo,setEditingVideo]=useState(false);
   const [showBench,setShowBench]=useState(false);
-  const [subStep,setSubStep]=useState(null); // {slotId: fieldPlayer, type:'sub'|'libero'}
+  const [subStep,setSubStep]=useState(null);
   const [recordingEnabled,setRecordingEnabled]=useState(false);
   const [isRecording,setIsRecording]=useState(false);
   const [recordingStart,setRecordingStart]=useState(null);
-  const [recordingError,setRecordingError]=useState('');
   const [cameraStream,setCameraStream]=useState(null);
   const [cameraPreviewOpen,setCameraPreviewOpen]=useState(false);
   const mediaRecorderRef=useRef(null);
   const recordedChunksRef=useRef([]);
+
   useEffect(()=>{
     async function load(){
       try{const c=await storage.get('team_config');if(c)setTeamConfig(JSON.parse(c.value));}catch(e){}
@@ -442,16 +354,17 @@ function VolleyballTracker(){
     }
     load();
   },[]);
+
+  // ── Recording ──
   const startRecording=async()=>{
     try{
-      setRecordingError('');
       const stream=await navigator.mediaDevices.getUserMedia({video:{width:{ideal:1280},height:{ideal:720},facingMode:'environment'},audio:false});
       setCameraStream(stream);
       let mime='video/webm;codecs=vp9';
       if(!MediaRecorder.isTypeSupported(mime))mime='video/webm;codecs=vp8';
       if(!MediaRecorder.isTypeSupported(mime))mime='video/webm';
       if(!MediaRecorder.isTypeSupported(mime))mime='video/mp4';
-      if(!MediaRecorder.isTypeSupported(mime)){setRecordingError('Aufnahme nicht unterstützt');return false;}
+      if(!MediaRecorder.isTypeSupported(mime))return false;
       recordedChunksRef.current=[];
       const rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:1500000});
       rec.ondataavailable=e=>{if(e.data.size>0)recordedChunksRef.current.push(e.data);};
@@ -459,7 +372,7 @@ function VolleyballTracker(){
       mediaRecorderRef.current=rec;
       setIsRecording(true);setRecordingStart(Date.now());
       return true;
-    }catch(err){setRecordingError('Kamera: '+err.message);return false;}
+    }catch(err){return false;}
   };
   const stopRecording=async()=>new Promise(res=>{
     if(!mediaRecorderRef.current){res(null);return;}
@@ -467,21 +380,20 @@ function VolleyballTracker(){
     rec.onstop=()=>{
       const blob=new Blob(recordedChunksRef.current,{type:rec.mimeType});
       if(cameraStream)cameraStream.getTracks().forEach(t=>t.stop());
-      setCameraStream(null);setIsRecording(false);mediaRecorderRef.current=null;
-      res(blob);
+      setCameraStream(null);setIsRecording(false);mediaRecorderRef.current=null;res(blob);
     };
     rec.stop();
   });
+
+  // ── Persistence ──
   const saveConfig=async c=>{setTeamConfig(c);await storage.set('team_config',JSON.stringify(c));};
   const saveRoster=async r=>{setRoster(r);await storage.set('roster_v3',JSON.stringify(r));};
   const saveLineup=async l=>{setStartingLineup(l);await storage.set('starting_lineup_v2',JSON.stringify(l));};
   const saveFormations=async f=>{setReceptionFormations(f);await storage.set('reception_formations_v2',JSON.stringify(f));};
   const saveMatches=async m=>{setMatches(m);await storage.set('matches_v3',JSON.stringify(m));};
-  const [showPasteImport,setShowPasteImport]=useState(false);
-  const [pasteText,setPasteText]=useState('');
 
+  // ── Import / Export ──
   const buildExportData=()=>({version:1,exportDate:new Date().toISOString(),teamConfig,roster,startingLineup,receptionFormations,matches});
-
   const applyImportData=async(data)=>{
     if(!data.version)throw new Error('Ungültige Daten');
     if(!confirm('⚠️ Aktuelle Daten überschreiben?'))return false;
@@ -492,61 +404,43 @@ function VolleyballTracker(){
     if(data.matches)await saveMatches(data.matches);
     return true;
   };
-
   const exportData=()=>{
     const json=JSON.stringify(buildExportData(),null,2);
     try{
       const blob=new Blob([json],{type:'application/json'});
-      const url=URL.createObjectURL(blob);
-      const a=document.createElement('a');
+      const url=URL.createObjectURL(blob);const a=document.createElement('a');
       a.href=url;a.download=`vb-backup-${new Date().toISOString().split('T')[0]}.json`;
       document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
       setImportMessage('✓ Heruntergeladen');
     }catch(e){setImportMessage('✗ Download fehlgeschlagen — nutze Kopieren');}
     setTimeout(()=>setImportMessage(''),3000);
   };
-
   const exportCopy=async()=>{
-    const json=JSON.stringify(buildExportData());
-    const b64=btoa(unescape(encodeURIComponent(json)));
-    try{
-      await navigator.clipboard.writeText(b64);
-      setImportMessage('✓ In Zwischenablage kopiert');
-    }catch(e){
-      // Fallback: show in textarea for manual copy
-      setPasteText(b64);setShowPasteImport(true);
-      setImportMessage('📋 Text zum Kopieren markieren');
-    }
+    const b64=btoa(unescape(encodeURIComponent(JSON.stringify(buildExportData()))));
+    try{await navigator.clipboard.writeText(b64);setImportMessage('✓ In Zwischenablage kopiert');}
+    catch(e){setPasteText(b64);setShowPasteImport(true);setImportMessage('📋 Text zum Kopieren markieren');}
     setTimeout(()=>setImportMessage(''),3000);
   };
-
   const importFromPaste=async()=>{
     if(!pasteText.trim()){setImportMessage('✗ Kein Text eingefügt');setTimeout(()=>setImportMessage(''),3000);return;}
     try{
-      let json;
-      try{json=decodeURIComponent(escape(atob(pasteText.trim())));}
-      catch{json=pasteText.trim();}
-      const data=JSON.parse(json);
-      const ok=await applyImportData(data);
+      let json;try{json=decodeURIComponent(escape(atob(pasteText.trim())));}catch{json=pasteText.trim();}
+      const ok=await applyImportData(JSON.parse(json));
       if(ok){setImportMessage('✓ Importiert!');setShowPasteImport(false);setPasteText('');}
     }catch(err){setImportMessage('✗ '+err.message);}
     setTimeout(()=>setImportMessage(''),4000);
   };
-
   const importData=event=>{
     const file=event.target.files[0];if(!file)return;
     const reader=new FileReader();
     reader.onload=async e=>{
-      try{
-        const data=JSON.parse(e.target.result);
-        const ok=await applyImportData(data);
-        if(ok)setImportMessage('✓ Importiert!');
-      }catch(err){setImportMessage('✗ '+err.message);}
-      setTimeout(()=>setImportMessage(''),4000);
-      event.target.value='';
+      try{const ok=await applyImportData(JSON.parse(e.target.result));if(ok)setImportMessage('✓ Importiert!');}
+      catch(err){setImportMessage('✗ '+err.message);}
+      setTimeout(()=>setImportMessage(''),4000);event.target.value='';
     };
     reader.readAsText(file);
   };
+
   const slots=generateSlots(teamConfig);
   const assignedSlots=slots.filter(s=>roster[s.id]);
   const setPlayerName=(slotId,name)=>{
@@ -555,20 +449,14 @@ function VolleyballTracker(){
     else nr[slotId]={name:name.trim()};
     saveRoster(nr);setEditingSlot(null);setNameInput('');
   };
-  const updateConfigCount=(type,delta)=>{
-    const c=teamConfig[type]||0;saveConfig({...teamConfig,[type]:Math.max(0,Math.min(6,c+delta))});
-  };
-  const assignToPosition=(pos,slotId)=>{
-    const nl={};Object.entries(startingLineup).forEach(([p,s])=>{if(s!==slotId)nl[p]=s;});nl[pos]=slotId;saveLineup(nl);
-  };
+  const updateConfigCount=(type,delta)=>{const c=teamConfig[type]||0;saveConfig({...teamConfig,[type]:Math.max(0,Math.min(6,c+delta))});};
+  const assignToPosition=(pos,slotId)=>{const nl={};Object.entries(startingLineup).forEach(([p,s])=>{if(s!==slotId)nl[p]=s;});nl[pos]=slotId;saveLineup(nl);};
   const lineupComplete=[1,2,3,4,5,6].every(p=>startingLineup[p]);
+
   const startNewMatch=async()=>{
     if(!opponentName.trim())return;
     let recStarted=false;
-    if(recordingEnabled){
-      recStarted=await startRecording();
-      if(!recStarted&&!confirm('Aufnahme fehlgeschlagen. Ohne Video starten?'))return;
-    }
+    if(recordingEnabled){recStarted=await startRecording();if(!recStarted&&!confirm('Aufnahme fehlgeschlagen. Ohne Video starten?'))return;}
     const maxSets=matchFormat==='bo1'?1:matchFormat==='bo3'?3:5;
     const setsToWin=matchFormat==='bo1'?1:matchFormat==='bo3'?2:3;
     const match={
@@ -576,49 +464,32 @@ function VolleyballTracker(){
       events:[],set:1,rotation:1,teamScore:0,opponentScore:0,setScores:[],
       rosterSnapshot:{...roster},lineupSnapshot:{...startingLineup},
       configSnapshot:{...teamConfig},formationsSnapshot:{...receptionFormations},
-      format:matchFormat,maxSets,setsToWin,
-      hasVideo:recStarted,videoStartTime:recStarted?Date.now():null,
+      format:matchFormat,maxSets,setsToWin,hasVideo:recStarted,videoStartTime:recStarted?Date.now():null,
     };
     setCurrentMatch(match);setServingTeam('us');setShowNewMatch(false);setOpponentName('');setSelectedAction(null);
     if(recStarted)setCameraPreviewOpen(true);
     setView('match');
   };
+
   const updateMatch=fn=>setCurrentMatch(prev=>fn(prev));
-  const recordEventForPlayer=(slotId,force=false)=>{
+
+  const recordEventForPlayer=(slotId)=>{
     if(!selectedAction||!currentMatch)return;
     const action=selectedAction;
-    const trueLineup=getLineupForRotation(currentMatch.lineupSnapshot,currentMatch.rotation);
-    const lineup=getEffectiveLineup(currentMatch.lineupSnapshot,matchSlots,currentMatch.rotation);
-    const liberoSlot=matchSlots.find(s=>s.type==='L');
-    const autoLiberoPos=liberoSlot
-      ?Object.entries(lineup).find(([pos,sid])=>{
-          if(sid!==liberoSlot.id)return false;
-          return trueLineup[pos]!==liberoSlot.id;
-        })?.[0]
-      :null;
-    const {suggested}=getSlotSuggestions(action,lineup);
-    // If not suggested, require a second tap (override)
-    if(!force&&suggested&&!suggested.has(slotId)){
-      if(pendingOverride===slotId){
-        // second tap confirmed — fall through
-        setPendingOverride(null);
-      } else {
-        setPendingOverride(slotId);
-        return;
-      }
-    } else {
-      setPendingOverride(null);
-    }
+    const matchSlotsLocal=generateSlots(currentMatch.configSnapshot);
+    const lineupLocal=getEffectiveLineup(currentMatch.lineupSnapshot,matchSlotsLocal,currentMatch.rotation);
+    const {suggested}=getSlotSuggestions(action,lineupLocal);
+    if(suggested&&!suggested.has(slotId)){
+      if(pendingOverride===slotId){setPendingOverride(null);}
+      else{setPendingOverride(slotId);return;}
+    }else{setPendingOverride(null);}
     const videoTime=isRecording&&recordingStart?Math.floor((Date.now()-recordingStart)/1000):null;
-    const slot=generateSlots(currentMatch.configSnapshot).find(s=>s.id===slotId);
+    const slot=matchSlotsLocal.find(s=>s.id===slotId);
     const event={
       id:Date.now().toString()+Math.random(),
-      slotId:action.forTeam?slotId:null,
-      playerName:action.forTeam?currentMatch.rosterSnapshot[slotId]?.name:null,
-      slotShort:action.forTeam?slot?.short:null,
-      type:action.type,forTeam:action.forTeam,
-      set:currentMatch.set,rotation:currentMatch.rotation,
-      serving:servingTeam,timestamp:Date.now(),videoTime,
+      slotId:action.forTeam?slotId:null,playerName:action.forTeam?currentMatch.rosterSnapshot[slotId]?.name:null,
+      slotShort:action.forTeam?slot?.short:null,type:action.type,forTeam:action.forTeam,
+      set:currentMatch.set,rotation:currentMatch.rotation,serving:servingTeam,timestamp:Date.now(),videoTime,
     };
     let td=0,od=0,rotateUs=false,newServing=servingTeam;
     if(['kill','ace','block','opp_error'].includes(action.type)){td=1;if(servingTeam==='opp'){rotateUs=true;newServing='us';}}
@@ -628,6 +499,7 @@ function VolleyballTracker(){
     setPendingFlash({slotId,type:action.type});setTimeout(()=>setPendingFlash(null),600);
     setSelectedAction(null);
   };
+
   const recordOppAction=type=>{
     if(!currentMatch)return;
     const videoTime=isRecording&&recordingStart?Math.floor((Date.now()-recordingStart)/1000):null;
@@ -638,39 +510,19 @@ function VolleyballTracker(){
     updateMatch(m=>({...m,events:[...m.events,event],teamScore:m.teamScore+td,opponentScore:m.opponentScore+od}));
     setServingTeam(newServing);setSelectedAction(null);
   };
-  // Auto-libero: compute the effective display lineup with libero swapped in for back-row MB
-  const getEffectiveLineup=(lineupSnapshot, matchSlots, rotation)=>{
-    const rotated=getLineupForRotation(lineupSnapshot, rotation);
-    const liberoSlot=matchSlots.find(s=>s.type==='L');
-    if(!liberoSlot)return rotated;
-    // Find MB slots
-    const mbSlots=matchSlots.filter(s=>s.type==='MB');
-    if(!mbSlots.length)return rotated;
-    // Find which MB is in back row
-    const backMBEntry=Object.entries(rotated).find(([pos,slotId])=>{
-      const posNum=parseInt(pos);
-      return BACK_POSITIONS.includes(posNum)&&mbSlots.some(mb=>mb.id===slotId);
-    });
-    if(!backMBEntry)return rotated;
-    const [backPos, mbSlotId]=backMBEntry;
-    // Swap libero in
-    return{...rotated,[backPos]:liberoSlot.id};
-  };
-  // Returns the "true" lineup (for rotation tracking, serving, stats) - no libero auto-swap
-  // Effective lineup (for display + event recording) uses auto-libero
 
-  // Substitution: swap fieldSlotId with benchSlotId in active lineup
-  const doSubstitution=(fieldSlotId, benchSlotId)=>{
+  const doSubstitution=(fieldSlotId,benchSlotId)=>{
     updateMatch(m=>{
       const newLineup={...m.lineupSnapshot};
       const pos=Object.entries(newLineup).find(([_,s])=>s===fieldSlotId)?.[0];
       if(pos)newLineup[pos]=benchSlotId;
-      const subs=[...(m.substitutions||[]),{out:fieldSlotId,in:benchSlotId,set:m.set,rotation:m.rotation}];
-      return{...m,lineupSnapshot:newLineup,substitutions:subs};
+      return{...m,lineupSnapshot:newLineup,substitutions:[...(m.substitutions||[]),{out:fieldSlotId,in:benchSlotId,set:m.set,rotation:m.rotation}]};
     });
     setSubStep(null);setShowBench(false);
   };
-  const undoLastEvent=()=>{    if(!currentMatch||currentMatch.events.length===0)return;
+
+  const undoLastEvent=()=>{
+    if(!currentMatch||currentMatch.events.length===0)return;
     const last=currentMatch.events[currentMatch.events.length-1];
     let td=0,od=0,undoRotate=false;
     if(['kill','ace','block','opp_error'].includes(last.type)){td=-1;if(last.serving==='opp')undoRotate=true;}
@@ -684,25 +536,23 @@ function VolleyballTracker(){
     setServingTeam('us');setSelectedAction(null);
   };
   const finishMatch=async()=>{
-    let videoBlob=null;
-    if(isRecording)videoBlob=await stopRecording();
+    let videoBlob=null;if(isRecording)videoBlob=await stopRecording();
     const finalMatch={...currentMatch,setScores:[...currentMatch.setScores,{teamScore:currentMatch.teamScore,opponentScore:currentMatch.opponentScore}],finished:true};
     if(videoBlob){try{await videoDB.save(finalMatch.id,videoBlob);}catch(e){}}
     await saveMatches([finalMatch,...matches]);
     setCurrentMatch(null);setSelectedAction(null);setView('home');
   };
   const cancelMatch=async()=>{
-    if(confirm('Spiel verwerfen?')){
-      if(isRecording)await stopRecording();
-      setCurrentMatch(null);setSelectedAction(null);setView('home');
-    }
+    if(confirm('Spiel verwerfen?')){if(isRecording)await stopRecording();setCurrentMatch(null);setSelectedAction(null);setView('home');}
   };
+
   if(loading)return(
     <div className="min-h-screen bg-gradient-to-br from-purple-600 via-pink-500 to-orange-400 flex items-center justify-center">
       <div className="text-white text-xl font-bold animate-pulse">Lade... 🏐</div>
     </div>
   );
-  // ═══ HOME ═══════════════════════════════════════════════════════════════════
+
+  // ═══ HOME ════════════════════════════════════════════════════════════════════
   if(view==='home')return(
     <div className="min-h-screen bg-gradient-to-br from-purple-600 via-pink-500 to-orange-400 p-4">
       <div className="max-w-md mx-auto">
@@ -747,25 +597,18 @@ function VolleyballTracker(){
             <h2 className="text-2xl font-black text-gray-800 mb-4">⚙️ Einstellungen</h2>
             <div className="space-y-3">
               <div className="bg-gray-50 p-3 rounded-2xl">
-                <div className="text-xs font-bold text-gray-700 mb-2">💾 DATEN-BACKUP</div>
+                <div className="text-xs font-bold text-gray-700 mb-1">💾 DATEN-BACKUP</div>
                 <div className="text-[10px] text-gray-500 mb-2">Export → auf zweitem Gerät importieren</div>
                 <div className="grid grid-cols-2 gap-2 mb-2">
-                  <button onClick={exportData} className="bg-gradient-to-r from-blue-500 to-cyan-600 text-white p-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 active:scale-95">
-                    <Download size={13}/> Download
-                  </button>
-                  <button onClick={exportCopy} className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white p-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 active:scale-95">
-                    📋 Kopieren
-                  </button>
+                  <button onClick={exportData} className="bg-gradient-to-r from-blue-500 to-cyan-600 text-white p-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 active:scale-95"><Download size={13}/> Download</button>
+                  <button onClick={exportCopy} className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white p-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 active:scale-95">📋 Kopieren</button>
                 </div>
                 <div className="text-[10px] text-gray-500 mb-2">Import</div>
                 <div className="grid grid-cols-2 gap-2">
                   <label className="bg-gradient-to-r from-purple-500 to-pink-600 text-white p-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer">
-                    <Upload size={13}/> Datei
-                    <input type="file" accept=".json,.txt,application/json,text/plain,text/*" onChange={importData} className="hidden"/>
+                    <Upload size={13}/> Datei<input type="file" accept=".json,.txt,application/json,text/plain,text/*" onChange={importData} className="hidden"/>
                   </label>
-                  <button onClick={()=>{setPasteText('');setShowPasteImport(true);}} className="bg-gradient-to-r from-pink-500 to-rose-500 text-white p-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 active:scale-95">
-                    📥 Einfügen
-                  </button>
+                  <button onClick={()=>{setPasteText('');setShowPasteImport(true);}} className="bg-gradient-to-r from-pink-500 to-rose-500 text-white p-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 active:scale-95">📥 Einfügen</button>
                 </div>
                 {importMessage&&<div className={`mt-2 p-2 rounded-lg text-xs font-bold text-center ${importMessage.startsWith('✓')?'bg-green-100 text-green-800':'bg-red-100 text-red-800'}`}>{importMessage}</div>}
               </div>
@@ -778,19 +621,12 @@ function VolleyballTracker(){
           </div>
         </div>
       )}
-      {/* Paste import modal */}
       {showPasteImport&&(
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-3xl p-5 w-full max-w-sm shadow-2xl">
             <h2 className="text-xl font-black text-purple-700 mb-1">📥 Text importieren</h2>
             <p className="text-xs text-gray-500 mb-3">Füge den kopierten Backup-Text hier ein.</p>
-            <textarea
-              value={pasteText}
-              onChange={e=>setPasteText(e.target.value)}
-              placeholder="Backup-Text hier einfügen…"
-              className="w-full h-28 p-3 border-2 border-purple-200 rounded-xl text-xs font-mono resize-none focus:outline-none focus:border-purple-500 mb-3"
-              autoFocus
-            />
+            <textarea value={pasteText} onChange={e=>setPasteText(e.target.value)} placeholder="Backup-Text hier einfügen…" className="w-full h-28 p-3 border-2 border-purple-200 rounded-xl text-xs font-mono resize-none focus:outline-none focus:border-purple-500 mb-3" autoFocus/>
             {importMessage&&<div className={`mb-3 p-2 rounded-lg text-xs font-bold text-center ${importMessage.startsWith('✓')?'bg-green-100 text-green-800':'bg-red-100 text-red-800'}`}>{importMessage}</div>}
             <div className="flex gap-2">
               <button onClick={()=>{setShowPasteImport(false);setPasteText('');}} className="flex-1 bg-gray-200 p-3 rounded-2xl font-bold">Abbrechen</button>
@@ -830,6 +666,7 @@ function VolleyballTracker(){
       )}
     </div>
   );
+
   // ═══ ROSTER ══════════════════════════════════════════════════════════════════
   if(view==='roster')return(
     <div className="min-h-screen bg-gradient-to-br from-pink-500 via-purple-600 to-indigo-600 p-4">
@@ -883,6 +720,7 @@ function VolleyballTracker(){
       </div>
     </div>
   );
+
   // ═══ LINEUP ══════════════════════════════════════════════════════════════════
   if(view==='lineup')return(
     <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-blue-600 to-cyan-600 p-4">
@@ -949,19 +787,20 @@ function VolleyballTracker(){
       )}
     </div>
   );
+
   if(view==='formations')return<FormationsEditor rotation={formationEditRotation} setRotation={setFormationEditRotation} startingLineup={startingLineup} roster={roster} slots={slots} receptionFormations={receptionFormations} saveFormations={saveFormations} onBack={()=>setView('home')}/>;
-  // ═══ MATCH ═══════════════════════════════════════════════════════════════════
+
+  // ═══ MATCH ════════════════════════════════════════════════════════════════════
   if(view==='match'&&currentMatch){
-    const lineup=getLineupForRotation(currentMatch.lineupSnapshot,currentMatch.rotation);
+    // All variables defined in correct dependency order
     const rosterSnap=currentMatch.rosterSnapshot;
     const matchSlots=generateSlots(currentMatch.configSnapshot);
     const formations=currentMatch.formationsSnapshot||{};
+    const trueLineup=getLineupForRotation(currentMatch.lineupSnapshot,currentMatch.rotation);
+    const lineup=getEffectiveLineup(currentMatch.lineupSnapshot,matchSlots,currentMatch.rotation);
     const liberoSlot=matchSlots.find(s=>s.type==='L');
     const autoLiberoPos=liberoSlot
-      ?Object.entries(lineup).find(([pos,sid])=>{
-          if(sid!==liberoSlot.id)return false;
-          return trueLineup[pos]!==liberoSlot.id;
-        })?.[0]
+      ?Object.entries(lineup).find(([pos,sid])=>sid===liberoSlot.id&&trueLineup[pos]!==liberoSlot.id)?.[0]
       :null;
     const setterSlot=matchSlots.find(s=>s.type==='S');
     const setterPos=setterSlot?Object.entries(lineup).find(([_,sid])=>sid===setterSlot.id)?.[0]:null;
@@ -976,28 +815,17 @@ function VolleyballTracker(){
     const setBallOpp=currentMatch.opponentScore>=setTargetPoints-1&&currentMatch.opponentScore>=currentMatch.teamScore&&!setWonBy;
     const isExtension=currentMatch.teamScore>=setTargetPoints||currentMatch.opponentScore>=setTargetPoints;
     let positionLayout;
-    if(isReceiving){
-      const setterPosNum=parseInt(setterPos);
-      positionLayout=formations[setterPosNum]||getDefaultReception();
-    }else{
-      const layout={};COURT_POSITIONS.forEach(c=>{layout[c.pos]={x:c.x,y:c.y};});
-      positionLayout=layout;
-    }
-    const {suggested: suggestedSlots}=getSlotSuggestions(selectedAction, lineup);
-    const isPosSelectable=(pos)=>{
-      if(!selectedAction||!selectedAction.forTeam)return false;
-      return true; // all positions tappable; dimmed ones need 2nd tap
-    };
+    if(isReceiving){positionLayout=formations[parseInt(setterPos)]||getDefaultReception();}
+    else{const l={};COURT_POSITIONS.forEach(c=>{l[c.pos]={x:c.x,y:c.y};});positionLayout=l;}
+    const {suggested:suggestedSlots}=getSlotSuggestions(selectedAction,lineup);
+    const isPosSelectable=()=>selectedAction&&selectedAction.forTeam;
     const isPosSuggested=(pos)=>{
       if(!selectedAction||!selectedAction.forTeam)return false;
       if(!suggestedSlots)return true;
-      const slotId=lineup[pos];
-      return suggestedSlots.has(slotId);
+      return suggestedSlots.has(lineup[pos]);
     };
-    const teamActions=ACTIONS.filter(a=>a.forTeam);
     const oppActions=ACTIONS.filter(a=>!a.forTeam);
-    const pointActions=teamActions.filter(a=>!a.soft);
-    const softActions=teamActions.filter(a=>a.soft);
+
     return(
       <div className="min-h-screen bg-gradient-to-br from-indigo-700 via-purple-700 to-pink-600 p-3 pb-6">
         <div className="max-w-md mx-auto">
@@ -1041,65 +869,34 @@ function VolleyballTracker(){
             {matchWonBy&&<div className="mt-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-white p-2 rounded-xl font-black text-center animate-pulse">🏆 MATCH {matchWonBy==='us'?'GEWONNEN':'verloren'}!</div>}
             {!setWonBy&&(setBallUs||setBallOpp)&&<div className="mt-1 text-center text-[10px] font-bold text-orange-600">{setBallUs&&'🎯 Satzball WIR'}{setBallOpp&&`⚠️ Satzball ${currentMatch.opponent}`}</div>}
           </div>
+
           {/* ① Action picker */}
           <div className="bg-white/95 rounded-2xl p-3 shadow-xl mb-3">
             <div className="text-xs font-bold text-gray-500 mb-2">
-              {selectedAction
-                ? <span className="text-purple-700">✅ {selectedAction.emoji} <b>{selectedAction.label}</b> — Spieler auf Feld tippen</span>
-                : '① AKTION WÄHLEN'}
+              {selectedAction?<span className="text-purple-700">✅ {selectedAction.emoji} <b>{selectedAction.label}</b> — Spieler auf Feld tippen</span>:'① AKTION WÄHLEN'}
             </div>
-            {/* Row 1: good actions */}
             <div className="grid grid-cols-4 gap-1.5 mb-1">
-              {[
-                ACTIONS.find(a=>a.type==='kill'),
-                ACTIONS.find(a=>a.type==='block'),
-                ACTIONS.find(a=>a.type==='ace'),
-                ACTIONS.find(a=>a.type==='reception_good'),
-              ].map(a=>{
+              {[ACTIONS.find(a=>a.type==='kill'),ACTIONS.find(a=>a.type==='block'),ACTIONS.find(a=>a.type==='ace'),ACTIONS.find(a=>a.type==='reception_good')].map(a=>{
                 const isSel=selectedAction?.type===a.type;
-                return<button key={a.type} onClick={()=>setSelectedAction(isSel?null:a)}
-                  className={`p-2 rounded-xl font-black text-xs transition-all active:scale-90 ${isSel?`${a.color} text-white ring-4 ring-yellow-300 scale-105 shadow-lg`:`${a.color} text-white opacity-80`}`}>
+                return<button key={a.type} onClick={()=>setSelectedAction(isSel?null:a)} className={`p-2 rounded-xl font-black text-xs transition-all active:scale-90 ${isSel?`${a.color} text-white ring-4 ring-yellow-300 scale-105 shadow-lg`:`${a.color} text-white opacity-80`}`}>
                   <div className="text-xl">{a.emoji}</div><div className="text-[9px] mt-0.5 leading-tight">{a.label}</div>
                 </button>;
               })}
             </div>
-            {/* Row 2: bad actions + big Ann.- btn */}
             <div className="grid grid-cols-4 gap-1.5 mb-2">
-              {[
-                ACTIONS.find(a=>a.type==='error'),
-                ACTIONS.find(a=>a.type==='block_error'),
-                ACTIONS.find(a=>a.type==='service_error'),
-              ].map(a=>{
+              {[ACTIONS.find(a=>a.type==='error'),ACTIONS.find(a=>a.type==='block_error'),ACTIONS.find(a=>a.type==='service_error'),ACTIONS.find(a=>a.type==='reception_bad')].map(a=>{
                 const isSel=selectedAction?.type===a.type;
-                return<button key={a.type} onClick={()=>setSelectedAction(isSel?null:a)}
-                  className={`p-2 rounded-xl font-black text-xs transition-all active:scale-90 ${isSel?`${a.color} text-white ring-4 ring-yellow-300 scale-105 shadow-lg`:`${a.color} text-white opacity-80`}`}>
+                return<button key={a.type} onClick={()=>setSelectedAction(isSel?null:a)} className={`p-2 rounded-xl font-black text-xs transition-all active:scale-90 ${isSel?`${a.color} text-white ring-4 ring-yellow-300 scale-105 shadow-lg`:`${a.color} text-white opacity-80`}`}>
                   <div className="text-xl">{a.emoji}</div><div className="text-[9px] mt-0.5 leading-tight">{a.label}</div>
                 </button>;
               })}
-              {/* Big Ann.- button */}
-              {(()=>{const a=ACTIONS.find(x=>x.type==='reception_bad');const isSel=selectedAction?.type===a.type;
-                return<button onClick={()=>setSelectedAction(isSel?null:a)}
-                  className={`p-2 rounded-xl font-black text-xs transition-all active:scale-90 row-span-1 ${isSel?`${a.color} text-white ring-4 ring-yellow-300 scale-105 shadow-lg`:`${a.color} text-white opacity-80`}`}>
-                  <div className="text-2xl">{a.emoji}</div><div className="text-[9px] mt-0.5 leading-tight font-black">{a.label}</div>
-                </button>;
-              })()}
             </div>
-            {/* Soft + Opp row */}
             <div className="grid grid-cols-3 gap-1.5">
-              {(()=>{const a=ACTIONS.find(x=>x.type==='attack_attempt');const isSel=selectedAction?.type===a.type;
-                return<button onClick={()=>setSelectedAction(isSel?null:a)}
-                  className={`p-2 rounded-xl font-black text-xs transition-all active:scale-90 ${isSel?`${a.color} text-white ring-4 ring-yellow-300 scale-105 shadow-lg`:`${a.color} text-white opacity-80`}`}>
-                  <div className="text-lg">{a.emoji}</div><div className="text-[9px] mt-0.5">{a.label}</div>
-                </button>;
-              })()}
-              {oppActions.map(a=>(
-                <button key={a.type} onClick={()=>recordOppAction(a.type)}
-                  className={`${a.color} text-white p-2 rounded-xl font-black text-xs active:scale-90`}>
-                  <div className="text-lg">{a.emoji}</div><div className="text-[9px] mt-0.5">{a.label}</div>
-                </button>
-              ))}
+              {(()=>{const a=ACTIONS.find(x=>x.type==='attack_attempt');const isSel=selectedAction?.type===a.type;return<button onClick={()=>setSelectedAction(isSel?null:a)} className={`p-2 rounded-xl font-black text-xs transition-all active:scale-90 ${isSel?`${a.color} text-white ring-4 ring-yellow-300 scale-105 shadow-lg`:`${a.color} text-white opacity-80`}`}><div className="text-lg">{a.emoji}</div><div className="text-[9px] mt-0.5">{a.label}</div></button>;})()}
+              {oppActions.map(a=><button key={a.type} onClick={()=>recordOppAction(a.type)} className={`${a.color} text-white p-2 rounded-xl font-black text-xs active:scale-90`}><div className="text-lg">{a.emoji}</div><div className="text-[9px] mt-0.5">{a.label}</div></button>)}
             </div>
           </div>
+
           {/* ② Court */}
           <div className="bg-white/95 rounded-2xl p-3 shadow-xl mb-3">
             <div className="flex justify-between items-center mb-2">
@@ -1124,7 +921,7 @@ function VolleyballTracker(){
                 const isServing=posNum===1&&servingTeam==='us';
                 const coords=positionLayout[posNum]||{x:50,y:50};
                 const isAutoLibero=autoLiberoPos===pos;
-                const selectable=isPosSelectable(posNum);
+                const selectable=isPosSelectable();
                 const suggested=isPosSuggested(posNum);
                 const dimmed=selectedAction&&selectable&&!suggested;
                 const isOverridePending=pendingOverride===slotId;
@@ -1141,7 +938,7 @@ function VolleyballTracker(){
                     style={{left:`${coords.x}%`,top:`${coords.y}%`}}>
                     <div className="relative">
                       <div className={`w-[55px] h-[55px] bg-gradient-to-br ${p.color} rounded-full flex flex-col items-center justify-center text-white shadow-xl ${ringClass} ${suggested&&selectable?'scale-110':''} transition-all duration-200`}>
-                        {isSetter&&<div className="absolute -top-1 -right-1"><Star size={10} fill="#fbbf24"/></div>}
+                        {isSetter&&!isAutoLibero&&<div className="absolute -top-1 -right-1"><Star size={10} fill="#fbbf24"/></div>}
                         {isAutoLibero&&<div className="absolute -top-1 -right-1 w-4 h-4 bg-white border-2 border-gray-600 rounded-full flex items-center justify-center text-[8px] font-black text-gray-700">L</div>}
                         <div className="text-[11px] font-black">{slot.short}</div>
                         {isFlashing&&<div className="absolute inset-0 bg-white/50 rounded-full animate-ping"></div>}
@@ -1160,6 +957,7 @@ function VolleyballTracker(){
               )}
             </div>
           </div>
+
           {/* Bench panel */}
           {(()=>{
             const onField=new Set(Object.values(trueLineup));
@@ -1167,8 +965,7 @@ function VolleyballTracker(){
             if(benchSlots.length===0)return null;
             return(
               <div className="bg-white/95 rounded-2xl shadow-xl mb-3 overflow-hidden">
-                <button onClick={()=>{setShowBench(v=>!v);setSubStep(null);}}
-                  className="w-full flex items-center justify-between px-4 py-3 active:bg-gray-50">
+                <button onClick={()=>{setShowBench(v=>!v);setSubStep(null);}} className="w-full flex items-center justify-between px-4 py-3 active:bg-gray-50">
                   <div className="flex items-center gap-2">
                     <span className="text-lg">🪑</span>
                     <span className="font-black text-gray-700 text-sm">Bank ({benchSlots.length})</span>
@@ -1178,44 +975,33 @@ function VolleyballTracker(){
                 </button>
                 {showBench&&(
                   <div className="px-3 pb-3 border-t border-gray-100">
-                    {/* Step 1: no subStep yet → show bench players, tap to select incoming */}
                     {!subStep&&(
                       <>
                         <div className="text-[10px] font-bold text-gray-400 mt-2 mb-1.5">① BANKSP. WÄHLEN (kommt rein)</div>
                         <div className="grid grid-cols-3 gap-1.5">
                           {benchSlots.map(slot=>{
                             const p=POSITION_TYPES[slot.type];
-                            const isLibero=slot.type==='L'||slot.type==='DS';
                             return(
-                              <button key={slot.id} onClick={()=>setSubStep({benchSlotId:slot.id,isLibero})}
-                                className={`p-2 rounded-xl font-bold text-xs active:scale-90 bg-gradient-to-br ${p.color} text-white`}>
+                              <button key={slot.id} onClick={()=>setSubStep({benchSlotId:slot.id})} className={`p-2 rounded-xl font-bold text-xs active:scale-90 bg-gradient-to-br ${p.color} text-white`}>
                                 <div className="font-black text-sm">{slot.short}</div>
                                 <div className="text-[9px] truncate">{rosterSnap[slot.id]?.name}</div>
-                                {isLibero&&<div className="text-[8px] bg-white/30 rounded px-1 mt-0.5">Libero</div>}
                               </button>
                             );
                           })}
                         </div>
                       </>
                     )}
-                    {/* Step 2: subStep set → show field players, tap to select outgoing */}
                     {subStep&&(()=>{
                       const benchSlot=matchSlots.find(s=>s.id===subStep.benchSlotId);
                       const incomingP=POSITION_TYPES[benchSlot.type];
                       const fieldCandidates=Object.entries(lineup).map(([pos,slotId])=>{
-                        const slot=matchSlots.find(s=>s.id===slotId);
-                        if(!slot)return null;
-                        // Libero can only replace back-row non-libero players
-                        if(subStep.isLibero&&FRONT_POSITIONS.includes(parseInt(pos)))return null;
-                        if(subStep.isLibero&&(slot.type==='L'||slot.type==='DS'))return null;
+                        const slot=matchSlots.find(s=>s.id===slotId);if(!slot)return null;
                         return{pos:parseInt(pos),slot,slotId};
                       }).filter(Boolean);
                       return(
                         <>
                           <div className="flex items-center gap-2 mt-2 mb-1.5">
-                            <div className={`bg-gradient-to-br ${incomingP.color} text-white px-2 py-1 rounded-lg text-xs font-black`}>
-                              {benchSlot.short} {rosterSnap[subStep.benchSlotId]?.name} ↓
-                            </div>
+                            <div className={`bg-gradient-to-br ${incomingP.color} text-white px-2 py-1 rounded-lg text-xs font-black`}>{benchSlot.short} {rosterSnap[subStep.benchSlotId]?.name} ↓</div>
                             <div className="text-[10px] font-bold text-gray-400 flex-1">② FELDSP. WÄHLEN (geht raus)</div>
                             <button onClick={()=>setSubStep(null)} className="text-gray-400 text-xs">✕</button>
                           </div>
@@ -1223,8 +1009,7 @@ function VolleyballTracker(){
                             {fieldCandidates.map(({pos,slot,slotId})=>{
                               const p=POSITION_TYPES[slot.type];
                               return(
-                                <button key={slotId} onClick={()=>doSubstitution(slotId,subStep.benchSlotId)}
-                                  className={`p-2 rounded-xl font-bold text-xs active:scale-90 bg-gradient-to-br ${p.color} text-white ring-2 ring-yellow-300`}>
+                                <button key={slotId} onClick={()=>doSubstitution(slotId,subStep.benchSlotId)} className={`p-2 rounded-xl font-bold text-xs active:scale-90 bg-gradient-to-br ${p.color} text-white ring-2 ring-yellow-300`}>
                                   <div className="text-[9px] text-white/70">Pos {pos}</div>
                                   <div className="font-black text-sm">{slot.short}</div>
                                   <div className="text-[9px] truncate">{rosterSnap[slotId]?.name}</div>
@@ -1240,6 +1025,7 @@ function VolleyballTracker(){
               </div>
             );
           })()}
+
           {/* Controls */}
           <div className="grid grid-cols-2 gap-2 mb-3">
             <button onClick={undoLastEvent} disabled={currentMatch.events.length===0} className="bg-gray-700 text-white p-3 rounded-2xl font-bold disabled:opacity-40">↶ Rückgängig</button>
@@ -1250,6 +1036,7 @@ function VolleyballTracker(){
               </button>
             }
           </div>
+
           {/* Event log */}
           {currentMatch.events.length>0&&(
             <div className="bg-white/95 rounded-2xl p-3 shadow-xl">
@@ -1271,9 +1058,10 @@ function VolleyballTracker(){
             </div>
           )}
         </div>
-        {/* Collapsible camera preview — shown when recording is active */}
+
+        {/* Collapsible camera preview */}
         {isRecording&&cameraStream&&(
-          <div className={`fixed z-40 transition-all duration-300 ${cameraPreviewOpen?'bottom-4 right-4':'bottom-4 right-4'}`}>
+          <div className="fixed z-40 bottom-4 right-4">
             {cameraPreviewOpen?(
               <div className="bg-black rounded-2xl shadow-2xl overflow-hidden border-2 border-white/30" style={{width:'180px'}}>
                 <div className="flex items-center justify-between px-2 py-1 bg-black/80">
@@ -1281,33 +1069,22 @@ function VolleyballTracker(){
                     <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse inline-block"></span>
                     <span className="text-white text-[10px] font-black">LIVE</span>
                   </div>
-                  <button onClick={()=>setCameraPreviewOpen(false)} className="text-white/70 text-xs font-bold hover:text-white">▼ einklappen</button>
+                  <button onClick={()=>setCameraPreviewOpen(false)} className="text-white/70 text-xs font-bold">▼ einklappen</button>
                 </div>
                 <video autoPlay playsInline muted className="w-full block" style={{height:'101px',objectFit:'cover'}}
                   ref={el=>{if(el&&el.srcObject!==cameraStream)el.srcObject=cameraStream;}}/>
               </div>
             ):(
-              <button onClick={()=>setCameraPreviewOpen(true)}
-                className="flex items-center gap-1.5 bg-black/80 border-2 border-red-500 text-white px-3 py-1.5 rounded-full shadow-xl text-xs font-black animate-pulse">
-                <span className="w-2 h-2 bg-red-500 rounded-full inline-block"></span>
-                REC · Vorschau
+              <button onClick={()=>setCameraPreviewOpen(true)} className="flex items-center gap-1.5 bg-black/80 border-2 border-red-500 text-white px-3 py-1.5 rounded-full shadow-xl text-xs font-black animate-pulse">
+                <span className="w-2 h-2 bg-red-500 rounded-full inline-block"></span>REC · Vorschau
               </button>
             )}
           </div>
         )}
-        {/* Full-screen camera preview (legacy, keep for compat) */}
-        {cameraPreviewOpen&&cameraStream&&!isRecording&&(
-          <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4" onClick={()=>setCameraPreviewOpen(false)}>
-            <div className="relative w-full max-w-md">
-              <video autoPlay playsInline muted ref={el=>{if(el&&el.srcObject!==cameraStream)el.srcObject=cameraStream;}} className="w-full rounded-2xl"/>
-              <button onClick={()=>setCameraPreviewOpen(false)} className="absolute top-2 right-2 bg-white/90 text-gray-800 w-8 h-8 rounded-full font-black">✕</button>
-            </div>
-          </div>
-        )}
-        )}
       </div>
     );
   }
+
   // ═══ STATS ════════════════════════════════════════════════════════════════════
   if(view==='stats'){
     if(viewingMatch){
@@ -1333,25 +1110,10 @@ function VolleyballTracker(){
               ))}
             </div>
             {m.hasVideo&&(
-              <MatchVideoPlayer
-                matchId={m.id}
-                events={m.events}
-                matchSlots={matchSlots}
-                rosterSnap={m.rosterSnapshot}
-                matchSetScores={m.setScores}
-                editMode={editingVideo}
-                onToggleEdit={()=>setEditingVideo(v=>!v)}
-                onEventsChange={async newEvents=>{
-                  const updated={...m,events:newEvents};
-                  const newMatches=matches.map(x=>x.id===m.id?updated:x);
-                  await saveMatches(newMatches);setViewingMatch(updated);
-                }}
-                onSetScoresChange={async newSetScores=>{
-                  const updated={...m,setScores:newSetScores};
-                  const newMatches=matches.map(x=>x.id===m.id?updated:x);
-                  await saveMatches(newMatches);setViewingMatch(updated);
-                }}
-              />
+              <MatchVideoPlayer matchId={m.id} events={m.events} matchSlots={matchSlots} rosterSnap={m.rosterSnapshot} matchSetScores={m.setScores}
+                editMode={editingVideo} onToggleEdit={()=>setEditingVideo(v=>!v)}
+                onEventsChange={async newEvents=>{const updated={...m,events:newEvents};const nm=matches.map(x=>x.id===m.id?updated:x);await saveMatches(nm);setViewingMatch(updated);}}
+                onSetScoresChange={async newSetScores=>{const updated={...m,setScores:newSetScores};const nm=matches.map(x=>x.id===m.id?updated:x);await saveMatches(nm);setViewingMatch(updated);}}/>
             )}
             <div className="bg-white/95 rounded-2xl p-4 shadow-xl">
               <h3 className="font-black text-purple-700 mb-3">📊 Nach Spieler</h3>
@@ -1421,6 +1183,7 @@ function VolleyballTracker(){
   }
   return null;
 }
+
 // ═══ FormationsEditor ═════════════════════════════════════════════════════════
 function FormationsEditor({rotation:setterRotation,setRotation:setSetterRotation,startingLineup,roster,slots,receptionFormations,saveFormations,onBack}){
   const courtRef=useRef(null);
@@ -1504,6 +1267,7 @@ function FormationsEditor({rotation:setterRotation,setRotation:setSetterRotation
     </div>
   );
 }
+
 ReactDOM.createRoot(document.getElementById('root')).render(<VolleyballTracker/>);
 </script>
 </body>
