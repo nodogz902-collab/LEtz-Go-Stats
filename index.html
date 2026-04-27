@@ -346,7 +346,7 @@ function S5_Analytics(){
   useEffect(()=>{const t=setTimeout(()=>setA(true),200);return()=>clearTimeout(t);},[]);
   const rots=[{r:1,w:75,so:60},{r:2,w:52,so:44},{r:3,w:28,so:25},{r:4,w:82,so:72},{r:5,w:44,so:38},{r:6,w:67,so:55}];
   const setterD=[{n:'AA1',p:42,c:PCOLS.OH},{n:'AA2',p:30,c:PCOLS.OH},{n:'MB1',p:18,c:PCOLS.MB},{n:'D',p:10,c:PCOLS.OPP}];
-  const recP=[{n:'Mia',[72,66,78,68,74]:[],h:[72,66,78,68,74]},{n:'Sara',h:[48,52,46,55,50]},{n:'Klaus',h:[34,40,36,30,42]}];
+  const recP=[{n:'Mia',h:[72,66,78,68,74]},{n:'Sara',h:[48,52,46,55,50]},{n:'Klaus',h:[34,40,36,30,42]}];
   return(
     <div className="flex flex-col h-full px-4 gap-2.5 overflow-y-auto pb-1">
       <div className="bg-white/10 rounded-2xl p-3 fade-up">
