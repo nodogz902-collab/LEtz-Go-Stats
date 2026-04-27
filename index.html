@@ -71,8 +71,6 @@ const ACTIONS=[
   {type:'reception_bad',emoji:'⚠️',label:'Ann. -',   color:'bg-gradient-to-br from-amber-500 to-orange-600',   forTeam:true, highlight:'back',  isPoint:false},
   {type:'reception_good',emoji:'✅',label:'Ann. +',  color:'bg-gradient-to-br from-lime-500 to-green-600',     forTeam:true, highlight:'back',  isPoint:false, soft:true},
   {type:'attack_attempt',emoji:'⚔️',label:'Angr.v.',color:'bg-gradient-to-br from-teal-500 to-cyan-500',      forTeam:true, highlight:'front', isPoint:false, soft:true},
-  {type:'opp_point',  emoji:'🆚',label:'+1 Gegner',  color:'bg-gradient-to-br from-orange-500 to-red-500',    forTeam:false,highlight:'none',  isPoint:true},
-  {type:'opp_error',  emoji:'✨',label:'Geg.-Fehler', color:'bg-gradient-to-br from-emerald-500 to-green-600', forTeam:false,highlight:'none',  isPoint:true},
 ];
 const EVENT_LABELS={kill:'💥 Kill',ace:'🎯 Ace',block:'🧱 Stuff',error:'❌ Angriff-F.',service_error:'📉 Svc-F.',block_error:'🚫 Block-F.',attack_attempt:'⚔️ Angriffsv.',opp_point:'🆚 +1 Gegner',opp_error:'✨ Geg.-Fehler',reception_good:'✅ Ann.+',reception_bad:'⚠️ Ann.-'};
 const COURT_POSITIONS=[
@@ -191,7 +189,7 @@ function MatchVideoPlayer({matchId,events,matchSlots,rosterSnap,matchSetScores,o
     setPendingFlash({slotId:details.slotId,type:details.type});setTimeout(()=>setPendingFlash(null),600);
     setSelectedAction(null);
   };
-  const recordOppAtTime=(type)=>commitAtTime({type,slotId:null,playerName:null,forTeam:false});
+  const recordOppAtTime=()=>{}; // removed
   const tapPlayerOnVideo=(slotId)=>{
     if(!selectedAction)return;
     const fakeLineup={};matchSlots.forEach((s,i)=>{fakeLineup[i+1]=s.id;});
@@ -208,7 +206,6 @@ function MatchVideoPlayer({matchId,events,matchSlots,rosterSnap,matchSetScores,o
   if(loading)return<div className="bg-white/95 rounded-2xl p-4 shadow-xl mb-3 text-center text-xs text-gray-500">🎬 Lade Video...</div>;
   if(err||!videoUrl)return<div className="bg-yellow-100 border-2 border-yellow-400 rounded-2xl p-3 mb-3 text-xs text-yellow-800 text-center">🎬 {err||'Kein Video'}</div>;
   const eventsWithTime=events.filter(e=>e.videoTime!=null).sort((a,b)=>a.videoTime-b.videoTime);
-  const oppActions=ACTIONS.filter(a=>!a.forTeam);
   return(
     <div className="bg-white/95 rounded-2xl p-3 shadow-xl mb-3">
       <div className="flex justify-between items-center mb-2">
@@ -264,23 +261,26 @@ function MatchVideoPlayer({matchId,events,matchSlots,rosterSnap,matchSetScores,o
           {!selectedAction&&(
             <>
               <div className="text-[10px] font-bold text-gray-500 mb-1">① AKTION WÄHLEN</div>
-              <div className="grid grid-cols-4 gap-1 mb-1">
-                {[ACTIONS.find(a=>a.type==='kill'),ACTIONS.find(a=>a.type==='block'),ACTIONS.find(a=>a.type==='ace'),ACTIONS.find(a=>a.type==='reception_good')].map(a=>(
+              <div className="grid grid-cols-3 gap-1 mb-1">
+                {[ACTIONS.find(a=>a.type==='kill'),ACTIONS.find(a=>a.type==='block'),ACTIONS.find(a=>a.type==='ace')].map(a=>(
                   <button key={a.type} onClick={()=>setSelectedAction(a)} className={`${a.color} text-white p-1.5 rounded-lg text-center active:scale-90`}>
                     <div className="text-base">{a.emoji}</div><div className="text-[8px] font-bold leading-tight">{a.label}</div>
                   </button>
                 ))}
               </div>
-              <div className="grid grid-cols-4 gap-1 mb-1">
-                {[ACTIONS.find(a=>a.type==='error'),ACTIONS.find(a=>a.type==='block_error'),ACTIONS.find(a=>a.type==='service_error'),ACTIONS.find(a=>a.type==='reception_bad')].map(a=>(
+              <div className="grid grid-cols-3 gap-1 mb-1">
+                {[ACTIONS.find(a=>a.type==='error'),ACTIONS.find(a=>a.type==='block_error'),ACTIONS.find(a=>a.type==='service_error')].map(a=>(
                   <button key={a.type} onClick={()=>setSelectedAction(a)} className={`${a.color} text-white p-1.5 rounded-lg text-center active:scale-90`}>
                     <div className="text-base">{a.emoji}</div><div className="text-[8px] font-bold leading-tight">{a.label}</div>
                   </button>
                 ))}
               </div>
               <div className="grid grid-cols-3 gap-1">
-                {(()=>{const a=ACTIONS.find(x=>x.type==='attack_attempt');return<button onClick={()=>setSelectedAction(a)} className={`${a.color} text-white p-1.5 rounded-lg text-center active:scale-90`}><div className="text-base">{a.emoji}</div><div className="text-[8px] font-bold">{a.label}</div></button>;})()}
-                {oppActions.map(a=><button key={a.type} onClick={()=>recordOppAtTime(a.type)} className={`${a.color} text-white p-1.5 rounded-lg font-bold text-[10px] active:scale-90`}>{a.emoji} {a.label}</button>)}
+                {[ACTIONS.find(a=>a.type==='reception_good'),ACTIONS.find(a=>a.type==='reception_bad'),ACTIONS.find(a=>a.type==='attack_attempt')].map(a=>(
+                  <button key={a.type} onClick={()=>setSelectedAction(a)} className={`${a.color} text-white p-1.5 rounded-lg text-center active:scale-90`}>
+                    <div className="text-base">{a.emoji}</div><div className="text-[8px] font-bold leading-tight">{a.label}</div>
+                  </button>
+                ))}
               </div>
             </>
           )}
@@ -519,24 +519,23 @@ function VolleyballTracker(){
       set:currentMatch.set,rotation:currentMatch.rotation,serving:servingTeam,timestamp:Date.now(),videoTime,
     };
     let td=0,od=0,rotateUs=false,newServing=servingTeam;
-    if(['kill','ace','block','opp_error'].includes(action.type)){td=1;if(servingTeam==='opp'){rotateUs=true;newServing='us';}}
-    if(['error','service_error','block_error','reception_bad','opp_point'].includes(action.type)){od=1;newServing='opp';}
+    // Points for us: we win the rally → if opponent was serving, we rotate in
+    if(['kill','ace','block'].includes(action.type)){
+      td=1;
+      if(servingTeam==='opp'){rotateUs=true;newServing='us';}
+    }
+    // Points for opponent: they win the rally → serve switches to them
+    if(['error','service_error','block_error','reception_bad'].includes(action.type)){
+      od=1;
+      newServing='opp';
+    }
     updateMatch(m=>({...m,events:[...m.events,event],teamScore:m.teamScore+td,opponentScore:m.opponentScore+od,rotation:rotateUs?(m.rotation%6)+1:m.rotation}));
     setServingTeam(newServing);
     setPendingFlash({slotId,type:action.type});setTimeout(()=>setPendingFlash(null),600);
     setSelectedAction(null);
   };
 
-  const recordOppAction=type=>{
-    if(!currentMatch)return;
-    const videoTime=isRecording&&recordingStart?Math.floor((Date.now()-recordingStart)/1000):null;
-    const event={id:Date.now().toString()+Math.random(),slotId:null,playerName:null,type,forTeam:false,set:currentMatch.set,rotation:currentMatch.rotation,serving:servingTeam,timestamp:Date.now(),videoTime};
-    let td=0,od=0,newServing=servingTeam;
-    if(type==='opp_error'){td=1;if(servingTeam==='opp')newServing='us';}
-    if(type==='opp_point'){od=1;newServing='opp';}
-    updateMatch(m=>({...m,events:[...m.events,event],teamScore:m.teamScore+td,opponentScore:m.opponentScore+od}));
-    setServingTeam(newServing);setSelectedAction(null);
-  };
+  const recordOppAction=()=>{}; // removed — opp actions handled via score +/- buttons
 
   const doSubstitution=(fieldSlotId,benchSlotId)=>{
     updateMatch(m=>{
@@ -552,8 +551,8 @@ function VolleyballTracker(){
     if(!currentMatch||currentMatch.events.length===0)return;
     const last=currentMatch.events[currentMatch.events.length-1];
     let td=0,od=0,undoRotate=false;
-    if(['kill','ace','block','opp_error'].includes(last.type)){td=-1;if(last.serving==='opp')undoRotate=true;}
-    if(['error','service_error','block_error','reception_bad','opp_point'].includes(last.type))od=-1;
+    if(['kill','ace','block'].includes(last.type)){td=-1;if(last.serving==='opp')undoRotate=true;}
+    if(['error','service_error','block_error','reception_bad'].includes(last.type))od=-1;
     updateMatch(m=>({...m,events:m.events.slice(0,-1),teamScore:m.teamScore+td,opponentScore:m.opponentScore+od,rotation:undoRotate?((m.rotation+4)%6)+1:m.rotation}));
     setServingTeam(last.serving);setSelectedAction(null);
   };
@@ -907,25 +906,32 @@ function VolleyballTracker(){
             <div className="text-xs font-bold text-gray-500 mb-2">
               {selectedAction?<span className="text-purple-700">✅ {selectedAction.emoji} <b>{selectedAction.label}</b> — Spieler auf Feld tippen</span>:'① AKTION WÄHLEN'}
             </div>
-            <div className="grid grid-cols-4 gap-1.5 mb-1">
-              {[ACTIONS.find(a=>a.type==='kill'),ACTIONS.find(a=>a.type==='block'),ACTIONS.find(a=>a.type==='ace'),ACTIONS.find(a=>a.type==='reception_good')].map(a=>{
+            {/* Row 1: Kill, Stuff, Ace */}
+            <div className="grid grid-cols-3 gap-1.5 mb-1">
+              {[ACTIONS.find(a=>a.type==='kill'),ACTIONS.find(a=>a.type==='block'),ACTIONS.find(a=>a.type==='ace')].map(a=>{
                 const isSel=selectedAction?.type===a.type;
                 return<button key={a.type} onClick={()=>setSelectedAction(isSel?null:a)} className={`p-2 rounded-xl font-black text-xs transition-all active:scale-90 ${isSel?`${a.color} text-white ring-4 ring-yellow-300 scale-105 shadow-lg`:`${a.color} text-white opacity-80`}`}>
                   <div className="text-xl">{a.emoji}</div><div className="text-[9px] mt-0.5 leading-tight">{a.label}</div>
                 </button>;
               })}
             </div>
-            <div className="grid grid-cols-4 gap-1.5 mb-2">
-              {[ACTIONS.find(a=>a.type==='error'),ACTIONS.find(a=>a.type==='block_error'),ACTIONS.find(a=>a.type==='service_error'),ACTIONS.find(a=>a.type==='reception_bad')].map(a=>{
+            {/* Row 2: Angriff-F, Block-F, Svc-F */}
+            <div className="grid grid-cols-3 gap-1.5 mb-1">
+              {[ACTIONS.find(a=>a.type==='error'),ACTIONS.find(a=>a.type==='block_error'),ACTIONS.find(a=>a.type==='service_error')].map(a=>{
                 const isSel=selectedAction?.type===a.type;
                 return<button key={a.type} onClick={()=>setSelectedAction(isSel?null:a)} className={`p-2 rounded-xl font-black text-xs transition-all active:scale-90 ${isSel?`${a.color} text-white ring-4 ring-yellow-300 scale-105 shadow-lg`:`${a.color} text-white opacity-80`}`}>
                   <div className="text-xl">{a.emoji}</div><div className="text-[9px] mt-0.5 leading-tight">{a.label}</div>
                 </button>;
               })}
             </div>
+            {/* Row 3: Ann+, Ann-, Angr.v. */}
             <div className="grid grid-cols-3 gap-1.5">
-              {(()=>{const a=ACTIONS.find(x=>x.type==='attack_attempt');const isSel=selectedAction?.type===a.type;return<button onClick={()=>setSelectedAction(isSel?null:a)} className={`p-2 rounded-xl font-black text-xs transition-all active:scale-90 ${isSel?`${a.color} text-white ring-4 ring-yellow-300 scale-105 shadow-lg`:`${a.color} text-white opacity-80`}`}><div className="text-lg">{a.emoji}</div><div className="text-[9px] mt-0.5">{a.label}</div></button>;})()}
-              {oppActions.map(a=><button key={a.type} onClick={()=>recordOppAction(a.type)} className={`${a.color} text-white p-2 rounded-xl font-black text-xs active:scale-90`}><div className="text-lg">{a.emoji}</div><div className="text-[9px] mt-0.5">{a.label}</div></button>)}
+              {[ACTIONS.find(a=>a.type==='reception_good'),ACTIONS.find(a=>a.type==='reception_bad'),ACTIONS.find(a=>a.type==='attack_attempt')].map(a=>{
+                const isSel=selectedAction?.type===a.type;
+                return<button key={a.type} onClick={()=>setSelectedAction(isSel?null:a)} className={`p-2 rounded-xl font-black text-xs transition-all active:scale-90 ${isSel?`${a.color} text-white ring-4 ring-yellow-300 scale-105 shadow-lg`:`${a.color} text-white opacity-80`}`}>
+                  <div className="text-xl">{a.emoji}</div><div className="text-[9px] mt-0.5 leading-tight">{a.label}</div>
+                </button>;
+              })}
             </div>
           </div>
 
