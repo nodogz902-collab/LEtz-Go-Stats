@@ -1248,21 +1248,83 @@ function VolleyballTracker(){
 }
 
 // ═══ FormationsEditor ═════════════════════════════════════════════════════════
+
+const RECEPTION_PRESETS={
+  '5-1-w':{
+    label:'5-1 W-Formation',emoji:'🔱',color:'from-blue-500 to-indigo-600',
+    desc:'Z→rechts-vorne · W mit 5 Empfängern',
+    formations:{
+      1:{1:{x:83,y:17},2:{x:65,y:53},3:{x:28,y:53},4:{x:15,y:72},5:{x:48,y:80},6:{x:78,y:70}},
+      6:{6:{x:83,y:17},5:{x:15,y:72},4:{x:28,y:53},3:{x:65,y:53},2:{x:78,y:70},1:{x:48,y:80}},
+      5:{5:{x:83,y:17},4:{x:28,y:53},3:{x:65,y:53},2:{x:78,y:70},1:{x:48,y:80},6:{x:15,y:72}},
+      4:{4:{x:83,y:17},3:{x:65,y:53},2:{x:78,y:70},1:{x:48,y:80},6:{x:15,y:72},5:{x:28,y:53}},
+      3:{3:{x:83,y:17},2:{x:65,y:53},1:{x:78,y:70},6:{x:48,y:80},5:{x:28,y:53},4:{x:15,y:72}},
+      2:{2:{x:83,y:17},1:{x:78,y:70},6:{x:48,y:80},5:{x:28,y:53},4:{x:15,y:72},3:{x:65,y:53}},
+    }
+  },
+  '5-1-u':{
+    label:'5-1 U-Formation',emoji:'🌙',color:'from-purple-500 to-pink-600',
+    desc:'Z→rechts-vorne · halbkreisförmiges U',
+    formations:{
+      1:{1:{x:83,y:17},2:{x:75,y:56},3:{x:52,y:50},4:{x:22,y:62},5:{x:12,y:76},6:{x:50,y:80}},
+      6:{6:{x:83,y:17},5:{x:12,y:76},4:{x:22,y:62},3:{x:52,y:50},2:{x:75,y:56},1:{x:50,y:80}},
+      5:{5:{x:83,y:17},4:{x:22,y:62},3:{x:52,y:50},2:{x:75,y:56},1:{x:50,y:80},6:{x:12,y:76}},
+      4:{4:{x:83,y:17},3:{x:52,y:50},2:{x:75,y:56},1:{x:50,y:80},6:{x:12,y:76},5:{x:22,y:62}},
+      3:{3:{x:83,y:17},2:{x:75,y:56},1:{x:50,y:80},6:{x:12,y:76},5:{x:22,y:62},4:{x:52,y:50}},
+      2:{2:{x:83,y:17},1:{x:50,y:80},6:{x:12,y:76},5:{x:22,y:62},4:{x:52,y:50},3:{x:75,y:56}},
+    }
+  },
+  '4-2':{
+    label:'4-2 Formation',emoji:'⚡',color:'from-green-500 to-teal-600',
+    desc:'Vorderer Z setzt · 4 flache Empfänger (1 Z-Slot)',
+    formations:{
+      1:{1:{x:83,y:17},2:{x:70,y:55},3:{x:50,y:50},4:{x:25,y:58},5:{x:15,y:78},6:{x:50,y:80}},
+      6:{6:{x:83,y:17},5:{x:15,y:78},4:{x:25,y:58},3:{x:50,y:50},2:{x:70,y:55},1:{x:50,y:80}},
+      5:{5:{x:83,y:17},4:{x:25,y:58},3:{x:50,y:50},2:{x:70,y:55},1:{x:50,y:80},6:{x:15,y:78}},
+      4:{4:{x:83,y:17},3:{x:50,y:50},2:{x:70,y:55},1:{x:50,y:80},6:{x:15,y:78},5:{x:25,y:58}},
+      3:{3:{x:83,y:17},2:{x:70,y:55},1:{x:50,y:80},6:{x:15,y:78},5:{x:25,y:58},4:{x:50,y:50}},
+      2:{2:{x:83,y:17},1:{x:50,y:80},6:{x:15,y:78},5:{x:25,y:58},4:{x:50,y:50},3:{x:70,y:55}},
+    }
+  },
+};
+
 function FormationsEditor({rotation:setterRotation,setRotation:setSetterRotation,startingLineup,roster,slots,receptionFormations,saveFormations,onBack}){
   const courtRef=useRef(null);
   const [localFormation,setLocalFormation]=useState(()=>receptionFormations[setterRotation]||getDefaultReception());
   const [dirty,setDirty]=useState(false);
   const [draggingPos,setDraggingPos]=useState(null);
-  useEffect(()=>{setLocalFormation(receptionFormations[setterRotation]||getDefaultReception());setDirty(false);},[setterRotation,receptionFormations]);
+  const [activePreset,setActivePreset]=useState(null);
+
+  useEffect(()=>{
+    setLocalFormation(receptionFormations[setterRotation]||getDefaultReception());
+    setDirty(false);
+  },[setterRotation,receptionFormations]);
+
   const internalRotation=setterRotToInternal(setterRotation);
   const lineup=getLineupForRotation(startingLineup,internalRotation);
+
+  const applyPreset=(key,allRotations)=>{
+    const preset=RECEPTION_PRESETS[key];if(!preset)return;
+    setActivePreset(key);
+    if(allRotations){
+      const newF={};
+      [1,6,5,4,3,2].forEach(r=>{if(preset.formations[r])newF[r]=preset.formations[r];});
+      saveFormations({...receptionFormations,...newF});
+      setLocalFormation(preset.formations[setterRotation]||getDefaultReception());
+      setDirty(false);
+    }else{
+      const f=preset.formations[setterRotation];
+      if(f){setLocalFormation(f);setDirty(true);}
+    }
+  };
+
   const handlePointerDown=(pos,e)=>{e.preventDefault();setDraggingPos(pos);};
   const handlePointerMove=e=>{
     if(draggingPos===null||!courtRef.current)return;e.preventDefault();
     const rect=courtRef.current.getBoundingClientRect();
     const cx=e.touches?e.touches[0].clientX:e.clientX;const cy=e.touches?e.touches[0].clientY:e.clientY;
     const x=Math.max(5,Math.min(95,((cx-rect.left)/rect.width)*100));const y=Math.max(5,Math.min(95,((cy-rect.top)/rect.height)*100));
-    setLocalFormation(prev=>({...prev,[draggingPos]:{x,y}}));setDirty(true);
+    setLocalFormation(prev=>({...prev,[draggingPos]:{x,y}}));setDirty(true);setActivePreset(null);
   };
   const handlePointerUp=()=>setDraggingPos(null);
   useEffect(()=>{
@@ -1273,6 +1335,7 @@ function FormationsEditor({rotation:setterRotation,setRotation:setSetterRotation
       return()=>{window.removeEventListener('mousemove',move);window.removeEventListener('mouseup',up);window.removeEventListener('touchmove',move);window.removeEventListener('touchend',up);};
     }
   },[draggingPos]);
+
   return(
     <div className="min-h-screen bg-gradient-to-br from-cyan-600 via-blue-600 to-indigo-700 p-4">
       <div className="max-w-md mx-auto">
@@ -1280,6 +1343,35 @@ function FormationsEditor({rotation:setterRotation,setRotation:setSetterRotation
           <button onClick={onBack} className="bg-white/20 p-2 rounded-full"><ArrowLeft/></button>
           <h1 className="text-2xl font-black text-white flex-1">🎯 Annahme-Formation</h1>
         </div>
+
+        {/* ── Preset picker ── */}
+        <div className="bg-white/95 rounded-2xl p-3 shadow-xl mb-3">
+          <div className="text-xs font-bold text-gray-600 mb-2">📐 FORMATIONS-VORLAGE</div>
+          <div className="grid grid-cols-2 gap-1.5 mb-2">
+            {Object.entries(RECEPTION_PRESETS).map(([key,p])=>(
+              <button key={key} onClick={()=>applyPreset(key,false)}
+                className={`p-2.5 rounded-xl active:scale-90 text-white text-left bg-gradient-to-br ${p.color} transition-all ${activePreset===key?'ring-2 ring-yellow-300 scale-105 shadow-lg':''}`}>
+                <div className="text-xl leading-none mb-1">{p.emoji}</div>
+                <div className="font-black text-[11px] leading-tight">{p.label}</div>
+                <div className="text-[9px] opacity-80 font-normal mt-0.5 leading-tight">{p.desc}</div>
+              </button>
+            ))}
+            <button onClick={()=>{setLocalFormation(getDefaultReception());setDirty(true);setActivePreset(null);}}
+              className={`p-2.5 rounded-xl active:scale-90 transition-all text-left ${activePreset===null?'bg-gray-700 text-white ring-2 ring-yellow-300 scale-105':'bg-gray-200 text-gray-700'}`}>
+              <div className="text-xl leading-none mb-1">✏️</div>
+              <div className="font-black text-[11px]">Frei / Custom</div>
+              <div className="text-[9px] opacity-70 font-normal mt-0.5">selbst einzeichnen</div>
+            </button>
+          </div>
+          {activePreset&&(
+            <button onClick={()=>applyPreset(activePreset,true)}
+              className="w-full bg-gradient-to-r from-orange-500 to-amber-500 text-white p-2 rounded-xl font-bold text-xs active:scale-95 flex items-center justify-center gap-1.5">
+              🔄 „{RECEPTION_PRESETS[activePreset].label}" → alle 6 Rotationen übernehmen
+            </button>
+          )}
+        </div>
+
+        {/* ── Rotation tabs ── */}
         <div className="bg-white/95 rounded-2xl p-3 shadow-xl mb-3">
           <div className="text-xs font-bold text-gray-600 mb-2">ZUSPIELER (Z) AUF POSITION</div>
           <div className="grid grid-cols-6 gap-1">
@@ -1294,6 +1386,8 @@ function FormationsEditor({rotation:setterRotation,setRotation:setSetterRotation
             })}
           </div>
         </div>
+
+        {/* ── Court ── */}
         <div className="bg-white/95 rounded-2xl p-3 shadow-xl mb-3">
           <div className="text-xs font-bold text-cyan-800 mb-2 text-center">✋ Ziehe die Spieler für Z auf Pos {setterRotation}</div>
           <div ref={courtRef} className="relative bg-gradient-to-b from-orange-100 via-yellow-50 to-orange-100 rounded-xl border-2 border-orange-400 overflow-hidden touch-none" style={{height:'400px'}}>
@@ -1320,8 +1414,9 @@ function FormationsEditor({rotation:setterRotation,setRotation:setSetterRotation
             })}
           </div>
         </div>
+
         <div className="grid grid-cols-2 gap-2">
-          <button onClick={()=>{if(confirm('Reset?')){setLocalFormation(getDefaultReception());setDirty(true);}}} className="bg-gray-200 text-gray-700 p-3 rounded-2xl font-bold active:scale-95 flex items-center justify-center gap-2"><RefreshCw size={16}/> Reset</button>
+          <button onClick={()=>{if(confirm('Reset?')){setLocalFormation(getDefaultReception());setDirty(true);setActivePreset(null);}}} className="bg-gray-200 text-gray-700 p-3 rounded-2xl font-bold active:scale-95 flex items-center justify-center gap-2"><RefreshCw size={16}/> Reset</button>
           <button onClick={()=>{saveFormations({...receptionFormations,[setterRotation]:localFormation});setDirty(false);}} disabled={!dirty} className="bg-gradient-to-r from-green-500 to-emerald-600 text-white p-3 rounded-2xl font-bold active:scale-95 disabled:opacity-40 flex items-center justify-center gap-2"><Save size={16}/> Speichern</button>
         </div>
       </div>
