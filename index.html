@@ -68,8 +68,8 @@ const ACTIONS=[
   {type:'error',      emoji:'❌',label:'Angriff-F.',  color:'bg-gradient-to-br from-red-500 to-rose-600',       forTeam:true, highlight:'front', isPoint:false},
   {type:'block_error',emoji:'🚫',label:'Block-F.',    color:'bg-gradient-to-br from-red-600 to-pink-700',       forTeam:true, highlight:'front', isPoint:false},
   {type:'service_error',emoji:'📉',label:'Svc-F.',   color:'bg-gradient-to-br from-orange-500 to-red-500',     forTeam:true, highlight:'server',isPoint:false},
-  {type:'reception_bad',emoji:'⚠️',label:'Ann. -',   color:'bg-gradient-to-br from-amber-500 to-orange-600',   forTeam:true, highlight:'back',  isPoint:false},
-  {type:'reception_good',emoji:'✅',label:'Ann. +',  color:'bg-gradient-to-br from-lime-500 to-green-600',     forTeam:true, highlight:'back',  isPoint:false, soft:true},
+  {type:'reception_bad',emoji:'⚠️',label:'Ann. -',   color:'bg-gradient-to-br from-amber-500 to-orange-600',   forTeam:true, highlight:'receive',isPoint:false},
+  {type:'reception_good',emoji:'✅',label:'Ann. +',  color:'bg-gradient-to-br from-lime-500 to-green-600',     forTeam:true, highlight:'receive',isPoint:false, soft:true},
   {type:'attack_attempt',emoji:'⚔️',label:'Angr.v.',color:'bg-gradient-to-br from-teal-500 to-cyan-500',      forTeam:true, highlight:'front', isPoint:false, soft:true},
 ];
 const EVENT_LABELS={kill:'💥 Kill',ace:'🎯 Ace',block:'🧱 Stuff',error:'❌ Angriff-F.',service_error:'📉 Svc-F.',block_error:'🚫 Block-F.',attack_attempt:'⚔️ Angriffsv.',opp_point:'🆚 +1 Gegner',opp_error:'🎁 Geg.-Fehler',reception_good:'✅ Ann.+',reception_bad:'⚠️ Ann.-'};
@@ -106,7 +106,7 @@ function setterRotToInternal(r){return{1:1,2:6,3:5,4:4,5:3,6:2}[r]||1;}
 function getEffectiveLineup(lineupSnapshot,matchSlots,rotation){
   return getLineupForRotation(lineupSnapshot,rotation);
 }
-function getSlotSuggestions(action,lineup){
+function getSlotSuggestions(action,lineup,servingTeam='us'){
   if(!action||!action.forTeam)return{suggested:null,allowed:null};
   const suggested=new Set();
   const allowed=new Set();
@@ -115,9 +115,18 @@ function getSlotSuggestions(action,lineup){
     const type=sid.replace(/\d+$/,'');
     allowed.add(sid);
     if(action.highlight==='none'){suggested.add(sid);}
-    else if(action.highlight==='server'){if(posNum===1)suggested.add(sid);}
+    else if(action.highlight==='server'){
+      // Ace / Svc-F nur sinnvoll wenn WIR aufschlagen
+      if(servingTeam==='us'&&posNum===1)suggested.add(sid);
+    }
     else if(action.highlight==='front'){if(FRONT_POSITIONS.includes(posNum))suggested.add(sid);}
-    else if(action.highlight==='back'){if(BACK_POSITIONS.includes(posNum)&&type!=='S'&&type!=='OPP')suggested.add(sid);}
+    else if(action.highlight==='back'){
+      if(BACK_POSITIONS.includes(posNum)&&type!=='S'&&type!=='OPP')suggested.add(sid);
+    }
+    else if(action.highlight==='receive'){
+      // Im 5-1: alle außer Setter (und Diagonal) empfangen
+      if(type!=='S'&&type!=='OPP')suggested.add(sid);
+    }
   });
   return{suggested,allowed};
 }
@@ -246,7 +255,12 @@ function MatchVideoPlayer({matchId,events,matchSlots,rosterSnap,matchSetScores,o
               </div>
               <div className="grid grid-cols-3 gap-1">
                 {[ACTIONS.find(a=>a.type==='reception_good'),ACTIONS.find(a=>a.type==='reception_bad'),ACTIONS.find(a=>a.type==='attack_attempt')].map(a=>(
-                  <button key={a.type} onClick={()=>setSelectedAction(a)} className={`${a.color} text-white p-1.5 rounded-lg text-center active:scale-90`}><div className="text-base">{a.emoji}</div><div className="text-[8px] font-bold leading-tight">{a.label}</div></button>
+                  <button key={a.type} onClick={()=>setSelectedAction(a)}
+                    className={`p-1.5 rounded-lg text-center active:scale-90 relative ${a.soft?`${a.color} text-white opacity-40 border-2 border-dashed border-white/70`:`${a.color} text-white`}`}>
+                    {a.soft&&<span className="absolute -top-1.5 -right-1.5 bg-gray-600 text-white text-[7px] font-black px-1 py-0.5 rounded-full leading-none">~stat</span>}
+                    <div className="text-base">{a.emoji}</div>
+                    <div className="text-[8px] font-bold leading-tight">{a.label}</div>
+                  </button>
                 ))}
               </div>
             </>
@@ -496,7 +510,7 @@ function VolleyballTracker(){
     const action=selectedAction;
     const matchSlotsLocal=generateSlots(currentMatch.configSnapshot);
     const lineupLocal=getEffectiveLineup(currentMatch.lineupSnapshot,matchSlotsLocal,currentMatch.rotation);
-    const {suggested}=getSlotSuggestions(action,lineupLocal);
+    const {suggested}=getSlotSuggestions(action,lineupLocal,servingTeam);
     if(suggested&&!suggested.has(slotId)){
       if(pendingOverride===slotId){setPendingOverride(null);}
       else{setPendingOverride(slotId);return;}
@@ -851,7 +865,7 @@ function VolleyballTracker(){
     let positionLayout;
     if(isReceiving){const formationKey=setterPosForFormation?parseInt(setterPosForFormation):parseInt(setterPos);positionLayout=formations[formationKey]||getDefaultReception();}
     else{const l={};COURT_POSITIONS.forEach(c=>{l[c.pos]={x:c.x,y:c.y};});positionLayout=l;}
-    const {suggested:suggestedSlots}=getSlotSuggestions(selectedAction,lineup);
+    const {suggested:suggestedSlots}=getSlotSuggestions(selectedAction,lineup,servingTeam);
     const isPosSelectable=()=>selectedAction&&selectedAction.forTeam;
     const isPosSuggested=(pos)=>{if(!selectedAction||!selectedAction.forTeam)return false;if(!suggestedSlots)return true;return suggestedSlots.has(lineup[pos]);};
 
@@ -927,8 +941,18 @@ function VolleyballTracker(){
             <div className="grid grid-cols-3 gap-1.5">
               {[ACTIONS.find(a=>a.type==='reception_good'),ACTIONS.find(a=>a.type==='reception_bad'),ACTIONS.find(a=>a.type==='attack_attempt')].map(a=>{
                 const isSel=selectedAction?.type===a.type;
-                return<button key={a.type} onClick={()=>setSelectedAction(isSel?null:a)} className={`p-2 rounded-xl font-black text-xs transition-all active:scale-90 ${isSel?`${a.color} text-white ring-4 ring-yellow-300 scale-105 shadow-lg`:`${a.color} text-white opacity-80`}`}>
-                  <div className="text-xl">{a.emoji}</div><div className="text-[9px] mt-0.5 leading-tight">{a.label}</div>
+                const isSoft=!!a.soft;
+                return<button key={a.type} onClick={()=>setSelectedAction(isSel?null:a)}
+                  className={`p-2 rounded-xl font-black text-xs transition-all active:scale-90 relative ${
+                    isSel
+                      ? `${a.color} text-white ring-4 ring-yellow-300 scale-105 shadow-lg`
+                      : isSoft
+                        ? `${a.color} text-white opacity-40 border-2 border-dashed border-white/70`
+                        : `${a.color} text-white opacity-80`
+                  }`}>
+                  {isSoft&&!isSel&&<span className="absolute -top-1.5 -right-1.5 bg-gray-600 text-white text-[7px] font-black px-1 py-0.5 rounded-full leading-none">~stat</span>}
+                  <div className="text-xl">{a.emoji}</div>
+                  <div className="text-[9px] mt-0.5 leading-tight">{a.label}</div>
                 </button>;
               })}
             </div>
