@@ -10,22 +10,20 @@
 <style>
 html,body{margin:0;padding:0;height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}
 *{box-sizing:border-box;-webkit-user-select:none;user-select:none;}
-input,button{-webkit-user-select:auto;user-select:auto;}
 @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
 @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
 @keyframes popIn{0%{opacity:0;transform:scale(0) rotate(-8deg)}65%{transform:scale(1.12)}100%{opacity:1;transform:scale(1)}}
 @keyframes slideR{from{opacity:0;transform:translateX(55px)}to{opacity:1;transform:none}}
 @keyframes slideL{from{opacity:0;transform:translateX(-55px)}to{opacity:1;transform:none}}
 @keyframes achieveIn{0%{transform:translateY(-80px);opacity:0}18%{transform:none;opacity:1}78%{transform:none;opacity:1}100%{transform:translateY(-80px);opacity:0}}
+@keyframes fall{0%{transform:translateY(0) rotate(0);opacity:1}100%{transform:translateY(105vh) rotate(540deg);opacity:0}}
 @keyframes drawPath{from{stroke-dashoffset:120}to{stroke-dashoffset:0}}
-@keyframes fall{0%{transform:translateY(0) rotate(0deg);opacity:1}100%{transform:translateY(105vh) rotate(540deg);opacity:0}}
 @keyframes starPop{0%{transform:scale(0)}60%{transform:scale(1.3)}100%{transform:scale(1)}}
 .float{animation:float 3s ease-in-out infinite}
 .fade-up{animation:fadeUp .4s ease-out both}
 .pop{animation:popIn .45s cubic-bezier(.36,.07,.19,.97) both}
 .slide-r{animation:slideR .32s ease-out both}
 .slide-l{animation:slideL .32s ease-out both}
-.achieve{animation:achieveIn 2.6s ease-in-out both}
 .star-pop{animation:starPop .4s ease-out both}
 </style>
 </head>
@@ -34,12 +32,12 @@ input,button{-webkit-user-select:auto;user-select:auto;}
 <script type="text/babel" data-presets="react">
 const {useState,useEffect,useMemo}=React;
 
-const ACHIEVEMENTS=[
-  {emoji:'🏗️',title:'Team Builder',   desc:'Kader-System gemeistert',  grad:'from-orange-500 to-yellow-400'},
-  {emoji:'📋',title:'Lineup Pro',      desc:'Aufstellung im Griff',     grad:'from-indigo-500 to-blue-500'},
-  {emoji:'🎯',title:'Formation Master',desc:'5-1 System gecheckt',      grad:'from-cyan-500 to-teal-500'},
-  {emoji:'⚡',title:'Match Tracker',   desc:'Live-Tracking bereit',     grad:'from-yellow-500 to-orange-400'},
-  {emoji:'📊',title:'Data Coach',      desc:'Analytics entsperrt',      grad:'from-pink-500 to-purple-500'},
+const ACKS=[
+  {emoji:'🏗️',title:'Team Builder',   desc:'Kader gemeistert',    grad:'from-orange-500 to-yellow-400'},
+  {emoji:'📋',title:'Lineup Pro',      desc:'Aufstellung im Griff',grad:'from-indigo-500 to-blue-500'},
+  {emoji:'🎯',title:'Formation Master',desc:'5-1 gecheckt',        grad:'from-cyan-500 to-teal-500'},
+  {emoji:'⚡',title:'Match Tracker',   desc:'Tracking bereit',     grad:'from-yellow-500 to-orange-400'},
+  {emoji:'📊',title:'Data Coach',      desc:'Analytics entsperrt', grad:'from-pink-500 to-purple-500'},
 ];
 const LEVELS=[
   {min:0,  name:'Rookie Coach',  icon:'🌱'},
@@ -57,9 +55,9 @@ const BGS=[
   'from-fuchsia-900 to-pink-800',
   'from-amber-800 via-orange-700 to-pink-700',
 ];
-const getLevel=xp=>[...LEVELS].reverse().find(l=>xp>=l.min)||LEVELS[0];
+const getLvl=xp=>[...LEVELS].reverse().find(l=>xp>=l.min)||LEVELS[0];
 
-const PCOLS={
+const PC={
   S:'linear-gradient(135deg,#f59e0b,#f97316)',
   OPP:'linear-gradient(135deg,#ef4444,#ec4899)',
   OH:'linear-gradient(135deg,#3b82f6,#06b6d4)',
@@ -67,10 +65,10 @@ const PCOLS={
   L:'linear-gradient(135deg,#4b5563,#1f2937)',
 };
 
-function Court({h=168,children}){
+function Court({h,children}){
   return(
     <div className="relative rounded-2xl overflow-hidden border-2 border-orange-400 flex-shrink-0"
-         style={{height:h,background:'linear-gradient(to bottom,#fed7aa,#fef9c3 48%,#fed7aa)'}}>
+         style={{height:h||168,background:'linear-gradient(to bottom,#fed7aa,#fef9c3 48%,#fed7aa)'}}>
       <div className="absolute top-0 inset-x-0 h-1.5 bg-gray-700 z-20"/>
       <div className="absolute inset-x-0 text-center text-[7px] font-bold text-gray-600 z-20" style={{top:2}}>— NETZ —</div>
       <div className="absolute inset-x-0 border-t border-dashed border-orange-400 opacity-50 z-0" style={{top:'47%'}}/>
@@ -78,15 +76,15 @@ function Court({h=168,children}){
     </div>
   );
 }
-
-function Dot({x,y,color,label,name,num,size=42,glow=false,dim=false,delay=0,ring}){
+function Dot({x,y,color,label,name,num,size,glow,dim,delay,ring}){
+  const sz=size||42;
   return(
     <div className="absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center z-10 pop"
-         style={{left:`${x}%`,top:`${y}%`,animationDelay:`${delay}s`,opacity:dim?0.25:1,transition:'opacity .2s'}}>
+         style={{left:x+'%',top:y+'%',animationDelay:(delay||0)+'s',opacity:dim?0.22:1,transition:'opacity .2s'}}>
       <div className="rounded-full flex items-center justify-center text-white font-black shadow-lg"
-           style={{width:size,height:size,background:color,fontSize:size>38?11:9,
+           style={{width:sz,height:sz,background:color,fontSize:sz>38?11:9,
              boxShadow:glow?'0 0 0 3px rgba(250,204,21,.9),0 4px 12px rgba(0,0,0,.3)':
-               ring?`0 0 0 2px ${ring},0 2px 6px rgba(0,0,0,.3)`:'0 2px 8px rgba(0,0,0,.3)'}}>
+               ring?('0 0 0 2px '+ring+',0 2px 6px rgba(0,0,0,.3)'):'0 2px 8px rgba(0,0,0,.3)'}}>
         {label}
       </div>
       {name&&<div className="mt-0.5 text-[8px] font-bold text-gray-800 bg-white/85 rounded px-1 truncate" style={{maxWidth:50}}>{name}</div>}
@@ -94,31 +92,33 @@ function Dot({x,y,color,label,name,num,size=42,glow=false,dim=false,delay=0,ring
     </div>
   );
 }
-
-function Tip({icon,text,delay=0}){
+function Tip({icon,text,delay}){
   return(
-    <div className="flex items-start gap-2 bg-white/10 rounded-xl px-3 py-2 fade-up" style={{animationDelay:`${delay}s`}}>
+    <div className="flex items-start gap-2 bg-white/10 rounded-xl px-3 py-2 fade-up" style={{animationDelay:(delay||0)+'s'}}>
       <span className="text-sm flex-shrink-0 mt-0.5">{icon}</span>
       <span className="text-white/90 text-xs font-medium leading-relaxed">{text}</span>
     </div>
   );
 }
 
-function S0_Welcome(){
+// ── Screen 0 ─────────────────────────────────────────────────────────────
+function S0(){
   return(
     <div className="flex flex-col items-center justify-center h-full px-5 text-center gap-4">
-      <div className="float text-8xl drop-shadow-2xl select-none">🏐</div>
+      <div className="float text-8xl drop-shadow-2xl">🏐</div>
       <div>
         <h1 className="text-5xl font-black text-white drop-shadow-xl mb-1">Coach Tracker</h1>
         <p className="text-lg text-white/75 font-semibold">Dein digitaler Volleyball-Assistent</p>
       </div>
       <div className="grid grid-cols-2 gap-2.5 w-full max-w-xs">
-        {[['📍','Live Tracking'],['🎯','5-1 System'],['📊','Analytics'],['📄','PDF Export']].map(([ic,lb],i)=>(
-          <div key={i} className="bg-white/15 rounded-2xl p-3 fade-up flex items-center gap-2.5" style={{animationDelay:`${i*.08}s`}}>
-            <span className="text-xl">{ic}</span>
-            <span className="text-white font-bold text-sm">{lb}</span>
-          </div>
-        ))}
+        {[['📍','Live Tracking'],['🎯','5-1 System'],['📊','Analytics'],['📄','PDF Export']].map(function(item,i){
+          return(
+            <div key={i} className="bg-white/15 rounded-2xl p-3 fade-up flex items-center gap-2.5" style={{animationDelay:i*.08+'s'}}>
+              <span className="text-xl">{item[0]}</span>
+              <span className="text-white font-bold text-sm">{item[1]}</span>
+            </div>
+          );
+        })}
       </div>
       <div className="bg-yellow-400/20 border border-yellow-400/40 rounded-2xl px-5 py-3 fade-up max-w-xs w-full" style={{animationDelay:'.35s'}}>
         <div className="text-yellow-200 font-black text-sm mb-0.5">🎮 Gamifiziertes Tutorial</div>
@@ -128,53 +128,57 @@ function S0_Welcome(){
   );
 }
 
-function S1_Roster(){
-  const pos=[
-    {l:'Z', n:'Zuspieler',c:PCOLS.S,  cnt:'×1'},
-    {l:'D', n:'Diagonal', c:PCOLS.OPP,cnt:'×1'},
-    {l:'AA',n:'Außen',    c:PCOLS.OH, cnt:'×2'},
-    {l:'MB',n:'Mittel',   c:PCOLS.MB, cnt:'×2'},
-    {l:'L', n:'Libero',   c:PCOLS.L,  cnt:'×1'},
+// ── Screen 1 ─────────────────────────────────────────────────────────────
+function S1(){
+  var pos=[
+    {l:'Z', n:'Zuspieler',c:PC.S,  cnt:'×1'},
+    {l:'D', n:'Diagonal', c:PC.OPP,cnt:'×1'},
+    {l:'AA',n:'Außen',    c:PC.OH, cnt:'×2'},
+    {l:'MB',n:'Mittel',   c:PC.MB, cnt:'×2'},
+    {l:'L', n:'Libero',   c:PC.L,  cnt:'×1'},
   ];
   return(
     <div className="flex flex-col h-full px-4 gap-3 py-1">
       <div className="flex justify-around py-1">
-        {pos.map((p,i)=>(
-          <div key={i} className="flex flex-col items-center pop" style={{animationDelay:`${i*.07}s`}}>
-            <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-black text-sm shadow-lg mb-1" style={{background:p.c}}>{p.l}</div>
-            <div className="text-white/80 text-[9px] font-bold">{p.n}</div>
-            <div className="text-yellow-300 text-[9px] font-black">{p.cnt}</div>
-          </div>
-        ))}
+        {pos.map(function(p,i){
+          return(
+            <div key={i} className="flex flex-col items-center pop" style={{animationDelay:i*.07+'s'}}>
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-black text-sm shadow-lg mb-1" style={{background:p.c}}>{p.l}</div>
+              <div className="text-white/80 text-[9px] font-bold">{p.n}</div>
+              <div className="text-yellow-300 text-[9px] font-black">{p.cnt}</div>
+            </div>
+          );
+        })}
       </div>
       <div className="bg-white/10 rounded-2xl p-3 fade-up" style={{animationDelay:'.4s'}}>
         <div className="text-white/45 text-[9px] font-bold uppercase tracking-widest mb-2">Beispiel Spielerkarte</div>
         <div className="flex items-center gap-3 bg-white rounded-xl p-2.5 shadow">
-          <div className="w-11 h-11 rounded-xl flex items-center justify-center text-white font-black text-xs shadow flex-shrink-0" style={{background:PCOLS.MB}}>MB1</div>
+          <div className="w-11 h-11 rounded-xl flex items-center justify-center text-white font-black text-xs shadow flex-shrink-0" style={{background:PC.MB}}>MB1</div>
           <div className="flex-1 min-w-0">
             <div className="text-[10px] text-gray-400 font-bold">Middle / Mittel 1</div>
-            <div className="font-bold text-gray-800 text-sm truncate">Max Müller</div>
+            <div className="font-bold text-gray-800 text-sm">Max Müller</div>
           </div>
-          <div className="bg-purple-100 text-purple-700 px-2 py-1 rounded-lg text-xs font-bold flex-shrink-0">Edit</div>
+          <div className="bg-purple-100 text-purple-700 px-2 py-1 rounded-lg text-xs font-bold">Edit</div>
         </div>
       </div>
       <div className="space-y-1.5">
         <Tip icon="⚙️" text="Wähle Anzahl je Position (Z×1, AA×2, MB×2…)" delay={.5}/>
-        <Tip icon="✏️" text="Tippe Edit → gib Spielernamen ein und bestätige mit ✓" delay={.6}/>
+        <Tip icon="✏️" text="Tippe Edit → Spielernamen eingeben → mit ✓ bestätigen" delay={.6}/>
         <Tip icon="🔄" text="Config-Button im Kader zum Anpassen der Slot-Anzahl" delay={.7}/>
       </div>
     </div>
   );
 }
 
-function S2_Lineup(){
-  const pl=[
-    {x:18,y:28,color:PCOLS.OPP,label:'D',  name:'Klara',num:4,delay:.04},
-    {x:50,y:28,color:PCOLS.MB, label:'MB2', name:'Tom',  num:3,delay:.08},
-    {x:82,y:28,color:PCOLS.OH, label:'AA2', name:'Sara', num:2,delay:.12},
-    {x:18,y:72,color:PCOLS.OH, label:'AA1', name:'Mia',  num:5,delay:.16},
-    {x:50,y:72,color:PCOLS.MB, label:'MB1', name:'Klaus',num:6,delay:.20},
-    {x:82,y:72,color:PCOLS.S,  label:'Z',   name:'Lena', num:1,delay:.24,ring:'rgba(250,204,21,.9)'},
+// ── Screen 2 ─────────────────────────────────────────────────────────────
+function S2(){
+  var pl=[
+    {x:18,y:28,color:PC.OPP,label:'D',  name:'Klara',num:4,delay:.04},
+    {x:50,y:28,color:PC.MB, label:'MB2', name:'Tom',  num:3,delay:.08},
+    {x:82,y:28,color:PC.OH, label:'AA2', name:'Sara', num:2,delay:.12},
+    {x:18,y:72,color:PC.OH, label:'AA1', name:'Mia',  num:5,delay:.16},
+    {x:50,y:72,color:PC.MB, label:'MB1', name:'Klaus',num:6,delay:.20},
+    {x:82,y:72,color:PC.S,  label:'Z',   name:'Lena', num:1,delay:.24,ring:'rgba(250,204,21,.9)'},
   ];
   return(
     <div className="flex flex-col h-full px-4 gap-3 py-1">
@@ -184,33 +188,34 @@ function S2_Lineup(){
           <path d="M 82 78 Q 82 88 50 88 Q 18 88 18 78" fill="none" stroke="#7c3aed" strokeWidth="1.8" strokeDasharray="3,2" markerEnd="url(#ra)"/>
         </svg>
         <div className="absolute text-[8px] text-purple-400 font-black opacity-60 z-20" style={{bottom:6,left:'50%',transform:'translateX(-50%)'}}>↺ Rotation</div>
-        {pl.map((p,i)=><Dot key={i} {...p} size={40}/>)}
+        {pl.map(function(p,i){return <Dot key={i} {...p} size={40}/>;} )}
       </Court>
       <div className="space-y-1.5">
         <Tip icon="📍" text="Tippe jede nummerierte Position → wähle einen Spieler" delay={.4}/>
-        <Tip icon="↺" text="Sideout gewonnen → automatische Rotation gegen Uhrzeigersinn" delay={.5}/>
+        <Tip icon="↺" text="Sideout gewonnen → Rotation gegen Uhrzeigersinn" delay={.5}/>
         <Tip icon="⭐" text="Setter Z hat gelben Ring – immer sofort erkennbar" delay={.6}/>
       </div>
       <div className="grid grid-cols-3 gap-1.5 fade-up" style={{animationDelay:'.7s'}}>
-        {['Pos 1 = Aufschlag','Pos 2 = rechts vorne','Pos 4 = links vorne'].map((t,i)=>(
-          <div key={i} className="bg-white/10 rounded-xl px-2 py-1.5 text-center">
-            <div className="text-white/70 text-[9px] font-bold">{t}</div>
-          </div>
-        ))}
+        {['Pos 1 = Aufschlag','Pos 2 = rechts vorne','Pos 4 = links vorne'].map(function(t,i){
+          return <div key={i} className="bg-white/10 rounded-xl px-2 py-1.5 text-center"><div className="text-white/70 text-[9px] font-bold">{t}</div></div>;
+        })}
       </div>
     </div>
   );
 }
 
-function S3_Formations(){
-  const [drawn,setDrawn]=useState(false);
-  useEffect(()=>{const t=setTimeout(()=>setDrawn(true),500);return()=>clearTimeout(t);},[]);
-  const recv=[
-    {x:65,y:52,color:PCOLS.OH,label:'AA2',name:'Sara', delay:.1},
-    {x:30,y:52,color:PCOLS.OH,label:'AA1',name:'Mia',  delay:.15},
-    {x:14,y:72,color:PCOLS.L, label:'L',  name:'Laura',delay:.2},
-    {x:48,y:82,color:PCOLS.MB,label:'MB2',name:'Tom',  delay:.25},
-    {x:76,y:70,color:PCOLS.MB,label:'MB1',name:'Klaus',delay:.3},
+// ── Screen 3 ─────────────────────────────────────────────────────────────
+function S3(){
+  var drawn=useState(false);
+  var setDrawn=drawn[1];
+  drawn=drawn[0];
+  useEffect(function(){var t=setTimeout(function(){setDrawn(true);},500);return function(){clearTimeout(t);};},[]);
+  var recv=[
+    {x:65,y:52,color:PC.OH,label:'AA2',name:'Sara', delay:.10},
+    {x:30,y:52,color:PC.OH,label:'AA1',name:'Mia',  delay:.15},
+    {x:14,y:72,color:PC.L, label:'L',  name:'Laura',delay:.20},
+    {x:48,y:82,color:PC.MB,label:'MB2',name:'Tom',  delay:.25},
+    {x:76,y:70,color:PC.MB,label:'MB1',name:'Klaus',delay:.30},
   ];
   return(
     <div className="flex flex-col h-full px-4 gap-3 py-1">
@@ -223,13 +228,9 @@ function S3_Formations(){
         <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 100 100" preserveAspectRatio="none" style={{zIndex:7}}>
           {drawn&&(
             <g>
-              <line x1="82" y1="68" x2="82" y2="26" stroke="#f59e0b" strokeWidth="1.6"
-                strokeDasharray="4,2.5" strokeLinecap="round" opacity=".9"
-                style={{animation:'drawPath 1s ease-out forwards'}}/>
-              <polygon points="82,22 79,28 85,28" fill="#f59e0b" opacity=".95"
-                style={{animation:'fadeUp .3s ease-out .9s both'}}/>
-              <text x="72" y="46" textAnchor="middle"
-                style={{fontSize:'3px',fill:'#92400e',opacity:.85,fontWeight:'bold',animation:'fadeUp .3s .9s both'}}>Laufweg Z</text>
+              <line x1="82" y1="68" x2="82" y2="26" stroke="#f59e0b" strokeWidth="1.6" strokeDasharray="4,2.5" strokeLinecap="round" opacity=".9" style={{animation:'drawPath 1s ease-out forwards'}}/>
+              <polygon points="82,22 79,28 85,28" fill="#f59e0b" opacity=".95" style={{animation:'fadeUp .3s ease-out .9s both'}}/>
+              <text x="72" y="46" textAnchor="middle" style={{fontSize:'3px',fill:'#92400e',opacity:.85,fontWeight:'bold',animation:'fadeUp .3s .9s both'}}>Laufweg Z</text>
             </g>
           )}
         </svg>
@@ -238,29 +239,33 @@ function S3_Formations(){
             <span style={{fontSize:8,fontWeight:900,color:'#78350f'}}>Z♟</span>
           </div>
         </div>
-        <Dot x={82} y={20} color={PCOLS.S} label="Z" name="Lena" size={40} glow={true} delay={.35}/>
-        {recv.map((p,i)=><Dot key={i} {...p} size={38}/>)}
+        <Dot x={82} y={20} color={PC.S} label="Z" name="Lena" size={40} glow={true} delay={.35}/>
+        {recv.map(function(p,i){return <Dot key={i} {...p} size={38}/>;} )}
       </Court>
       <div className="flex gap-2 fade-up" style={{animationDelay:'.5s'}}>
-        {[['🔱','W-Formation','Z→rechts · breite W-Deckung','from-blue-600 to-indigo-600'],
-          ['🌙','U-Formation','Z→rechts · tiefer Halbkreis','from-purple-600 to-pink-600']].map(([e,t,d,g],i)=>(
-          <div key={i} className={`flex-1 bg-gradient-to-br ${g} rounded-xl p-2.5 opacity-80`}>
-            <div className="text-white font-black text-xs mb-0.5">{e} {t}</div>
-            <div className="text-white/70 text-[9px]">{d}</div>
-          </div>
-        ))}
+        <div className="flex-1 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl p-2.5 opacity-80">
+          <div className="text-white font-black text-xs mb-0.5">🔱 W-Formation</div>
+          <div className="text-white/70 text-[9px]">Z→rechts · breite W-Deckung</div>
+        </div>
+        <div className="flex-1 bg-gradient-to-br from-purple-600 to-pink-600 rounded-xl p-2.5 opacity-80">
+          <div className="text-white font-black text-xs mb-0.5">🌙 U-Formation</div>
+          <div className="text-white/70 text-[9px]">Z→rechts · tiefer Halbkreis</div>
+        </div>
       </div>
       <div className="space-y-1.5">
-        <Tip icon="✋" text="Spieler per Drag & Drop für jede der 6 Z-Positionen anpassen" delay={.6}/>
-        <Tip icon="🔄" text="'Alle 6 Rotationen übernehmen' – ein Klick für das ganze Spiel" delay={.7}/>
+        <Tip icon="✋" text="Spieler per Drag & Drop für jede der 6 Z-Positionen" delay={.6}/>
+        <Tip icon="🔄" text="Alle 6 Rotationen per Knopfdruck übernehmen" delay={.7}/>
       </div>
     </div>
   );
 }
 
-function S4_Match(){
-  const [sel,setSel]=useState(null);
-  const acts=[
+// ── Screen 4 ─────────────────────────────────────────────────────────────
+function S4(){
+  var selState=useState(null);
+  var sel=selState[0];
+  var setSel=selState[1];
+  var acts=[
     {t:'kill', e:'💥',l:'Kill',   c:'from-green-500 to-emerald-600',hi:'front'},
     {t:'block',e:'🧱',l:'Stuff',  c:'from-purple-500 to-indigo-600',hi:'front'},
     {t:'ace',  e:'🎯',l:'Ace',    c:'from-blue-500 to-cyan-600',    hi:'server',svc:true},
@@ -271,52 +276,54 @@ function S4_Match(){
     {t:'annm', e:'⚠️',l:'Ann.-',  c:'from-amber-500 to-orange-600',hi:'receive'},
     {t:'angr', e:'⚔️',l:'Angr.v.',c:'from-teal-500 to-cyan-500',  hi:'front',soft:true},
   ];
-  const pl=[
-    {x:18,y:28,c:PCOLS.OPP,l:'D',  front:true},
-    {x:50,y:28,c:PCOLS.MB, l:'MB2',front:true},
-    {x:82,y:28,c:PCOLS.OH, l:'AA2',front:true},
-    {x:18,y:72,c:PCOLS.OH, l:'AA1',front:false},
-    {x:50,y:72,c:PCOLS.MB, l:'MB1',front:false},
-    {x:82,y:72,c:PCOLS.S,  l:'Z',  front:false},
+  var pl=[
+    {x:18,y:28,c:PC.OPP,l:'D',  front:true},
+    {x:50,y:28,c:PC.MB, l:'MB2',front:true},
+    {x:82,y:28,c:PC.OH, l:'AA2',front:true},
+    {x:18,y:72,c:PC.OH, l:'AA1',front:false},
+    {x:50,y:72,c:PC.MB, l:'MB1',front:false},
+    {x:82,y:72,c:PC.S,  l:'Z',  front:false},
   ];
-  const hi=sel?acts.find(a=>a.t===sel)||null:null;
-  const hiType=hi?hi.hi:null;
-  const isSug=(p)=>{
+  var hiAct=sel?acts.find(function(a){return a.t===sel;}):null;
+  var hiType=hiAct?hiAct.hi:null;
+  function isSug(p){
     if(!hiType)return false;
     if(hiType==='front')return p.front;
     if(hiType==='receive')return p.l!=='Z'&&p.l!=='D';
     if(hiType==='server')return p.l==='Z';
     return false;
-  };
+  }
   return(
     <div className="flex flex-col h-full px-4 gap-2.5 py-1">
       <div className="flex gap-2.5">
         <div className="flex-1">
           <div className="text-white/50 text-[9px] font-bold uppercase tracking-widest mb-1.5">① Aktion tippen</div>
           <div className="grid grid-cols-3 gap-1">
-            {acts.map(a=>(
-              <button key={a.t} onClick={()=>setSel(sel===a.t?null:a.t)}
-                className={`bg-gradient-to-br ${a.c} text-white rounded-lg p-1.5 text-center transition-all active:scale-90 relative
-                  ${sel===a.t?'ring-2 ring-yellow-300 scale-105 shadow-lg':a.svc?'opacity-40':a.soft?'opacity-55':'opacity-70'}`}>
-                <div className="text-sm">{a.e}</div>
-                <div className="text-[7px] font-bold leading-none mt-0.5">{a.l}</div>
-                {a.svc&&<div className="absolute -top-1 -right-1 bg-black/60 text-white text-[5px] px-0.5 rounded-full leading-tight">✋</div>}
-              </button>
-            ))}
+            {acts.map(function(a){
+              var isSel=sel===a.t;
+              return(
+                <button key={a.t} onClick={function(){setSel(sel===a.t?null:a.t);}}
+                  className={'bg-gradient-to-br '+a.c+' text-white rounded-lg p-1.5 text-center transition-all active:scale-90 relative '+(isSel?'ring-2 ring-yellow-300 scale-105 shadow-lg':a.svc?'opacity-40':a.soft?'opacity-55':'opacity-70')}>
+                  <div className="text-sm">{a.e}</div>
+                  <div className="text-[7px] font-bold leading-none mt-0.5">{a.l}</div>
+                  {a.svc&&<div className="absolute -top-1 -right-1 bg-black/60 text-white text-[5px] px-0.5 rounded-full leading-tight">✋</div>}
+                </button>
+              );
+            })}
           </div>
-          {sel
-            ?<div className="text-yellow-300 text-[9px] font-bold mt-1.5 text-center animate-pulse">Spieler auf Feld leuchten auf!</div>
-            :<div className="text-white/40 text-[9px] mt-1.5 text-center">Tippe eine Aktion zum Ausprobieren</div>}
+          <div className="text-[9px] mt-1.5 text-center font-bold" style={{color:sel?'#fde047':'rgba(255,255,255,.4)'}}>
+            {sel?'Spieler leuchten auf!':'Tippe zum Ausprobieren'}
+          </div>
         </div>
         <div style={{width:126}}>
           <div className="text-white/50 text-[9px] font-bold uppercase tracking-widest mb-1.5">② Spieler tippen</div>
           <Court h={108}>
-            {pl.map((p,i)=>{
-              const sug=isSug(p);
-              const dim=!!sel&&!sug;
+            {pl.map(function(p,i){
+              var sug=isSug(p);
+              var dim=!!sel&&!sug;
               return(
                 <div key={i} className="absolute -translate-x-1/2 -translate-y-1/2 z-10 transition-all duration-200"
-                     style={{left:`${p.x}%`,top:`${p.y}%`,opacity:dim?0.2:1}}>
+                     style={{left:p.x+'%',top:p.y+'%',opacity:dim?0.2:1}}>
                   <div className="w-7 h-7 rounded-full flex items-center justify-center text-white font-black text-[8px] shadow"
                        style={{background:p.c,boxShadow:sug&&sel?'0 0 0 3px rgba(250,204,21,.9)':'0 1px 4px rgba(0,0,0,.3)'}}>
                     {p.l}
@@ -328,136 +335,163 @@ function S4_Match(){
         </div>
       </div>
       <div className="grid grid-cols-2 gap-1.5">
-        {[['🤝','Auto-Assist bei Kill – Z bekommt automatisch +1 Assist'],
-          ['💡','Highlight-Toggle – Vorschläge ein/ausschalten'],
-          ['↶','Undo bis 30× – nie wieder falsch getrackt'],
-          ['🪑','Auswechslung – Bank direkt im Match verwalten'],
-          ['🔄','Manuelle Rotation – jederzeit korrigierbar'],
-          ['🎬','Video-Aufnahme – Events mit Zeitstempel'],
-        ].map(([ic,t],i)=>(
-          <div key={i} className="flex items-start gap-1.5 bg-white/10 rounded-xl px-2 py-1.5 fade-up" style={{animationDelay:`${.3+i*.04}s`}}>
-            <span className="text-sm flex-shrink-0">{ic}</span>
-            <span className="text-white/80 text-[9px] font-medium leading-relaxed">{t}</span>
-          </div>
-        ))}
+        {[['🤝','Auto-Assist bei Kill'],['💡','Highlight-Toggle'],['↶','Undo bis 30×'],['🪑','Bank-Auswechslung'],['🔄','Manuelle Rotation'],['🎬','Video + Zeitstempel']].map(function(item,i){
+          return(
+            <div key={i} className="flex items-center gap-1.5 bg-white/10 rounded-xl px-2 py-1.5 fade-up" style={{animationDelay:.3+i*.04+'s'}}>
+              <span className="text-sm flex-shrink-0">{item[0]}</span>
+              <span className="text-white/80 text-[9px] font-medium">{item[1]}</span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
 }
 
-function S5_Analytics(){
-  const [anim,setAnim]=useState(false);
-  useEffect(()=>{const t=setTimeout(()=>setAnim(true),250);return()=>clearTimeout(t);},[]);
-  const rots=[{r:1,w:75,so:60},{r:2,w:52,so:44},{r:3,w:28,so:25},{r:4,w:82,so:72},{r:5,w:44,so:38},{r:6,w:67,so:55}];
-  const setterD=[{n:'AA1',p:42,c:PCOLS.OH},{n:'AA2',p:30,c:PCOLS.OH},{n:'MB1',p:18,c:PCOLS.MB},{n:'D',p:10,c:PCOLS.OPP}];
-  const recP=[{n:'Mia',h:[72,66,78,68,74]},{n:'Sara',h:[48,52,46,55,50]},{n:'Klaus',h:[34,40,36,30,42]}];
+// ── Screen 5 ─────────────────────────────────────────────────────────────
+function S5(){
+  var animState=useState(false);
+  var anim=animState[0];
+  var setAnim=animState[1];
+  useEffect(function(){var t=setTimeout(function(){setAnim(true);},250);return function(){clearTimeout(t);};},[]);
+
+  var rots=[
+    {r:1,w:75,so:60},{r:2,w:52,so:44},{r:3,w:28,so:25},
+    {r:4,w:82,so:72},{r:5,w:44,so:38},{r:6,w:67,so:55},
+  ];
+  var setterD=[
+    {n:'AA1',p:42,c:PC.OH},
+    {n:'AA2',p:30,c:PC.OH},
+    {n:'MB1',p:18,c:PC.MB},
+    {n:'D',  p:10,c:PC.OPP},
+  ];
+
+  var mia=[72,66,78,68,74];
+  var sara=[48,52,46,55,50];
+  var klaus=[34,40,36,30,42];
+  var recPlayers=[
+    {n:'Mia',  h:mia},
+    {n:'Sara', h:sara},
+    {n:'Klaus',h:klaus},
+  ];
+
   return(
     <div className="flex flex-col h-full px-4 gap-2.5 overflow-y-auto pb-1">
       <div className="bg-white/10 rounded-2xl p-3 fade-up">
         <div className="font-black text-white text-sm mb-2">🔄 Rotationsanalyse</div>
         <div className="space-y-1">
-          {rots.map(d=>(
-            <div key={d.r} className="flex items-center gap-2">
-              <span className="text-white/55 text-[9px] font-black w-9">Rot.{d.r}</span>
-              <div className="flex-1 h-3 bg-white/10 rounded-full overflow-hidden">
-                <div className={`h-full rounded-full transition-all duration-700 ${d.w>=50?'bg-gradient-to-r from-green-400 to-emerald-500':'bg-gradient-to-r from-red-400 to-rose-500'}`}
-                     style={{width:anim?`${d.w}%`:'0%'}}/>
+          {rots.map(function(d){
+            return(
+              <div key={d.r} className="flex items-center gap-2">
+                <span className="text-white/55 text-[9px] font-black w-9">Rot.{d.r}</span>
+                <div className="flex-1 h-3 bg-white/10 rounded-full overflow-hidden">
+                  <div className={'h-full rounded-full transition-all duration-700 '+(d.w>=50?'bg-gradient-to-r from-green-400 to-emerald-500':'bg-gradient-to-r from-red-400 to-rose-500')}
+                       style={{width:anim?d.w+'%':'0%'}}/>
+                </div>
+                <span className={'text-[9px] font-black w-7 text-right '+(d.w>=50?'text-green-400':'text-red-400')}>{d.w}%</span>
+                <span className="text-[8px] text-blue-300 font-bold w-14">SO {d.so}%</span>
               </div>
-              <span className={`text-[9px] font-black w-7 text-right ${d.w>=50?'text-green-400':'text-red-400'}`}>{d.w}%</span>
-              <span className="text-[8px] text-blue-300 font-bold w-14">SO {d.so}%</span>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
       <div className="bg-white/10 rounded-2xl p-3 fade-up" style={{animationDelay:'.15s'}}>
         <div className="font-black text-white text-sm mb-2">🎯 Setter-Verteilung</div>
-        {setterD.map(d=>(
-          <div key={d.n} className="mb-1.5">
-            <div className="flex justify-between text-[9px] mb-0.5">
-              <span className="text-white/70 font-bold">{d.n}</span>
-              <span className="text-white/90 font-black">{d.p}%</span>
+        {setterD.map(function(d){
+          return(
+            <div key={d.n} className="mb-1.5">
+              <div className="flex justify-between text-[9px] mb-0.5">
+                <span className="text-white/70 font-bold">{d.n}</span>
+                <span className="text-white/90 font-black">{d.p}%</span>
+              </div>
+              <div className="h-2.5 bg-white/10 rounded-full overflow-hidden">
+                <div className="h-full rounded-full transition-all duration-700" style={{width:anim?d.p+'%':'0%',background:d.c}}/>
+              </div>
             </div>
-            <div className="h-2.5 bg-white/10 rounded-full overflow-hidden">
-              <div className="h-full rounded-full transition-all duration-700" style={{width:anim?`${d.p}%`:'0%',background:d.c}}/>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
       <div className="bg-white/10 rounded-2xl p-3 fade-up" style={{animationDelay:'.3s'}}>
-        <div className="font-black text-white text-sm mb-2">✅ Annahme-Effizienz (letzte 5 Spiele)</div>
-        {recP.map(p=>(
-          <div key={p.n} className="flex items-center gap-2 mb-1.5">
-            <span className="text-white/60 text-[9px] font-bold w-9">{p.n}</span>
-            <div className="flex gap-1">
-              {p.h.map((v,i)=>(
-                <div key={i} className={`w-6 h-6 rounded-full flex items-center justify-center text-[7px] font-black text-white shadow-sm
-                  ${v>=60?'bg-green-500':v>=40?'bg-orange-400':'bg-red-400'}`}>{v}</div>
-              ))}
+        <div className="font-black text-white text-sm mb-2">✅ Annahme-Effizienz</div>
+        {recPlayers.map(function(p){
+          var avg=Math.round(p.h.reduce(function(s,v){return s+v;},0)/p.h.length);
+          return(
+            <div key={p.n} className="flex items-center gap-2 mb-1.5">
+              <span className="text-white/60 text-[9px] font-bold w-9">{p.n}</span>
+              <div className="flex gap-1">
+                {p.h.map(function(v,i){
+                  var cls=v>=60?'bg-green-500':v>=40?'bg-orange-400':'bg-red-400';
+                  return <div key={i} className={'w-6 h-6 rounded-full flex items-center justify-center text-[7px] font-black text-white shadow-sm '+cls}>{v}</div>;
+                })}
+              </div>
+              <span className={'text-[9px] font-black ml-auto '+(avg>=60?'text-green-400':'text-orange-300')}>{avg}%</span>
             </div>
-            <span className={`text-[9px] font-black ml-auto ${Math.round(p.h.reduce((s,v)=>s+v,0)/p.h.length)>=60?'text-green-400':'text-orange-300'}`}>
-              {Math.round(p.h.reduce((s,v)=>s+v,0)/p.h.length)}%
-            </span>
-          </div>
-        ))}
+          );
+        })}
       </div>
       <div className="bg-white/10 border border-white/20 rounded-2xl p-3 flex items-center gap-3 fade-up" style={{animationDelay:'.45s'}}>
         <div className="text-3xl">📄</div>
         <div>
           <div className="text-white font-black text-sm">PDF Match Report</div>
-          <div className="text-white/55 text-[10px]">Auto-Erkenntnisse · Charts · Stärken/Schwächen · 1 Tap</div>
+          <div className="text-white/55 text-[10px]">Erkenntnisse · Charts · Stärken/Schwächen · 1 Tap</div>
         </div>
       </div>
     </div>
   );
 }
 
-function S6_Complete(){
-  const conf=useMemo(()=>Array.from({length:32},(_,i)=>({
-    id:i,x:Math.random()*100,delay:Math.random()*.7,dur:1.4+Math.random()*1.4,
-    color:['#f59e0b','#ef4444','#3b82f6','#10b981','#8b5cf6','#ec4899','#f97316'][i%7],
-    size:5+Math.random()*7,rot:Math.random()*360,
-  })),[]);
+// ── Screen 6 ─────────────────────────────────────────────────────────────
+function S6(){
+  var conf=useMemo(function(){
+    return Array.from({length:32},function(_,i){
+      var colors=['#f59e0b','#ef4444','#3b82f6','#10b981','#8b5cf6','#ec4899','#f97316'];
+      return {id:i,x:Math.random()*100,delay:Math.random()*.7,dur:1.4+Math.random()*1.4,color:colors[i%7],size:5+Math.random()*7,rot:Math.random()*360};
+    });
+  },[]);
   return(
     <div className="flex flex-col items-center h-full px-5 py-3 overflow-hidden relative">
-      {conf.map(c=>(
-        <div key={c.id} style={{position:'absolute',left:`${c.x}%`,top:-16,width:c.size,height:c.size*.65,
-          background:c.color,borderRadius:2,transform:`rotate(${c.rot}deg)`,pointerEvents:'none',
-          animation:`fall ${c.dur}s ease-in ${c.delay}s both`}}/>
-      ))}
+      {conf.map(function(c){
+        return <div key={c.id} style={{position:'absolute',left:c.x+'%',top:-16,width:c.size,height:c.size*.65,background:c.color,borderRadius:2,transform:'rotate('+c.rot+'deg)',pointerEvents:'none',animation:'fall '+c.dur+'s ease-in '+c.delay+'s both'}}/>;
+      })}
       <div className="text-7xl mb-2 pop" style={{animationDelay:'.05s'}}>🏆</div>
       <h2 className="text-3xl font-black text-white text-center mb-0.5 fade-up" style={{animationDelay:'.15s'}}>Tutorial abgeschlossen!</h2>
       <p className="text-white/65 text-sm text-center mb-4 fade-up" style={{animationDelay:'.22s'}}>Du bist jetzt Coach Pro bereit</p>
       <div className="flex gap-2 flex-wrap justify-center mb-4 fade-up" style={{animationDelay:'.3s'}}>
-        {ACHIEVEMENTS.map((a,i)=>(
-          <div key={i} className={`flex flex-col items-center bg-gradient-to-br ${a.grad} rounded-2xl p-2.5 pop shadow-xl`}
-               style={{animationDelay:`${.3+i*.07}s`,minWidth:58}}>
-            <div className="text-2xl mb-0.5">{a.emoji}</div>
-            <div className="text-white font-black text-[9px] text-center leading-tight">{a.title}</div>
-          </div>
-        ))}
+        {ACKS.map(function(a,i){
+          return(
+            <div key={i} className={'flex flex-col items-center bg-gradient-to-br '+a.grad+' rounded-2xl p-2.5 pop shadow-xl'}
+                 style={{animationDelay:.3+i*.07+'s',minWidth:58}}>
+              <div className="text-2xl mb-0.5">{a.emoji}</div>
+              <div className="text-white font-black text-[9px] text-center leading-tight">{a.title}</div>
+            </div>
+          );
+        })}
       </div>
       <div className="bg-white/15 border border-yellow-400/40 rounded-2xl px-8 py-3 text-center mb-3 fade-up" style={{animationDelay:'.65s'}}>
-        <div className="text-yellow-300 font-black text-4xl drop-shadow-lg">600 XP</div>
-        <div className="text-white/75 text-xs font-bold mt-0.5">Coach Pro 🏆 — maximales Level erreicht!</div>
+        <div className="text-yellow-300 font-black text-4xl">600 XP</div>
+        <div className="text-white/75 text-xs font-bold mt-0.5">Coach Pro 🏆 — maximales Level!</div>
       </div>
       <div className="grid grid-cols-2 gap-2 w-full max-w-xs fade-up" style={{animationDelay:'.8s'}}>
-        {[['✅','5 Features gemeistert'],['🎯','5 Badges freigeschaltet'],['📊','Analytics verstanden'],['🏐','Bereit zum Coachen!']].map(([ic,t],i)=>(
-          <div key={i} className="bg-white/10 rounded-xl px-2.5 py-2 flex items-center gap-2">
-            <span className="text-sm">{ic}</span>
-            <span className="text-white/80 text-[10px] font-bold">{t}</span>
-          </div>
-        ))}
+        {[['✅','5 Features gemeistert'],['🎯','5 Badges freigeschaltet'],['📊','Analytics verstanden'],['🏐','Bereit zum Coachen!']].map(function(item,i){
+          return(
+            <div key={i} className="bg-white/10 rounded-xl px-2.5 py-2 flex items-center gap-2">
+              <span className="text-sm">{item[0]}</span>
+              <span className="text-white/80 text-[10px] font-bold">{item[1]}</span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
 }
 
+// ── Achievement Popup ─────────────────────────────────────────────────────
 function AchievePop({a}){
   if(!a)return null;
   return(
     <div className="fixed top-0 inset-x-0 z-50 flex justify-center pt-2.5 pointer-events-none"
          style={{animation:'achieveIn 2.6s ease-in-out both'}}>
-      <div className={`bg-gradient-to-r ${a.grad} rounded-2xl px-4 py-2.5 flex items-center gap-3 shadow-2xl border border-white/25 mx-4`}>
+      <div className={'bg-gradient-to-r '+a.grad+' rounded-2xl px-4 py-2.5 flex items-center gap-3 shadow-2xl border border-white/25 mx-4'}>
         <div className="text-3xl star-pop">{a.emoji}</div>
         <div>
           <div className="text-yellow-200 text-[9px] font-black uppercase tracking-widest">Achievement freigeschaltet +100 XP</div>
@@ -469,9 +503,10 @@ function AchievePop({a}){
   );
 }
 
+// ── XP Bar ────────────────────────────────────────────────────────────────
 function XPBar({xp,screen,total}){
-  const lvl=getLevel(xp);
-  const pct=(xp/600)*100;
+  var lvl=getLvl(xp);
+  var pct=(xp/600)*100;
   return(
     <div className="px-4 pt-3 pb-2.5" style={{background:'rgba(0,0,0,.25)'}}>
       <div className="flex items-center justify-between mb-1.5">
@@ -483,29 +518,29 @@ function XPBar({xp,screen,total}){
       </div>
       <div className="h-2 bg-white/20 rounded-full overflow-hidden mb-2">
         <div className="h-full rounded-full transition-all duration-700 ease-out"
-             style={{width:`${pct}%`,background:'linear-gradient(to right,#facc15,#f97316)'}}/>
+             style={{width:pct+'%',background:'linear-gradient(to right,#facc15,#f97316)'}}/>
       </div>
       <div className="flex justify-center gap-1.5">
-        {Array.from({length:total},(_,i)=>(
-          <div key={i} className={`rounded-full transition-all duration-300 ${i===screen?'w-5 h-2 bg-yellow-400':'w-2 h-2 '+(i<screen?'bg-white/60':'bg-white/25')}`}/>
-        ))}
+        {Array.from({length:total},function(_,i){
+          var cls=i===screen?'w-5 h-2 bg-yellow-400':'w-2 h-2 '+(i<screen?'bg-white/60':'bg-white/25');
+          return <div key={i} className={'rounded-full transition-all duration-300 '+cls}/>;
+        })}
       </div>
     </div>
   );
 }
 
-function BottomNav({screen,total,onNext,onBack,onSkip}){
-  const last=screen===total-1;
-  const first=screen===0;
+// ── Bottom Nav ────────────────────────────────────────────────────────────
+function Nav({screen,total,onNext,onBack,onSkip}){
+  var last=screen===total-1;
+  var first=screen===0;
   return(
     <div className="px-4 pb-4 pt-2 flex items-center gap-3">
       {!first
-        ?<button onClick={onBack} className="w-11 h-11 rounded-full flex items-center justify-center text-white font-black text-xl active:scale-90 transition"
-                 style={{background:'rgba(255,255,255,.18)'}}>←</button>
+        ?<button onClick={onBack} className="w-11 h-11 rounded-full flex items-center justify-center text-white font-black text-xl active:scale-90 transition" style={{background:'rgba(255,255,255,.18)'}}>←</button>
         :<div className="w-11"/>}
       <button onClick={onNext}
-        className={`flex-1 py-3.5 rounded-2xl font-black text-base shadow-xl active:scale-95 transition-all
-          ${last?'bg-gradient-to-r from-yellow-400 to-orange-500 text-white':'bg-white text-purple-800'}`}>
+        className={'flex-1 py-3.5 rounded-2xl font-black text-base shadow-xl active:scale-95 transition-all '+(last?'bg-gradient-to-r from-yellow-400 to-orange-500 text-white':'bg-white text-purple-800')}>
         {first?'Tutorial starten 🚀':last?'Jetzt loslegen 🏐':'Weiter → +100 XP'}
       </button>
       {first&&<button onClick={onSkip} className="text-white/35 text-xs font-bold active:scale-95 whitespace-nowrap">Überspringen</button>}
@@ -514,51 +549,58 @@ function BottomNav({screen,total,onNext,onBack,onSkip}){
   );
 }
 
-const TITLES=[
+var TITLES=[
   null,
   {icon:'👥',title:'Kader aufbauen',    sub:'Positionen & Spieler'},
   {icon:'📋',title:'Aufstellung',        sub:'6 Startpositionen setzen'},
-  {icon:'🎯',title:'5-1 Annahme',       sub:'Läufersystem mit Formationen'},
+  {icon:'🎯',title:'5-1 Annahme',       sub:'Läufersystem & Formationen'},
   {icon:'⚡',title:'Live Match',         sub:'Tracken · Highlights · Undo'},
   {icon:'📊',title:'Auswertung',         sub:'Analytics · PDF Export'},
   {icon:'🏆',title:'Fertig!',            sub:'Du bist Coach Pro bereit'},
 ];
 
-const TOTAL=7;
+var TOTAL=7;
 function App(){
-  const [screen,setScreen]=useState(0);
-  const [xp,setXp]=useState(0);
-  const [unlocked,setUnlocked]=useState([]);
-  const [pop,setPop]=useState(null);
-  const [animKey,setAnimKey]=useState(0);
-  const [animCls,setAnimCls]=useState('');
+  var screenState=useState(0);
+  var screen=screenState[0];
+  var setScreen=screenState[1];
+  var xpState=useState(0);
+  var xp=xpState[0];
+  var setXp=xpState[1];
+  var unlockedState=useState([]);
+  var unlocked=unlockedState[0];
+  var setUnlocked=unlockedState[1];
+  var popState=useState(null);
+  var pop=popState[0];
+  var setPop=popState[1];
+  var keyState=useState(0);
+  var animKey=keyState[0];
+  var setKey=keyState[1];
+  var clsState=useState('');
+  var animCls=clsState[0];
+  var setAnimCls=clsState[1];
 
-  const advance=()=>{
-    const nx=Math.min(screen+1,TOTAL-1);
+  function advance(){
+    var nx=Math.min(screen+1,TOTAL-1);
     if(nx===screen)return;
-    setAnimCls('slide-r');setAnimKey(k=>k+1);
+    setAnimCls('slide-r');setKey(function(k){return k+1;});
     setScreen(nx);setXp(nx*100);
-    const ai=nx-1;
-    if(ai>=0&&ai<5&&!unlocked.includes(ai)){
-      setUnlocked(p=>[...p,ai]);
-      setPop(ACHIEVEMENTS[ai]);
-      setTimeout(()=>setPop(null),2600);
+    var ai=nx-1;
+    if(ai>=0&&ai<5&&unlocked.indexOf(ai)<0){
+      setUnlocked(function(p){return p.concat([ai]);});
+      setPop(ACKS[ai]);
+      setTimeout(function(){setPop(null);},2600);
     }
-  };
-  const back=()=>{
-    if(screen>0){setAnimCls('slide-l');setAnimKey(k=>k+1);setScreen(s=>s-1);}
-  };
-  const skip=()=>{setScreen(TOTAL-1);setXp(600);setUnlocked([0,1,2,3,4]);};
+  }
+  function back(){
+    if(screen>0){setAnimCls('slide-l');setKey(function(k){return k+1;});setScreen(function(s){return s-1;});}
+  }
+  function skip(){setScreen(TOTAL-1);setXp(600);setUnlocked([0,1,2,3,4]);}
 
-  const screens=[
-    <S0_Welcome key="s0"/>,<S1_Roster key="s1"/>,<S2_Lineup key="s2"/>,
-    <S3_Formations key="s3"/>,<S4_Match key="s4"/>,<S5_Analytics key="s5"/>,
-    <S6_Complete key="s6"/>,
-  ];
-  const title=TITLES[screen];
-
+  var screens=[<S0/>,<S1/>,<S2/>,<S3/>,<S4/>,<S5/>,<S6/>];
+  var title=TITLES[screen];
   return(
-    <div className={`flex flex-col bg-gradient-to-br ${BGS[screen]||BGS[0]} transition-colors duration-500`}
+    <div className={'flex flex-col bg-gradient-to-br '+(BGS[screen]||BGS[0])+' transition-colors duration-500'}
          style={{maxWidth:440,margin:'0 auto',height:'100vh'}}>
       <XPBar xp={xp} screen={screen} total={TOTAL}/>
       {title&&(
@@ -570,10 +612,10 @@ function App(){
           </div>
         </div>
       )}
-      <div key={animKey} className={`flex-1 overflow-hidden ${animCls}`} style={{minHeight:0}}>
+      <div key={animKey} className={'flex-1 overflow-hidden '+animCls} style={{minHeight:0}}>
         {screens[screen]}
       </div>
-      <BottomNav screen={screen} total={TOTAL} onNext={advance} onBack={back} onSkip={skip}/>
+      <Nav screen={screen} total={TOTAL} onNext={advance} onBack={back} onSkip={skip}/>
       <AchievePop a={pop}/>
     </div>
   );
