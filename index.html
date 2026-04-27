@@ -956,6 +956,13 @@ function VolleyballTracker(){
     const rosterSnap=currentMatch.rosterSnapshot;
     const matchSlots=generateSlots(currentMatch.configSnapshot);
     const formations=currentMatch.formationsSnapshot||{};
+    const liberoSlot=matchSlots.find(s=>s.type==='L');
+    const autoLiberoPos=liberoSlot
+      ?Object.entries(lineup).find(([pos,sid])=>{
+          if(sid!==liberoSlot.id)return false;
+          return trueLineup[pos]!==liberoSlot.id;
+        })?.[0]
+      :null;
     const setterSlot=matchSlots.find(s=>s.type==='S');
     const setterPos=setterSlot?Object.entries(lineup).find(([_,sid])=>sid===setterSlot.id)?.[0]:null;
     const isReceiving=servingTeam==='opp';
