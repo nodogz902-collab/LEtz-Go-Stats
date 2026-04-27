@@ -22,12 +22,6 @@
     .player-dim{opacity:.22;filter:saturate(.2);}
     @keyframes dash-flow{to{stroke-dashoffset:-12}}
     .laufweg-line{animation:dash-flow 0.6s linear infinite;}
-    @keyframes ob-fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
-    @keyframes ob-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
-    @keyframes ob-slide{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:none}}
-    .ob-fu{animation:ob-fadeUp .35s ease-out both}
-    .ob-fl{animation:ob-float 3s ease-in-out infinite}
-    .ob-sl{animation:ob-slide .3s ease-out both}
   </style>
 </head>
 <body>
@@ -166,69 +160,6 @@ function SetterLaufwegSVG({startPos,endPos,animated=false}){
       <polygon points={arrow} fill="#f59e0b" opacity="0.95"/>
       <text x={(startPos.x+endPos.x)/2-1} y={(startPos.y+endPos.y)/2-3} textAnchor="middle" style={{fontSize:'2.6px',fill:'#92400e',opacity:0.75,fontWeight:'bold'}}>Laufweg Z</text>
     </svg>
-  );
-}
-
-// ── Onboarding ────────────────────────────────────────────────────────────────
-const OB=[
-  {emoji:'🏐',title:'Coach Tracker',sub:'Dein digitaler Volleyball-Assistent',btn:"Los geht's 🚀",
-   features:[['📍','Live Tracking','Events in Echtzeit tracken'],['🎯','5-1 System','Formationen & Laufwege'],['📊','Analytics','Rotationen, Setter, Annahme'],['📄','PDF Export','Match Report mit 1 Tap']]},
-  {emoji:'⚙️',title:'Vorbereitung',sub:'3 Schritte vor dem ersten Spiel',btn:'Weiter → +100 XP',
-   items:[{i:'👥',h:'Kader anlegen',t:'Positionen (Z, AA, MB, D, L) konfigurieren und Spielernamen vergeben'},{i:'📋',h:'Aufstellung setzen',t:'6 Startpositionen belegen – Rotationen werden automatisch berechnet'},{i:'🎯',h:'Annahme-Formation',t:'W- oder U-Formation für alle 6 Setter-Rotationen inkl. Laufweg speichern'}]},
-  {emoji:'⚡',title:'Live Match',sub:'Tracken in Echtzeit',btn:'Weiter → +100 XP',
-   items:[{i:'💥',h:'9 Aktionen tracken',t:'Kill, Block, Ace, Fehler, Annahme – Spieler antippen, Event gespeichert'},{i:'💡',h:'Smart Highlighting',t:'App hebt die richtigen Spieler hervor – 💡 zum Ein/Ausschalten'},{i:'🤝',h:'Auto-Assist',t:'Bei jedem Kill bekommt der Setter automatisch +1 Assist gutgeschrieben'},{i:'↶',h:'Undo bis 30×',t:'Falsch getrackt? Einfach rückgängig machen – kein Stress'}]},
-  {emoji:'📊',title:'Auswertung',sub:'Nach dem Spiel Daten verstehen',btn:'Fertig! 🏆',
-   items:[{i:'🔄',h:'Rotationsanalyse',t:'Welche Rotation gewinnt/verliert? Sideout-Quote pro Rotation'},{i:'🎯',h:'Setter-Verteilung',t:'Prozentanteile pro Angreifer – spielt Z zu vorhersehbar?'},{i:'✅',h:'Annahme-Effizienz',t:'Ann+/Ann− Ratio pro Spieler mit Verlauf über mehrere Spiele'},{i:'📄',h:'PDF Export',t:'1 Tap – vollständiger Match Report mit Insights und Empfehlungen'}]},
-];
-const OB_BGS=['from-purple-800 to-pink-700','from-indigo-800 to-blue-700','from-violet-800 to-purple-700','from-pink-800 to-rose-700'];
-
-function OnboardingFlow({onDone}){
-  const [sc,setSc]=useState(0);
-  const [k,setK]=useState(0);
-  const s=OB[sc];
-  const last=sc===OB.length-1;
-  const next=()=>{if(!last){setSc(x=>x+1);setK(x=>x+1);}else onDone();};
-  const back=()=>{if(sc>0){setSc(x=>x-1);setK(x=>x+1);}};
-  return(
-    <div className={'min-h-screen flex flex-col bg-gradient-to-br '+(OB_BGS[sc]||OB_BGS[0])+' transition-colors duration-500'} style={{maxWidth:480,margin:'0 auto',height:'100vh'}}>
-      <div className="px-4 pt-3 pb-2" style={{background:'rgba(0,0,0,.2)'}}>
-        <div className="flex justify-between items-center mb-1">
-          <span className="text-white/70 text-xs font-bold">{['🌱 Rookie','🌿 Junior','⭐ Team','🌟 Pro'][sc]} Coach</span>
-          <span className="text-yellow-300 text-xs font-black">{sc*100} XP</span>
-        </div>
-        <div className="h-1.5 bg-white/20 rounded-full overflow-hidden">
-          <div className="h-full rounded-full transition-all duration-700" style={{width:(sc/3*100)+'%',background:'linear-gradient(to right,#facc15,#f97316)'}}/>
-        </div>
-        <div className="flex justify-center gap-1.5 mt-2">
-          {OB.map((_,i)=><div key={i} className={'rounded-full transition-all duration-300 '+(i===sc?'w-5 h-1.5 bg-yellow-400':'w-1.5 h-1.5 '+(i<sc?'bg-white/50':'bg-white/20'))}/>)}
-        </div>
-      </div>
-      <div key={k} className="flex-1 overflow-y-auto px-4 py-4 ob-sl">
-        <div className="text-center mb-5">
-          <div className={'text-6xl mb-3 '+(sc===0?'ob-fl':'')}>{s.emoji}</div>
-          <h1 className="text-3xl font-black text-white mb-1">{s.title}</h1>
-          <p className="text-white/65 text-sm">{s.sub}</p>
-        </div>
-        {sc===0&&s.features&&s.features.map(([ic,h,t],i)=>(
-          <div key={i} className="flex items-center gap-3 bg-white/10 rounded-2xl px-4 py-3 mb-2 ob-fu" style={{animationDelay:i*.07+'s'}}>
-            <span className="text-2xl">{ic}</span>
-            <div><div className="text-white font-black text-sm">{h}</div><div className="text-white/60 text-xs">{t}</div></div>
-          </div>
-        ))}
-        {s.items&&s.items.map((item,i)=>(
-          <div key={i} className="flex items-start gap-3 bg-white/10 rounded-2xl px-4 py-3 mb-2 ob-fu" style={{animationDelay:i*.07+'s'}}>
-            <span className="text-2xl flex-shrink-0 mt-0.5">{item.i}</span>
-            <div><div className="text-white font-black text-sm mb-0.5">{item.h}</div><div className="text-white/65 text-xs leading-relaxed">{item.t}</div></div>
-          </div>
-        ))}
-        {last&&<div className="mt-4 bg-yellow-400/20 border border-yellow-400/40 rounded-2xl px-4 py-3 text-center ob-fu" style={{animationDelay:'.3s'}}><div className="text-yellow-300 font-black text-2xl">300 XP ✨</div><div className="text-white/70 text-xs mt-0.5">Pro Coach Level erreicht!</div></div>}
-      </div>
-      <div className="px-4 pb-5 pt-2 flex items-center gap-3">
-        {sc>0?<button onClick={back} className="w-11 h-11 rounded-full flex items-center justify-center text-white font-black text-xl active:scale-90" style={{background:'rgba(255,255,255,.15)'}}>←</button>:<div className="w-11"/>}
-        <button onClick={next} className={'flex-1 py-4 rounded-2xl font-black text-base shadow-xl active:scale-95 '+(last?'bg-gradient-to-r from-yellow-400 to-orange-500 text-white':'bg-white text-purple-800')}>{s.btn}</button>
-        {sc===0?<button onClick={onDone} className="text-white/35 text-xs font-bold whitespace-nowrap">Skip</button>:<div className="w-11"/>}
-      </div>
-    </div>
   );
 }
 
@@ -541,7 +472,6 @@ function VolleyballTracker(){
   const [undoStack,setUndoStack]=useState([]);
   // ── FIX: highlightSuggestions declared here (was missing) ──
   const [highlightSuggestions,setHighlightSuggestions]=useState(true);
-  const [showOnboarding,setShowOnboarding]=useState(()=>!localStorage.getItem('vbt_onboarding_done'));
   const mediaRecorderRef=useRef(null);
   const recordedChunksRef=useRef([]);
   const persistReady=useRef(false);
@@ -754,7 +684,6 @@ function VolleyballTracker(){
     }
   };
 
-  if(showOnboarding)return<OnboardingFlow onDone={()=>{localStorage.setItem('vbt_onboarding_done','1');setShowOnboarding(false);}}/>;
   if(loading)return(<div className="min-h-screen bg-gradient-to-br from-purple-600 via-pink-500 to-orange-400 flex items-center justify-center"><div className="text-white text-xl font-bold animate-pulse">Lade... 🏐</div></div>);
 
   // ═══ HOME ════════════════════════════════════════════════════════════════════
