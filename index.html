@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <meta name="theme-color" content="#7c3aed" />
-  <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no,viewport-fit=cover"/>
+  <meta name="theme-color" content="#7c3aed"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
   <title>Volleyball Coach Tracker</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
@@ -17,29 +17,31 @@
     body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;}
     *{-webkit-user-select:none;user-select:none;}
     input,textarea{-webkit-user-select:text;user-select:text;}
-    @keyframes pulse-ring{0%{box-shadow:0 0 0 0 rgba(250,204,21,0.7)}70%{box-shadow:0 0 0 10px rgba(250,204,21,0)}100%{box-shadow:0 0 0 0 rgba(250,204,21,0)}}
+    @keyframes pulse-ring{0%{box-shadow:0 0 0 0 rgba(250,204,21,.7)}70%{box-shadow:0 0 0 10px rgba(250,204,21,0)}100%{box-shadow:0 0 0 0 rgba(250,204,21,0)}}
     .highlight-pulse{animation:pulse-ring 1.2s infinite;}
-    .player-dim{opacity:0.22;filter:saturate(0.2);}
+    .player-dim{opacity:.22;filter:saturate(.2);}
+    @keyframes dash-flow{to{stroke-dashoffset:-12}}
+    .laufweg-line{animation:dash-flow 0.6s linear infinite;}
   </style>
 </head>
 <body>
 <div id="root"></div>
 <script type="text/babel" data-presets="react">
-const { useState, useEffect, useRef } = React;
+const {useState,useEffect,useRef}=React;
 
-// ── Storage ───────────────────────────────────────────────────────────────────
-const storage = {
+// ── Storage ──────────────────────────────────────────────────────────────────
+const storage={
   async get(k){try{const v=localStorage.getItem('vbt_'+k);return v?{value:v}:null;}catch(e){return null;}},
   async set(k,v){try{localStorage.setItem('vbt_'+k,v);return{value:v};}catch(e){return null;}},
 };
-const videoDB = {
+const videoDB={
   async open(){return new Promise((res,rej)=>{const req=indexedDB.open('CoachVideos',1);req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains('videos'))db.createObjectStore('videos',{keyPath:'matchId'});};req.onsuccess=()=>res(req.result);req.onerror=()=>rej(req.error);});},
   async save(matchId,blob){const db=await this.open();return new Promise((res,rej)=>{const tx=db.transaction('videos','readwrite');tx.objectStore('videos').put({matchId,blob,savedAt:Date.now()});tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error);});},
   async get(matchId){const db=await this.open();return new Promise((res,rej)=>{const tx=db.transaction('videos','readonly');const req=tx.objectStore('videos').get(matchId);req.onsuccess=()=>res(req.result);req.onerror=()=>rej(req.error);});},
   async delete(matchId){const db=await this.open();return new Promise((res,rej)=>{const tx=db.transaction('videos','readwrite');tx.objectStore('videos').delete(matchId);tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error);});},
 };
 
-// ── Icons ─────────────────────────────────────────────────────────────────────
+// ── Icons ────────────────────────────────────────────────────────────────────
 const Icon=({children,size=16})=><svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{children}</svg>;
 const ArrowLeft=({size})=><Icon size={size}><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></Icon>;
 const RotateCw=({size})=><Icon size={size}><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></Icon>;
@@ -51,7 +53,7 @@ const Download=({size})=><Icon size={size}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2
 const Upload=({size})=><Icon size={size}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></Icon>;
 const Settings=({size})=><Icon size={size}><circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 6v6m11-7h-6m-6 0H1"/></Icon>;
 
-// ── Constants ─────────────────────────────────────────────────────────────────
+// ── Constants ────────────────────────────────────────────────────────────────
 const POSITION_TYPES={
   S:{label:'Setter / Zuspieler',color:'from-yellow-400 to-orange-500',short:'Z'},
   OPP:{label:'Opposite / Diagonal',color:'from-red-500 to-pink-600',short:'D'},
@@ -62,15 +64,15 @@ const POSITION_TYPES={
 };
 const DEFAULT_CONFIG={S:1,OPP:1,OH:2,MB:2,L:1,DS:0};
 const ACTIONS=[
-  {type:'kill',       emoji:'💥',label:'Kill',       color:'bg-gradient-to-br from-green-500 to-emerald-600',  forTeam:true, highlight:'front', isPoint:true},
-  {type:'block',      emoji:'🧱',label:'Stuff',      color:'bg-gradient-to-br from-purple-500 to-indigo-600',  forTeam:true, highlight:'front', isPoint:true},
-  {type:'ace',        emoji:'🎯',label:'Ace',         color:'bg-gradient-to-br from-blue-500 to-cyan-600',      forTeam:true, highlight:'server',isPoint:true},
-  {type:'error',      emoji:'❌',label:'Angriff-F.',  color:'bg-gradient-to-br from-red-500 to-rose-600',       forTeam:true, highlight:'front', isPoint:false},
-  {type:'block_error',emoji:'🚫',label:'Block-F.',    color:'bg-gradient-to-br from-red-600 to-pink-700',       forTeam:true, highlight:'front', isPoint:false},
-  {type:'service_error',emoji:'📉',label:'Svc-F.',   color:'bg-gradient-to-br from-orange-500 to-red-500',     forTeam:true, highlight:'server',isPoint:false},
-  {type:'reception_bad',emoji:'⚠️',label:'Ann. -',   color:'bg-gradient-to-br from-amber-500 to-orange-600',   forTeam:true, highlight:'receive',isPoint:false},
-  {type:'reception_good',emoji:'✅',label:'Ann. +',  color:'bg-gradient-to-br from-lime-500 to-green-600',     forTeam:true, highlight:'receive',isPoint:false, soft:true},
-  {type:'attack_attempt',emoji:'⚔️',label:'Angr.v.',color:'bg-gradient-to-br from-teal-500 to-cyan-500',      forTeam:true, highlight:'front', isPoint:false, soft:true},
+  {type:'kill',       emoji:'💥',label:'Kill',         color:'bg-gradient-to-br from-green-500 to-emerald-600',  forTeam:true,highlight:'front', isPoint:true},
+  {type:'block',      emoji:'🧱',label:'Stuff',        color:'bg-gradient-to-br from-purple-500 to-indigo-600',  forTeam:true,highlight:'front', isPoint:true},
+  {type:'ace',        emoji:'🎯',label:'Ace',           color:'bg-gradient-to-br from-blue-500 to-cyan-600',      forTeam:true,highlight:'server',isPoint:true},
+  {type:'error',      emoji:'❌',label:'Angriff-F.',   color:'bg-gradient-to-br from-red-500 to-rose-600',       forTeam:true,highlight:'front', isPoint:false},
+  {type:'block_error',emoji:'🚫',label:'Block-F.',     color:'bg-gradient-to-br from-red-600 to-pink-700',       forTeam:true,highlight:'front', isPoint:false},
+  {type:'service_error',emoji:'📉',label:'Svc-F.',     color:'bg-gradient-to-br from-orange-500 to-red-500',     forTeam:true,highlight:'server',isPoint:false},
+  {type:'reception_bad',emoji:'⚠️',label:'Ann. -',    color:'bg-gradient-to-br from-amber-500 to-orange-600',   forTeam:true,highlight:'receive',isPoint:false},
+  {type:'reception_good',emoji:'✅',label:'Ann. +',   color:'bg-gradient-to-br from-lime-500 to-green-600',     forTeam:true,highlight:'receive',isPoint:false,soft:true},
+  {type:'attack_attempt',emoji:'⚔️',label:'Angr.v.',  color:'bg-gradient-to-br from-teal-500 to-cyan-500',      forTeam:true,highlight:'front', isPoint:false,soft:true},
 ];
 const EVENT_LABELS={kill:'💥 Kill',ace:'🎯 Ace',block:'🧱 Stuff',error:'❌ Angriff-F.',service_error:'📉 Svc-F.',block_error:'🚫 Block-F.',attack_attempt:'⚔️ Angriffsv.',opp_point:'🆚 +1 Gegner',opp_error:'🎁 Geg.-Fehler',reception_good:'✅ Ann.+',reception_bad:'⚠️ Ann.-'};
 const COURT_POSITIONS=[
@@ -80,7 +82,47 @@ const COURT_POSITIONS=[
 const FRONT_POSITIONS=[2,3,4];
 const BACK_POSITIONS=[1,5,6];
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// Setter target zone (Zuspielposition) — always right front
+const SETTER_TARGET={x:82,y:20};
+
+// ── Reception Presets (5-1 only) ─────────────────────────────────────────────
+// Formation layout: for each Z-start-position (1..6), where each court slot stands.
+// Z runs from their rotation spot → SETTER_TARGET.
+// Receivers: AA, MB(back), Libero form W or U; OPP/MB(front) stay out of reception.
+const RECEPTION_PRESETS={
+  '5-1-w':{
+    label:'5-1 W-Formation',emoji:'🔱',color:'from-blue-500 to-indigo-600',
+    desc:'Z → Pos 2 · W-Riegel mit 5 Empfängern',
+    formations:{
+      // Z at pos 1 (RB): runs up right side → Pos2. AA2(2) stays front, OPP(3) front.
+      1:{1:{x:82,y:20},2:{x:65,y:52},3:{x:28,y:52},4:{x:14,y:72},5:{x:48,y:82},6:{x:76,y:70}},
+      // Z at pos 6 (MB): short run right
+      6:{1:{x:50,y:80},2:{x:82,y:20},3:{x:68,y:52},4:{x:30,y:52},5:{x:14,y:72},6:{x:82,y:20}},
+      // Z at pos 5 (LB): long diagonal run
+      5:{1:{x:50,y:80},2:{x:74,y:68},3:{x:62,y:52},4:{x:28,y:52},5:{x:82,y:20},6:{x:14,y:72}},
+      // Z at pos 4 (LF): cross-court run
+      4:{1:{x:50,y:80},2:{x:74,y:68},3:{x:58,y:52},4:{x:82,y:20},5:{x:14,y:72},6:{x:30,y:80}},
+      // Z at pos 3 (MF): short right run
+      3:{1:{x:50,y:80},2:{x:74,y:68},3:{x:82,y:20},4:{x:14,y:28},5:{x:14,y:72},6:{x:36,y:80}},
+      // Z at pos 2 (RF): stays, easiest
+      2:{1:{x:50,y:80},2:{x:82,y:20},3:{x:18,y:28},4:{x:50,y:28},5:{x:14,y:72},6:{x:36,y:80}},
+    }
+  },
+  '5-1-u':{
+    label:'5-1 U-Formation',emoji:'🌙',color:'from-purple-500 to-pink-600',
+    desc:'Z → Pos 2 · Halbkreis-U · tiefe Mitte',
+    formations:{
+      1:{1:{x:82,y:20},2:{x:72,y:54},3:{x:50,y:46},4:{x:22,y:60},5:{x:12,y:78},6:{x:50,y:82}},
+      6:{1:{x:50,y:82},2:{x:82,y:20},3:{x:72,y:54},4:{x:50,y:46},5:{x:22,y:60},6:{x:12,y:78}},
+      5:{1:{x:50,y:82},2:{x:72,y:62},3:{x:60,y:48},4:{x:28,y:52},5:{x:82,y:20},6:{x:12,y:78}},
+      4:{1:{x:50,y:82},2:{x:72,y:62},3:{x:56,y:48},4:{x:82,y:20},5:{x:12,y:78},6:{x:30,y:82}},
+      3:{1:{x:50,y:82},2:{x:72,y:62},3:{x:82,y:20},4:{x:14,y:28},5:{x:12,y:78},6:{x:34,y:82}},
+      2:{1:{x:50,y:82},2:{x:82,y:20},3:{x:18,y:28},4:{x:50,y:28},5:{x:12,y:78},6:{x:34,y:82}},
+    }
+  },
+};
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
 function generateSlots(config){
   const s=[];
   Object.entries(config).forEach(([type,count])=>{
@@ -115,22 +157,41 @@ function getSlotSuggestions(action,lineup,servingTeam='us'){
     const type=sid.replace(/\d+$/,'');
     allowed.add(sid);
     if(action.highlight==='none'){suggested.add(sid);}
-    else if(action.highlight==='server'){
-      // Ace / Svc-F nur sinnvoll wenn WIR aufschlagen
-      if(servingTeam==='us'&&posNum===1)suggested.add(sid);
-    }
+    else if(action.highlight==='server'){if(servingTeam==='us'&&posNum===1)suggested.add(sid);}
     else if(action.highlight==='front'){if(FRONT_POSITIONS.includes(posNum))suggested.add(sid);}
-    else if(action.highlight==='back'){
-      if(BACK_POSITIONS.includes(posNum)&&type!=='S'&&type!=='OPP')suggested.add(sid);
-    }
-    else if(action.highlight==='receive'){
-      // Im 5-1: alle außer Setter (und Diagonal) empfangen
-      if(type!=='S'&&type!=='OPP')suggested.add(sid);
-    }
+    else if(action.highlight==='back'){if(BACK_POSITIONS.includes(posNum)&&type!=='S'&&type!=='OPP')suggested.add(sid);}
+    else if(action.highlight==='receive'){if(type!=='S'&&type!=='OPP')suggested.add(sid);}
   });
   return{suggested,allowed};
 }
 function fmtTime(s){const m=Math.floor(s/60);return`${m}:${Math.floor(s%60).toString().padStart(2,'0')}`;}
+
+// ── SetterLaufweg SVG component ───────────────────────────────────────────────
+function SetterLaufwegSVG({startPos,endPos,animated=false}){
+  if(!startPos||!endPos)return null;
+  const dx=endPos.x-startPos.x, dy=endPos.y-startPos.y;
+  const dist=Math.sqrt(dx*dx+dy*dy);
+  if(dist<4)return null;
+  const ux=dx/dist,uy=dy/dist,px=-uy,py=ux,s=3.2;
+  const tip={x:endPos.x-ux*4,y:endPos.y-uy*4};
+  const arrow=`${tip.x},${tip.y} ${tip.x-s*ux+s*0.6*px},${tip.y-s*uy+s*0.6*py} ${tip.x-s*ux-s*0.6*px},${tip.y-s*uy-s*0.6*py}`;
+  return(
+    <svg className="absolute inset-0 pointer-events-none" style={{width:'100%',height:'100%',zIndex:6}} viewBox="0 0 100 100" preserveAspectRatio="none">
+      {/* ghost start circle */}
+      <circle cx={startPos.x} cy={startPos.y} r="5.5" fill="#fbbf2420" stroke="#f59e0b" strokeWidth="0.9" strokeDasharray="2.5,1.5"/>
+      <text x={startPos.x} y={startPos.y+0.8} textAnchor="middle" dominantBaseline="middle" style={{fontSize:'3.2px',fontWeight:'bold',fill:'#f59e0b',opacity:0.8}}>Z</text>
+      {/* animated dashed line */}
+      <line x1={startPos.x} y1={startPos.y} x2={tip.x} y2={tip.y}
+        stroke="#f59e0b" strokeWidth="1.4" strokeDasharray="4,2.5" strokeLinecap="round" opacity="0.9"
+        className={animated?'laufweg-line':''}/>
+      {/* arrowhead */}
+      <polygon points={arrow} fill="#f59e0b" opacity="0.95"/>
+      {/* label */}
+      <text x={(startPos.x+endPos.x)/2-1} y={(startPos.y+endPos.y)/2-3} textAnchor="middle"
+        style={{fontSize:'2.6px',fill:'#92400e',opacity:0.75,fontWeight:'bold'}}>Laufweg Z</text>
+    </svg>
+  );
+}
 
 // ── MatchVideoPlayer ──────────────────────────────────────────────────────────
 function MatchVideoPlayer({matchId,events,matchSlots,rosterSnap,matchSetScores,onEventsChange,onSetScoresChange,editMode,onToggleEdit}){
@@ -248,19 +309,9 @@ function MatchVideoPlayer({matchId,events,matchSlots,rosterSnap,matchSetScores,o
                   <button key={a.type} onClick={()=>setSelectedAction(a)} className={`${a.color} text-white p-1.5 rounded-lg text-center active:scale-90`}><div className="text-base">{a.emoji}</div><div className="text-[8px] font-bold leading-tight">{a.label}</div></button>
                 ))}
               </div>
-              <div className="grid grid-cols-3 gap-1 mb-1">
+              <div className="grid grid-cols-3 gap-1">
                 {[ACTIONS.find(a=>a.type==='error'),ACTIONS.find(a=>a.type==='block_error'),ACTIONS.find(a=>a.type==='service_error')].map(a=>(
                   <button key={a.type} onClick={()=>setSelectedAction(a)} className={`${a.color} text-white p-1.5 rounded-lg text-center active:scale-90`}><div className="text-base">{a.emoji}</div><div className="text-[8px] font-bold leading-tight">{a.label}</div></button>
-                ))}
-              </div>
-              <div className="grid grid-cols-3 gap-1">
-                {[ACTIONS.find(a=>a.type==='reception_good'),ACTIONS.find(a=>a.type==='reception_bad'),ACTIONS.find(a=>a.type==='attack_attempt')].map(a=>(
-                  <button key={a.type} onClick={()=>setSelectedAction(a)}
-                    className={`p-1.5 rounded-lg text-center active:scale-90 relative ${a.soft?`${a.color} text-white opacity-40 border-2 border-dashed border-white/70`:`${a.color} text-white`}`}>
-                    {a.soft&&<span className="absolute -top-1.5 -right-1.5 bg-gray-600 text-white text-[7px] font-black px-1 py-0.5 rounded-full leading-none">~stat</span>}
-                    <div className="text-base">{a.emoji}</div>
-                    <div className="text-[8px] font-bold leading-tight">{a.label}</div>
-                  </button>
                 ))}
               </div>
             </>
@@ -348,11 +399,9 @@ function VolleyballTracker(){
   const [recordingStart,setRecordingStart]=useState(null);
   const [cameraStream,setCameraStream]=useState(null);
   const [cameraPreviewOpen,setCameraPreviewOpen]=useState(false);
-  // FIX 2: Snapshot-based undo stack
   const [undoStack,setUndoStack]=useState([]);
   const mediaRecorderRef=useRef(null);
   const recordedChunksRef=useRef([]);
-  // Guard: don't auto-save before initial load completes
   const persistReady=useRef(false);
 
   useEffect(()=>{
@@ -362,7 +411,6 @@ function VolleyballTracker(){
       try{const l=await storage.get('starting_lineup_v2');if(l)setStartingLineup(JSON.parse(l.value));}catch(e){}
       try{const f=await storage.get('reception_formations_v2');if(f)setReceptionFormations(JSON.parse(f.value));}catch(e){}
       try{const m=await storage.get('matches_v3');if(m)setMatches(JSON.parse(m.value));}catch(e){}
-      // FIX 1: Restore in-progress match on crash/reload
       try{
         const cm=await storage.get('current_match');
         if(cm&&cm.value&&cm.value!=='null'){
@@ -377,16 +425,8 @@ function VolleyballTracker(){
     }
     load();
   },[]);
-
-  // FIX 1: Auto-persist currentMatch + servingTeam on every change
-  useEffect(()=>{
-    if(!persistReady.current)return;
-    storage.set('current_match',currentMatch?JSON.stringify(currentMatch):'null');
-  },[currentMatch]);
-  useEffect(()=>{
-    if(!persistReady.current)return;
-    storage.set('serving_team',servingTeam);
-  },[servingTeam]);
+  useEffect(()=>{if(!persistReady.current)return;storage.set('current_match',currentMatch?JSON.stringify(currentMatch):'null');},[currentMatch]);
+  useEffect(()=>{if(!persistReady.current)return;storage.set('serving_team',servingTeam);},[servingTeam]);
 
   // ── Recording ──
   const startRecording=async()=>{
@@ -425,7 +465,7 @@ function VolleyballTracker(){
   const saveFormations=async f=>{setReceptionFormations(f);await storage.set('reception_formations_v2',JSON.stringify(f));};
   const saveMatches=async m=>{setMatches(m);await storage.set('matches_v3',JSON.stringify(m));};
 
-  // ── Import / Export ──
+  // ── Import/Export ──
   const buildExportData=()=>({version:1,exportDate:new Date().toISOString(),teamConfig,roster,startingLineup,receptionFormations,matches});
   const applyImportData=async(data)=>{
     if(!data.version)throw new Error('Ungültige Daten');
@@ -440,17 +480,17 @@ function VolleyballTracker(){
   const exportData=()=>{
     const json=JSON.stringify(buildExportData(),null,2);
     try{const blob=new Blob([json],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`vb-backup-${new Date().toISOString().split('T')[0]}.json`;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);setImportMessage('✓ Heruntergeladen');}
-    catch(e){setImportMessage('✗ Download fehlgeschlagen — nutze Kopieren');}
+    catch(e){setImportMessage('✗ Download fehlgeschlagen');}
     setTimeout(()=>setImportMessage(''),3000);
   };
   const exportCopy=async()=>{
     const b64=btoa(unescape(encodeURIComponent(JSON.stringify(buildExportData()))));
-    try{await navigator.clipboard.writeText(b64);setImportMessage('✓ In Zwischenablage kopiert');}
-    catch(e){setPasteText(b64);setShowPasteImport(true);setImportMessage('📋 Text zum Kopieren markieren');}
+    try{await navigator.clipboard.writeText(b64);setImportMessage('✓ Kopiert');}
+    catch(e){setPasteText(b64);setShowPasteImport(true);setImportMessage('📋 Text kopieren');}
     setTimeout(()=>setImportMessage(''),3000);
   };
   const importFromPaste=async()=>{
-    if(!pasteText.trim()){setImportMessage('✗ Kein Text eingefügt');setTimeout(()=>setImportMessage(''),3000);return;}
+    if(!pasteText.trim()){setImportMessage('✗ Kein Text');setTimeout(()=>setImportMessage(''),3000);return;}
     try{
       let json;try{json=decodeURIComponent(escape(atob(pasteText.trim())));}catch{json=pasteText.trim();}
       const ok=await applyImportData(JSON.parse(json));
@@ -480,7 +520,6 @@ function VolleyballTracker(){
   const updateConfigCount=(type,delta)=>{const c=teamConfig[type]||0;saveConfig({...teamConfig,[type]:Math.max(0,Math.min(6,c+delta))});};
   const assignToPosition=(pos,slotId)=>{const nl={};Object.entries(startingLineup).forEach(([p,s])=>{if(s!==slotId)nl[p]=s;});nl[pos]=slotId;saveLineup(nl);};
   const lineupComplete=[1,2,3,4,5,6].every(p=>startingLineup[p]);
-
   const startNewMatch=async()=>{
     if(!opponentName.trim())return;
     let recStarted=false;
@@ -495,16 +534,12 @@ function VolleyballTracker(){
       format:matchFormat,maxSets,setsToWin,hasVideo:recStarted,videoStartTime:recStarted?Date.now():null,
     };
     setCurrentMatch(match);setServingTeam('us');setShowNewMatch(false);setOpponentName('');setSelectedAction(null);
-    setUndoStack([]); // clear any leftover undo state
+    setUndoStack([]);
     if(recStarted)setCameraPreviewOpen(true);
     setView('match');
   };
-
   const updateMatch=fn=>setCurrentMatch(prev=>fn(prev));
-
-  // FIX 2: Push snapshot before any mutation
   const pushUndo=()=>setUndoStack(prev=>[...prev.slice(-29),{match:currentMatch,servingTeam}]);
-
   const recordEventForPlayer=(slotId)=>{
     if(!selectedAction||!currentMatch)return;
     const action=selectedAction;
@@ -515,7 +550,7 @@ function VolleyballTracker(){
       if(pendingOverride===slotId){setPendingOverride(null);}
       else{setPendingOverride(slotId);return;}
     }else{setPendingOverride(null);}
-    pushUndo(); // ← snapshot BEFORE mutation
+    pushUndo();
     const videoTime=isRecording&&recordingStart?Math.floor((Date.now()-recordingStart)/1000):null;
     const slot=matchSlotsLocal.find(s=>s.id===slotId);
     const event={
@@ -532,29 +567,23 @@ function VolleyballTracker(){
     setPendingFlash({slotId,type:action.type});setTimeout(()=>setPendingFlash(null),600);
     setSelectedAction(null);
   };
-
-  // FIX 3: Smart score buttons – our "+" = opponent error/fault, logs event + correct rotation
   const recordOurPoint=()=>{
-    if(!currentMatch)return;
-    pushUndo();
+    if(!currentMatch)return;pushUndo();
     const videoTime=isRecording&&recordingStart?Math.floor((Date.now()-recordingStart)/1000):null;
     const event={id:Date.now().toString()+Math.random(),type:'opp_error',forTeam:false,set:currentMatch.set,rotation:currentMatch.rotation,serving:servingTeam,timestamp:Date.now(),videoTime};
     const rotateUs=servingTeam==='opp';
     updateMatch(m=>({...m,events:[...m.events,event],teamScore:m.teamScore+1,rotation:rotateUs?(m.rotation%6)+1:m.rotation}));
     setServingTeam('us');
   };
-  // Smart opp "+" = opponent wins rally, logs event + serving switch
   const recordOppPoint=()=>{
-    if(!currentMatch)return;
-    pushUndo();
+    if(!currentMatch)return;pushUndo();
     const videoTime=isRecording&&recordingStart?Math.floor((Date.now()-recordingStart)/1000):null;
     const event={id:Date.now().toString()+Math.random(),type:'opp_point',forTeam:false,set:currentMatch.set,rotation:currentMatch.rotation,serving:servingTeam,timestamp:Date.now(),videoTime};
     updateMatch(m=>({...m,events:[...m.events,event],opponentScore:m.opponentScore+1}));
     setServingTeam('opp');
   };
-
   const doSubstitution=(fieldSlotId,benchSlotId)=>{
-    pushUndo(); // ← snapshot before sub
+    pushUndo();
     updateMatch(m=>{
       const newLineup={...m.lineupSnapshot};
       const pos=Object.entries(newLineup).find(([_,s])=>s===fieldSlotId)?.[0];
@@ -563,25 +592,18 @@ function VolleyballTracker(){
     });
     setSubStep(null);setShowBench(false);
   };
-
-  // FIX 2: Snapshot-based undo – restores full match state + servingTeam
   const undoLastEvent=()=>{
     if(undoStack.length===0)return;
     const snap=undoStack[undoStack.length-1];
-    setCurrentMatch(snap.match);
-    setServingTeam(snap.servingTeam);
-    setUndoStack(prev=>prev.slice(0,-1));
-    setSelectedAction(null);
+    setCurrentMatch(snap.match);setServingTeam(snap.servingTeam);
+    setUndoStack(prev=>prev.slice(0,-1));setSelectedAction(null);
   };
-
   const manualRotate=()=>{pushUndo();updateMatch(m=>({...m,rotation:(m.rotation%6)+1}));};
-
   const nextSet=()=>{
     pushUndo();
     updateMatch(m=>({...m,set:m.set+1,setScores:[...m.setScores,{teamScore:m.teamScore,opponentScore:m.opponentScore}],teamScore:0,opponentScore:0,rotation:1}));
     setServingTeam('us');setSelectedAction(null);
   };
-
   const finishMatch=async()=>{
     let videoBlob=null;if(isRecording)videoBlob=await stopRecording();
     const finalMatch={...currentMatch,setScores:[...currentMatch.setScores,{teamScore:currentMatch.teamScore,opponentScore:currentMatch.opponentScore}],finished:true};
@@ -612,7 +634,7 @@ function VolleyballTracker(){
         <div className="text-center py-4">
           <div className="text-6xl mb-2">🏐</div>
           <h1 className="text-4xl font-black text-white drop-shadow-lg">Coach Tracker</h1>
-          <p className="text-white/90 font-semibold text-sm">Lokale App · Offline · 🎬 Video</p>
+          <p className="text-white/90 font-semibold text-sm">Lokal · Offline · 5-1 System</p>
         </div>
         {currentMatch&&(
           <button onClick={()=>setView('match')} className="w-full bg-gradient-to-r from-green-400 to-emerald-500 text-white p-5 rounded-3xl shadow-xl mb-4 font-bold active:scale-95 animate-pulse">
@@ -632,15 +654,16 @@ function VolleyballTracker(){
             <div className="text-xs text-gray-500">{lineupComplete?'✓ Bereit':`${Object.keys(startingLineup).length}/6`}</div>
           </button>
           <button onClick={()=>{setView('formations');setFormationEditRotation(1);}} disabled={!lineupComplete} className="bg-white/95 p-5 rounded-3xl shadow-xl active:scale-95 disabled:opacity-50">
-            <div className="text-4xl mb-1">🎯</div><div className="font-black text-cyan-700">Annahme</div>
-            <div className="text-xs text-gray-500">{Object.keys(receptionFormations).length}/6 Z-Pos.</div>
+            <div className="text-4xl mb-1">🎯</div><div className="font-black text-cyan-700">Annahme 5-1</div>
+            <div className="text-xs text-gray-500">{Object.keys(receptionFormations).length}/6 gespeichert</div>
           </button>
           <button onClick={()=>setView('stats')} className="bg-white/95 p-5 rounded-3xl shadow-xl active:scale-95 col-span-2">
             <div className="text-4xl mb-1">📊</div><div className="font-black text-orange-600">Statistiken & Historie</div>
-            <div className="text-xs text-gray-500">{matches.length} Spiele · {matches.filter(m=>m.hasVideo).length} mit Video 🎬</div>
+            <div className="text-xs text-gray-500">{matches.length} Spiele</div>
           </button>
         </div>
       </div>
+
       {showSettings&&(
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50" onClick={()=>setShowSettings(false)}>
           <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl" onClick={e=>e.stopPropagation()}>
@@ -648,22 +671,19 @@ function VolleyballTracker(){
             <div className="space-y-3">
               <div className="bg-gray-50 p-3 rounded-2xl">
                 <div className="text-xs font-bold text-gray-700 mb-1">💾 DATEN-BACKUP</div>
-                <div className="text-[10px] text-gray-500 mb-2">Export → auf zweitem Gerät importieren</div>
                 <div className="grid grid-cols-2 gap-2 mb-2">
                   <button onClick={exportData} className="bg-gradient-to-r from-blue-500 to-cyan-600 text-white p-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 active:scale-95"><Download size={13}/> Download</button>
                   <button onClick={exportCopy} className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white p-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 active:scale-95">📋 Kopieren</button>
                 </div>
-                <div className="text-[10px] text-gray-500 mb-2">Import</div>
                 <div className="grid grid-cols-2 gap-2">
                   <label className="bg-gradient-to-r from-purple-500 to-pink-600 text-white p-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer">
-                    <Upload size={13}/> Datei<input type="file" accept=".json,.txt,application/json,text/plain,text/*" onChange={importData} className="hidden"/>
+                    <Upload size={13}/> Datei<input type="file" accept=".json,.txt" onChange={importData} className="hidden"/>
                   </label>
                   <button onClick={()=>{setPasteText('');setShowPasteImport(true);}} className="bg-gradient-to-r from-pink-500 to-rose-500 text-white p-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 active:scale-95">📥 Einfügen</button>
                 </div>
                 {importMessage&&<div className={`mt-2 p-2 rounded-lg text-xs font-bold text-center ${importMessage.startsWith('✓')?'bg-green-100 text-green-800':'bg-red-100 text-red-800'}`}>{importMessage}</div>}
               </div>
               <div className="bg-red-50 p-3 rounded-2xl">
-                <div className="text-xs font-bold text-red-700 mb-2">⚠️ GEFAHRENZONE</div>
                 <button onClick={async()=>{if(confirm('ALLE Daten löschen?')){if(confirm('Sicher?')){localStorage.clear();location.reload();}}}} className="w-full bg-red-600 text-white p-3 rounded-xl font-bold text-sm">🗑️ Alle Daten löschen</button>
               </div>
             </div>
@@ -675,7 +695,6 @@ function VolleyballTracker(){
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-3xl p-5 w-full max-w-sm shadow-2xl">
             <h2 className="text-xl font-black text-purple-700 mb-1">📥 Text importieren</h2>
-            <p className="text-xs text-gray-500 mb-3">Füge den kopierten Backup-Text hier ein.</p>
             <textarea value={pasteText} onChange={e=>setPasteText(e.target.value)} placeholder="Backup-Text hier einfügen…" className="w-full h-28 p-3 border-2 border-purple-200 rounded-xl text-xs font-mono resize-none focus:outline-none focus:border-purple-500 mb-3" autoFocus/>
             {importMessage&&<div className={`mb-3 p-2 rounded-lg text-xs font-bold text-center ${importMessage.startsWith('✓')?'bg-green-100 text-green-800':'bg-red-100 text-red-800'}`}>{importMessage}</div>}
             <div className="flex gap-2">
@@ -702,10 +721,7 @@ function VolleyballTracker(){
             </div>
             <label className="flex items-start gap-2 p-3 rounded-2xl bg-gradient-to-r from-pink-50 to-purple-50 border-2 border-pink-200 cursor-pointer mb-4">
               <input type="checkbox" checked={recordingEnabled} onChange={e=>setRecordingEnabled(e.target.checked)} className="mt-0.5 w-5 h-5"/>
-              <div>
-                <div className="font-bold text-sm text-pink-700">🎬 Video-Aufnahme aktivieren</div>
-                <div className="text-[10px] text-gray-600 mt-0.5">720p · Event-Zeitmarken · Nachtracken möglich. ⚠️ ~2GB/Stunde.</div>
-              </div>
+              <div><div className="font-bold text-sm text-pink-700">🎬 Video-Aufnahme</div><div className="text-[10px] text-gray-600 mt-0.5">720p · ~2GB/h</div></div>
             </label>
             <div className="flex gap-2">
               <button onClick={()=>{setShowNewMatch(false);setOpponentName('');}} className="flex-1 bg-gray-200 p-3 rounded-2xl font-bold">Abbrechen</button>
@@ -862,9 +878,25 @@ function VolleyballTracker(){
     const setBallOpp=currentMatch.opponentScore>=setTargetPoints-1&&currentMatch.opponentScore>=currentMatch.teamScore&&!setWonBy;
     const isExtension=currentMatch.teamScore>=setTargetPoints||currentMatch.opponentScore>=setTargetPoints;
     const setterPosForFormation=setterSlot?Object.entries(trueLineup).find(([_,sid])=>sid===setterSlot.id)?.[0]:null;
+
     let positionLayout;
-    if(isReceiving){const formationKey=setterPosForFormation?parseInt(setterPosForFormation):parseInt(setterPos);positionLayout=formations[formationKey]||getDefaultReception();}
-    else{const l={};COURT_POSITIONS.forEach(c=>{l[c.pos]={x:c.x,y:c.y};});positionLayout=l;}
+    if(isReceiving){
+      const formationKey=setterPosForFormation?parseInt(setterPosForFormation):parseInt(setterPos);
+      positionLayout=formations[formationKey]||getDefaultReception();
+    }else{
+      const l={};COURT_POSITIONS.forEach(c=>{l[c.pos]={x:c.x,y:c.y};});positionLayout=l;
+    }
+
+    // Setter laufweg for match view
+    const matchLaufwegStart=(()=>{
+      if(!isReceiving||!setterPosForFormation)return null;
+      return COURT_POSITIONS.find(c=>c.pos===parseInt(setterPosForFormation))||null;
+    })();
+    const matchLaufwegEnd=(()=>{
+      if(!isReceiving||!setterPosForFormation)return null;
+      return positionLayout[parseInt(setterPosForFormation)]||null;
+    })();
+
     const {suggested:suggestedSlots}=getSlotSuggestions(selectedAction,lineup,servingTeam);
     const isPosSelectable=()=>selectedAction&&selectedAction.forTeam;
     const isPosSuggested=(pos)=>{if(!selectedAction||!selectedAction.forTeam)return false;if(!suggestedSlots)return true;return suggestedSlots.has(lineup[pos]);};
@@ -879,48 +911,40 @@ function VolleyballTracker(){
               <div className="text-xs font-bold text-gray-500 flex items-center gap-2">
                 SATZ {currentMatch.set}/{currentMatch.maxSets||3}
                 {isExtension&&<span className="text-orange-600">🔥VERL.</span>}
-                {isRecording&&(
-                  <button onClick={()=>setCameraPreviewOpen(true)} className="flex items-center gap-1 bg-red-500 text-white px-1.5 py-0.5 rounded-full text-[9px] font-black animate-pulse">
-                    <span className="w-1.5 h-1.5 bg-white rounded-full inline-block"></span> REC
-                  </button>
-                )}
+                {isRecording&&<button onClick={()=>setCameraPreviewOpen(true)} className="flex items-center gap-1 bg-red-500 text-white px-1.5 py-0.5 rounded-full text-[9px] font-black animate-pulse"><span className="w-1.5 h-1.5 bg-white rounded-full inline-block"></span>REC</button>}
               </div>
               <button onClick={finishMatch} className="text-green-600 text-xs font-bold">✓ Fertig</button>
             </div>
             <div className="flex items-center justify-around gap-2">
               <div className="flex items-center gap-1.5">
-                {/* FIX: "-" = pure score correction, no event */}
                 <button onClick={()=>{pushUndo();updateMatch(m=>({...m,teamScore:Math.max(0,m.teamScore-1)}));}} className="w-8 h-8 bg-gray-200 text-gray-600 rounded-lg font-black text-lg active:scale-90">−</button>
                 <button onClick={()=>setServingTeam('us')} className="text-center min-w-[60px] active:scale-95">
                   <div className={`text-xs font-bold flex items-center justify-center gap-1 ${servingTeam==='us'?'text-purple-600':'text-gray-400'}`}>WIR <span className={servingTeam==='us'?'':'opacity-30'}>🏐</span></div>
                   <div className="text-5xl font-black text-purple-700">{currentMatch.teamScore}</div>
                 </button>
-                {/* FIX 3: "+" = logs opp_error event + handles rotation */}
                 <button onClick={recordOurPoint} className="w-8 h-8 bg-green-100 text-green-700 rounded-lg font-black text-lg active:scale-90">+</button>
               </div>
               <div className="text-2xl text-gray-300 font-black">:</div>
               <div className="flex items-center gap-1.5">
-                {/* FIX 3: "+" = logs opp_point event + serving switch */}
                 <button onClick={recordOppPoint} className="w-8 h-8 bg-orange-100 text-orange-700 rounded-lg font-black text-lg active:scale-90">+</button>
                 <button onClick={()=>setServingTeam('opp')} className="text-center min-w-[60px] active:scale-95">
-                  <div className={`text-xs font-bold flex items-center justify-center gap-1 ${servingTeam==='opp'?'text-orange-600':'text-gray-400'}`}><span className={servingTeam==='opp'?'':'opacity-30'}>🏐</span> {currentMatch.opponent.toUpperCase().slice(0,6)}</div>
+                  <div className={`text-xs font-bold flex items-center justify-center gap-1 ${servingTeam==='opp'?'text-orange-600':'text-gray-400'}`}><span className={servingTeam==='opp'?'':'opacity-30'}>🏐</span>{currentMatch.opponent.toUpperCase().slice(0,6)}</div>
                   <div className="text-5xl font-black text-orange-600">{currentMatch.opponentScore}</div>
                 </button>
-                {/* FIX: "-" = pure score correction, no event */}
                 <button onClick={()=>{pushUndo();updateMatch(m=>({...m,opponentScore:Math.max(0,m.opponentScore-1)}));}} className="w-8 h-8 bg-gray-200 text-gray-600 rounded-lg font-black text-lg active:scale-90">−</button>
               </div>
             </div>
-            <div className="text-center text-[10px] text-gray-400 mt-0.5">tippe 🏐 zum Aufschlag wechseln · +/− loggen Punkte</div>
+            <div className="text-center text-[10px] text-gray-400 mt-0.5">tippe 🏐 → Aufschlag wechseln</div>
             {currentMatch.setScores.length>0&&<div className="text-center text-xs text-gray-500 mt-1">{currentMatch.setScores.map(s=>`${s.teamScore}-${s.opponentScore}`).join(' | ')}</div>}
-            {setWonBy&&!matchWonBy&&<div className="mt-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white p-2 rounded-xl font-black text-center animate-pulse">🎉 SATZ {setWonBy==='us'?'GEWONNEN':'VERLOREN'}! → Satz {currentMatch.set+1}</div>}
+            {setWonBy&&!matchWonBy&&<div className="mt-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white p-2 rounded-xl font-black text-center animate-pulse">🎉 SATZ {setWonBy==='us'?'GEWONNEN':'VERLOREN'}!</div>}
             {matchWonBy&&<div className="mt-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-white p-2 rounded-xl font-black text-center animate-pulse">🏆 MATCH {matchWonBy==='us'?'GEWONNEN':'verloren'}!</div>}
             {!setWonBy&&(setBallUs||setBallOpp)&&<div className="mt-1 text-center text-[10px] font-bold text-orange-600">{setBallUs&&'🎯 Satzball WIR'}{setBallOpp&&`⚠️ Satzball ${currentMatch.opponent}`}</div>}
           </div>
 
-          {/* ① Action picker */}
+          {/* Action picker */}
           <div className="bg-white/95 rounded-2xl p-3 shadow-xl mb-3">
             <div className="text-xs font-bold text-gray-500 mb-2">
-              {selectedAction?<span className="text-purple-700">✅ {selectedAction.emoji} <b>{selectedAction.label}</b> — Spieler auf Feld tippen</span>:'① AKTION WÄHLEN'}
+              {selectedAction?<span className="text-purple-700">✅ {selectedAction.emoji} <b>{selectedAction.label}</b> — Spieler tippen</span>:'① AKTION WÄHLEN'}
             </div>
             <div className="grid grid-cols-3 gap-1.5 mb-1">
               {[ACTIONS.find(a=>a.type==='kill'),ACTIONS.find(a=>a.type==='block'),ACTIONS.find(a=>a.type==='ace')].map(a=>{
@@ -941,31 +965,22 @@ function VolleyballTracker(){
             <div className="grid grid-cols-3 gap-1.5">
               {[ACTIONS.find(a=>a.type==='reception_good'),ACTIONS.find(a=>a.type==='reception_bad'),ACTIONS.find(a=>a.type==='attack_attempt')].map(a=>{
                 const isSel=selectedAction?.type===a.type;
-                const isSoft=!!a.soft;
                 return<button key={a.type} onClick={()=>setSelectedAction(isSel?null:a)}
-                  className={`p-2 rounded-xl font-black text-xs transition-all active:scale-90 relative ${
-                    isSel
-                      ? `${a.color} text-white ring-4 ring-yellow-300 scale-105 shadow-lg`
-                      : isSoft
-                        ? `${a.color} text-white opacity-40 border-2 border-dashed border-white/70`
-                        : `${a.color} text-white opacity-80`
-                  }`}>
-                  {isSoft&&!isSel&&<span className="absolute -top-1.5 -right-1.5 bg-gray-600 text-white text-[7px] font-black px-1 py-0.5 rounded-full leading-none">~stat</span>}
-                  <div className="text-xl">{a.emoji}</div>
-                  <div className="text-[9px] mt-0.5 leading-tight">{a.label}</div>
+                  className={`p-2 rounded-xl font-black text-xs transition-all active:scale-90 relative ${isSel?`${a.color} text-white ring-4 ring-yellow-300 scale-105 shadow-lg`:a.soft?`${a.color} text-white opacity-40 border-2 border-dashed border-white/70`:`${a.color} text-white opacity-80`}`}>
+                  {a.soft&&!isSel&&<span className="absolute -top-1.5 -right-1.5 bg-gray-600 text-white text-[7px] font-black px-1 py-0.5 rounded-full leading-none">~stat</span>}
+                  <div className="text-xl">{a.emoji}</div><div className="text-[9px] mt-0.5 leading-tight">{a.label}</div>
                 </button>;
               })}
             </div>
           </div>
 
-          {/* ② Court */}
+          {/* Court */}
           <div className="bg-white/95 rounded-2xl p-3 shadow-xl mb-3">
             <div className="flex justify-between items-center mb-2">
               <div className="flex items-center gap-2 flex-wrap">
                 <div className="text-sm font-black text-indigo-700">
-                  {selectedAction?<span className="text-purple-700">② SPIELER TIPPEN {selectedAction.emoji}</span>:`🔄 Rot.${currentMatch.rotation} · ${isReceiving?'📥 Ann.':'🏐 Aufschl.'}`}
+                  {selectedAction?<span className="text-purple-700">② SPIELER TIPPEN {selectedAction.emoji}</span>:`🔄 Rot.${currentMatch.rotation} · ${isReceiving?'📥 Annahme':'🏐 Aufschlag'}`}
                 </div>
-                {/* FIX 5: Setter position indicator */}
                 {setterPos&&(
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${setterInBack?'bg-amber-100 text-amber-700':'bg-green-100 text-green-700'}`}>
                     {setterInBack?`🟡 Z hinten (P${setterPos})`:`✅ Z vorne (P${setterPos})`}
@@ -981,30 +996,11 @@ function VolleyballTracker(){
               <div className="absolute top-0 left-0 right-0 h-1 bg-gray-700"></div>
               <div className="absolute top-1 left-0 right-0 text-center text-[9px] font-bold text-gray-600">— NETZ —</div>
               <div className="absolute top-[47%] left-0 right-0 border-t-2 border-dashed border-orange-400"></div>
-              {/* ── Z Laufweg SVG ── */}
-            {(()=>{
-              const start=COURT_POSITIONS.find(c=>c.pos===setterRotation)||{x:50,y:50};
-              const end=localFormation[setterRotation]||start;
-              const dx=end.x-start.x, dy=end.y-start.y;
-              const dist=Math.sqrt(dx*dx+dy*dy);
-              if(dist<5)return null;
-              const ux=dx/dist, uy=dy/dist, px=-uy, py=ux;
-              const s=3;
-              const tip={x:end.x-ux*3.5,y:end.y-uy*3.5}; // stop before player bubble
-              const arrow=`${tip.x},${tip.y} ${tip.x-s*ux+s*0.55*px},${tip.y-s*uy+s*0.55*py} ${tip.x-s*ux-s*0.55*px},${tip.y-s*uy-s*0.55*py}`;
-              return(
-                <svg key="zpath" className="absolute inset-0 w-full h-full pointer-events-none" style={{zIndex:5}} viewBox="0 0 100 100" preserveAspectRatio="none">
-                  {/* ghost marker at start */}
-                  <circle cx={start.x} cy={start.y} r="5" fill="#fbbf24" fillOpacity="0.15" stroke="#f59e0b" strokeWidth="0.7" strokeDasharray="2,1.5"/>
-                  <text x={start.x} y={start.y+1.2} textAnchor="middle" dominantBaseline="middle" fontSize="3.2" fill="#f59e0b" opacity="0.7" fontWeight="bold">Z</text>
-                  {/* dashed run path */}
-                  <line x1={start.x} y1={start.y} x2={tip.x} y2={tip.y} stroke="#f59e0b" strokeWidth="1.1" strokeDasharray="3.5,2" opacity="0.85" strokeLinecap="round"/>
-                  {/* arrowhead */}
-                  <polygon points={arrow} fill="#f59e0b" opacity="0.9"/>
-                </svg>
-              );
-            })()}
-            {Object.entries(lineup).map(([pos,slotId])=>{
+
+              {/* Setter Laufweg – only during reception */}
+              <SetterLaufwegSVG startPos={matchLaufwegStart} endPos={matchLaufwegEnd} animated={true}/>
+
+              {Object.entries(lineup).map(([pos,slotId])=>{
                 const posNum=parseInt(pos);
                 const slot=matchSlots.find(s=>s.id===slotId);if(!slot)return null;
                 const p=POSITION_TYPES[slot.type];
@@ -1046,9 +1042,15 @@ function VolleyballTracker(){
                 </div>
               )}
             </div>
+            {/* Laufweg legend */}
+            {isReceiving&&matchLaufwegStart&&matchLaufwegEnd&&(()=>{const dx=matchLaufwegEnd.x-matchLaufwegStart.x,dy=matchLaufwegEnd.y-matchLaufwegStart.y;return Math.sqrt(dx*dx+dy*dy)>=4;})()&&(
+              <div className="mt-1.5 flex items-center gap-1.5 text-[10px] text-amber-700 font-bold bg-amber-50 rounded-lg px-2 py-1">
+                <span>—›</span><span>Laufweg Z (Pos {setterPosForFormation} → Zuspielposition)</span>
+              </div>
+            )}
           </div>
 
-          {/* Bench panel */}
+          {/* Bench */}
           {(()=>{
             const onField=new Set(Object.values(trueLineup));
             const benchSlots=matchSlots.filter(s=>rosterSnap[s.id]&&!onField.has(s.id));
@@ -1067,7 +1069,7 @@ function VolleyballTracker(){
                   <div className="px-3 pb-3 border-t border-gray-100">
                     {!subStep&&(
                       <>
-                        <div className="text-[10px] font-bold text-gray-400 mt-2 mb-1.5">① BANKSP. WÄHLEN (kommt rein)</div>
+                        <div className="text-[10px] font-bold text-gray-400 mt-2 mb-1.5">① BANKSP. WÄHLEN</div>
                         <div className="grid grid-cols-3 gap-1.5">
                           {benchSlots.map(slot=>{
                             const p=POSITION_TYPES[slot.type];
@@ -1092,7 +1094,7 @@ function VolleyballTracker(){
                         <>
                           <div className="flex items-center gap-2 mt-2 mb-1.5">
                             <div className={`bg-gradient-to-br ${incomingP.color} text-white px-2 py-1 rounded-lg text-xs font-black`}>{benchSlot.short} {rosterSnap[subStep.benchSlotId]?.name} ↓</div>
-                            <div className="text-[10px] font-bold text-gray-400 flex-1">② FELDSP. WÄHLEN (geht raus)</div>
+                            <div className="text-[10px] font-bold text-gray-400 flex-1">② FELDSP. WÄHLEN</div>
                             <button onClick={()=>setSubStep(null)} className="text-gray-400 text-xs">✕</button>
                           </div>
                           <div className="grid grid-cols-3 gap-1.5">
@@ -1130,7 +1132,7 @@ function VolleyballTracker(){
           {/* Event log */}
           {currentMatch.events.length>0&&(
             <div className="bg-white/95 rounded-2xl p-3 shadow-xl">
-              <div className="text-xs font-bold text-gray-600 mb-2">📜 LETZTE</div>
+              <div className="text-xs font-bold text-gray-600 mb-2">📜 LETZTE EVENTS</div>
               <div className="space-y-1 max-h-28 overflow-y-auto">
                 {currentMatch.events.slice(-5).reverse().map(e=>{
                   const label=EVENT_LABELS[e.type]||e.type;
@@ -1156,13 +1158,13 @@ function VolleyballTracker(){
               <div className="bg-black rounded-2xl shadow-2xl overflow-hidden border-2 border-white/30" style={{width:'180px'}}>
                 <div className="flex items-center justify-between px-2 py-1 bg-black/80">
                   <div className="flex items-center gap-1"><span className="w-2 h-2 bg-red-500 rounded-full animate-pulse inline-block"></span><span className="text-white text-[10px] font-black">LIVE</span></div>
-                  <button onClick={()=>setCameraPreviewOpen(false)} className="text-white/70 text-xs font-bold">▼ einklappen</button>
+                  <button onClick={()=>setCameraPreviewOpen(false)} className="text-white/70 text-xs font-bold">▼</button>
                 </div>
                 <video autoPlay playsInline muted className="w-full block" style={{height:'101px',objectFit:'cover'}} ref={el=>{if(el&&el.srcObject!==cameraStream)el.srcObject=cameraStream;}}/>
               </div>
             ):(
               <button onClick={()=>setCameraPreviewOpen(true)} className="flex items-center gap-1.5 bg-black/80 border-2 border-red-500 text-white px-3 py-1.5 rounded-full shadow-xl text-xs font-black animate-pulse">
-                <span className="w-2 h-2 bg-red-500 rounded-full inline-block"></span>REC · Vorschau
+                <span className="w-2 h-2 bg-red-500 rounded-full inline-block"></span>REC
               </button>
             )}
           </div>
@@ -1219,7 +1221,6 @@ function VolleyballTracker(){
                       <div className="bg-red-100 p-1 rounded text-center">❌ {s.error||0}</div>
                       <div className="bg-orange-100 p-1 rounded text-center">📉 {s.service_error||0}</div>
                       <div className="bg-pink-100 p-1 rounded text-center">🚫 {s.block_error||0}</div>
-                      <div className="bg-teal-100 p-1 rounded text-center">⚔️ {s.attack_attempt||0}</div>
                       <div className="bg-lime-100 p-1 rounded text-center">✅ {s.reception_good||0}</div>
                       <div className="bg-amber-100 p-1 rounded text-center">⚠️ {s.reception_bad||0}</div>
                     </div>
@@ -1271,46 +1272,6 @@ function VolleyballTracker(){
 }
 
 // ═══ FormationsEditor ═════════════════════════════════════════════════════════
-
-const RECEPTION_PRESETS={
-  '5-1-w':{
-    label:'5-1 W-Formation',emoji:'🔱',color:'from-blue-500 to-indigo-600',
-    desc:'Z→rechts-vorne · W mit 5 Empfängern',
-    formations:{
-      1:{1:{x:83,y:17},2:{x:65,y:53},3:{x:28,y:53},4:{x:15,y:72},5:{x:48,y:80},6:{x:78,y:70}},
-      6:{6:{x:83,y:17},5:{x:15,y:72},4:{x:28,y:53},3:{x:65,y:53},2:{x:78,y:70},1:{x:48,y:80}},
-      5:{5:{x:83,y:17},4:{x:28,y:53},3:{x:65,y:53},2:{x:78,y:70},1:{x:48,y:80},6:{x:15,y:72}},
-      4:{4:{x:83,y:17},3:{x:65,y:53},2:{x:78,y:70},1:{x:48,y:80},6:{x:15,y:72},5:{x:28,y:53}},
-      3:{3:{x:83,y:17},2:{x:65,y:53},1:{x:78,y:70},6:{x:48,y:80},5:{x:28,y:53},4:{x:15,y:72}},
-      2:{2:{x:83,y:17},1:{x:78,y:70},6:{x:48,y:80},5:{x:28,y:53},4:{x:15,y:72},3:{x:65,y:53}},
-    }
-  },
-  '5-1-u':{
-    label:'5-1 U-Formation',emoji:'🌙',color:'from-purple-500 to-pink-600',
-    desc:'Z→rechts-vorne · halbkreisförmiges U',
-    formations:{
-      1:{1:{x:83,y:17},2:{x:75,y:56},3:{x:52,y:50},4:{x:22,y:62},5:{x:12,y:76},6:{x:50,y:80}},
-      6:{6:{x:83,y:17},5:{x:12,y:76},4:{x:22,y:62},3:{x:52,y:50},2:{x:75,y:56},1:{x:50,y:80}},
-      5:{5:{x:83,y:17},4:{x:22,y:62},3:{x:52,y:50},2:{x:75,y:56},1:{x:50,y:80},6:{x:12,y:76}},
-      4:{4:{x:83,y:17},3:{x:52,y:50},2:{x:75,y:56},1:{x:50,y:80},6:{x:12,y:76},5:{x:22,y:62}},
-      3:{3:{x:83,y:17},2:{x:75,y:56},1:{x:50,y:80},6:{x:12,y:76},5:{x:22,y:62},4:{x:52,y:50}},
-      2:{2:{x:83,y:17},1:{x:50,y:80},6:{x:12,y:76},5:{x:22,y:62},4:{x:52,y:50},3:{x:75,y:56}},
-    }
-  },
-  '4-2':{
-    label:'4-2 Formation',emoji:'⚡',color:'from-green-500 to-teal-600',
-    desc:'Vorderer Z setzt · 4 flache Empfänger (1 Z-Slot)',
-    formations:{
-      1:{1:{x:83,y:17},2:{x:70,y:55},3:{x:50,y:50},4:{x:25,y:58},5:{x:15,y:78},6:{x:50,y:80}},
-      6:{6:{x:83,y:17},5:{x:15,y:78},4:{x:25,y:58},3:{x:50,y:50},2:{x:70,y:55},1:{x:50,y:80}},
-      5:{5:{x:83,y:17},4:{x:25,y:58},3:{x:50,y:50},2:{x:70,y:55},1:{x:50,y:80},6:{x:15,y:78}},
-      4:{4:{x:83,y:17},3:{x:50,y:50},2:{x:70,y:55},1:{x:50,y:80},6:{x:15,y:78},5:{x:25,y:58}},
-      3:{3:{x:83,y:17},2:{x:70,y:55},1:{x:50,y:80},6:{x:15,y:78},5:{x:25,y:58},4:{x:50,y:50}},
-      2:{2:{x:83,y:17},1:{x:50,y:80},6:{x:15,y:78},5:{x:25,y:58},4:{x:50,y:50},3:{x:70,y:55}},
-    }
-  },
-};
-
 function FormationsEditor({rotation:setterRotation,setRotation:setSetterRotation,startingLineup,roster,slots,receptionFormations,saveFormations,onBack}){
   const courtRef=useRef(null);
   const [localFormation,setLocalFormation]=useState(()=>receptionFormations[setterRotation]||getDefaultReception());
@@ -1345,11 +1306,14 @@ function FormationsEditor({rotation:setterRotation,setRotation:setSetterRotation
   const handlePointerMove=e=>{
     if(draggingPos===null||!courtRef.current)return;e.preventDefault();
     const rect=courtRef.current.getBoundingClientRect();
-    const cx=e.touches?e.touches[0].clientX:e.clientX;const cy=e.touches?e.touches[0].clientY:e.clientY;
-    const x=Math.max(5,Math.min(95,((cx-rect.left)/rect.width)*100));const y=Math.max(5,Math.min(95,((cy-rect.top)/rect.height)*100));
+    const cx=e.touches?e.touches[0].clientX:e.clientX;
+    const cy=e.touches?e.touches[0].clientY:e.clientY;
+    const x=Math.max(5,Math.min(95,((cx-rect.left)/rect.width)*100));
+    const y=Math.max(5,Math.min(95,((cy-rect.top)/rect.height)*100));
     setLocalFormation(prev=>({...prev,[draggingPos]:{x,y}}));setDirty(true);setActivePreset(null);
   };
   const handlePointerUp=()=>setDraggingPos(null);
+
   useEffect(()=>{
     if(draggingPos!==null){
       const move=e=>handlePointerMove(e);const up=()=>handlePointerUp();
@@ -1359,35 +1323,42 @@ function FormationsEditor({rotation:setterRotation,setRotation:setSetterRotation
     }
   },[draggingPos]);
 
+  // Setter laufweg for editor
+  const editorSetterStart=COURT_POSITIONS.find(c=>c.pos===setterRotation)||null;
+  const editorSetterEnd=localFormation[setterRotation]||null;
+
   return(
     <div className="min-h-screen bg-gradient-to-br from-cyan-600 via-blue-600 to-indigo-700 p-4">
       <div className="max-w-md mx-auto">
         <div className="flex items-center gap-3 mb-4 pt-2">
           <button onClick={onBack} className="bg-white/20 p-2 rounded-full"><ArrowLeft/></button>
-          <h1 className="text-2xl font-black text-white flex-1">🎯 Annahme-Formation</h1>
+          <div>
+            <h1 className="text-2xl font-black text-white">🎯 Annahme-Formation</h1>
+            <p className="text-white/70 text-xs">5-1 Läufersystem · Z läuft zu Pos 2</p>
+          </div>
         </div>
 
-        {/* ── Preset picker ── */}
+        {/* ── Preset picker (5-1 only) ── */}
         <div className="bg-white/95 rounded-2xl p-3 shadow-xl mb-3">
-          <div className="text-xs font-bold text-gray-600 mb-2">📐 FORMATIONS-VORLAGE</div>
-          <div className="grid grid-cols-3 gap-1.5 mb-2">
+          <div className="text-xs font-bold text-gray-600 mb-2">📐 SYSTEM WÄHLEN</div>
+          <div className="grid grid-cols-2 gap-2 mb-2">
             {Object.entries(RECEPTION_PRESETS).map(([key,p])=>(
               <button key={key} onClick={()=>applyPreset(key,false)}
-                className={`p-2.5 rounded-xl active:scale-90 text-white text-left bg-gradient-to-br ${p.color} transition-all ${activePreset===key?'ring-2 ring-yellow-300 scale-105 shadow-lg':''}`}>
-                <div className="text-xl leading-none mb-1">{p.emoji}</div>
-                <div className="font-black text-[11px] leading-tight">{p.label}</div>
+                className={`p-3 rounded-xl active:scale-90 text-white text-left bg-gradient-to-br ${p.color} transition-all ${activePreset===key?'ring-2 ring-yellow-300 scale-105 shadow-lg':''}`}>
+                <div className="text-2xl leading-none mb-1">{p.emoji}</div>
+                <div className="font-black text-xs leading-tight">{p.label}</div>
                 <div className="text-[9px] opacity-80 font-normal mt-0.5 leading-tight">{p.desc}</div>
               </button>
             ))}
           </div>
           <button onClick={()=>{setLocalFormation(getDefaultReception());setDirty(true);setActivePreset(null);}}
-            className={`w-full p-2 rounded-xl active:scale-95 transition-all text-left flex items-center gap-2 mb-2 ${activePreset===null?'bg-gray-700 text-white ring-2 ring-yellow-300':'bg-gray-200 text-gray-700'}`}>
+            className={`w-full p-2.5 rounded-xl active:scale-95 transition-all text-left flex items-center gap-2 ${activePreset===null?'bg-gray-700 text-white ring-2 ring-yellow-300':'bg-gray-100 text-gray-700'}`}>
             <span className="text-lg">✏️</span>
-            <div><div className="font-black text-[11px]">Frei / Custom</div><div className="text-[9px] opacity-70 font-normal">Feld leeren und selbst einzeichnen</div></div>
+            <div><div className="font-black text-xs">Custom / Frei</div><div className="text-[9px] opacity-70 font-normal">Feld zurücksetzen, selbst einzeichnen</div></div>
           </button>
           {activePreset&&(
             <button onClick={()=>applyPreset(activePreset,true)}
-              className="w-full bg-gradient-to-r from-orange-500 to-amber-500 text-white p-2 rounded-xl font-bold text-xs active:scale-95 flex items-center justify-center gap-1.5">
+              className="mt-2 w-full bg-gradient-to-r from-orange-500 to-amber-500 text-white p-2 rounded-xl font-bold text-xs active:scale-95 flex items-center justify-center gap-1.5">
               🔄 „{RECEPTION_PRESETS[activePreset].label}" → alle 6 Rotationen übernehmen
             </button>
           )}
@@ -1395,12 +1366,14 @@ function FormationsEditor({rotation:setterRotation,setRotation:setSetterRotation
 
         {/* ── Rotation tabs ── */}
         <div className="bg-white/95 rounded-2xl p-3 shadow-xl mb-3">
-          <div className="text-xs font-bold text-gray-600 mb-2">ZUSPIELER (Z) AUF POSITION</div>
+          <div className="text-xs font-bold text-gray-600 mb-1">Z (ZUSPIELER) STARTET AUF POSITION:</div>
+          <div className="text-[10px] text-gray-400 mb-2">Gestrichelte Linie = Laufweg des Zuspielers zur Zuspielzone</div>
           <div className="grid grid-cols-6 gap-1">
             {[1,6,5,4,3,2].map((n,idx)=>{
               const saved=receptionFormations[n];
               return(
-                <button key={n} onClick={()=>setSetterRotation(n)} className={`p-2 rounded-xl font-black text-sm transition relative ${setterRotation===n?'bg-gradient-to-br from-yellow-400 to-orange-500 text-white shadow-lg scale-105':'bg-gray-100 text-gray-700'}`}>
+                <button key={n} onClick={()=>setSetterRotation(n)}
+                  className={`p-2 rounded-xl font-black text-sm transition relative ${setterRotation===n?'bg-gradient-to-br from-yellow-400 to-orange-500 text-white shadow-lg scale-105':'bg-gray-100 text-gray-700'}`}>
                   <div className="text-[9px] opacity-70 font-normal">{idx+1}.</div>{n}
                   {saved&&<div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>}
                 </button>
@@ -1409,43 +1382,36 @@ function FormationsEditor({rotation:setterRotation,setRotation:setSetterRotation
           </div>
         </div>
 
-        {/* ── Court ── */}
+        {/* ── Court with drag ── */}
         <div className="bg-white/95 rounded-2xl p-3 shadow-xl mb-3">
-          <div className="text-xs font-bold text-cyan-800 mb-2 text-center">✋ Ziehe die Spieler für Z auf Pos {setterRotation}</div>
-          <div ref={courtRef} className="relative bg-gradient-to-b from-orange-100 via-yellow-50 to-orange-100 rounded-xl border-2 border-orange-400 overflow-hidden touch-none" style={{height:'400px'}}>
+          <div className="text-xs font-bold text-cyan-800 mb-1 text-center">✋ Spieler ziehen · Laufweg Z wird automatisch angezeigt</div>
+          <div ref={courtRef} className="relative bg-gradient-to-b from-orange-100 via-yellow-50 to-orange-100 rounded-xl border-2 border-orange-400 overflow-hidden touch-none" style={{height:'420px'}}>
             <div className="absolute top-0 left-0 right-0 h-1 bg-gray-700"></div>
             <div className="absolute top-1 left-0 right-0 text-center text-[9px] font-bold text-gray-600">— NETZ —</div>
             <div className="absolute top-[47%] left-0 right-0 border-t-2 border-dashed border-orange-400"></div>
-            {/* ── Z Laufweg ── */}
-            {(()=>{
-              const cp=COURT_POSITIONS.find(c=>c.pos===setterRotation)||{x:50,y:50};
-              const fp=localFormation[setterRotation]||cp;
-              const dx=fp.x-cp.x, dy=fp.y-cp.y;
-              const dist=Math.sqrt(dx*dx+dy*dy);
-              if(dist<5)return null;
-              const ux=dx/dist,uy=dy/dist,px=-uy,py=ux,s=3;
-              const tx=fp.x-ux*4,ty=fp.y-uy*4;
-              const pts=`${tx},${ty} ${tx-s*ux+s*0.6*px},${ty-s*uy+s*0.6*py} ${tx-s*ux-s*0.6*px},${ty-s*uy-s*0.6*py}`;
-              return(
-                <svg key="run" className="absolute inset-0 pointer-events-none" style={{width:'100%',height:'100%',zIndex:6}} viewBox="0 0 100 100" preserveAspectRatio="none">
-                  <circle cx={cp.x} cy={cp.y} r="5" fill="#fbbf2433" stroke="#f59e0b" strokeWidth="0.8" strokeDasharray="2,1.5"/>
-                  <text x={cp.x} y={cp.y+0.5} textAnchor="middle" dominantBaseline="middle" style={{fontSize:'3px',fontWeight:'bold',fill:'#f59e0b',opacity:0.75}}>Z</text>
-                  <line x1={cp.x} y1={cp.y} x2={tx} y2={ty} stroke="#f59e0b" strokeWidth="1.2" strokeDasharray="3.5,2.5" strokeLinecap="round" opacity="0.85"/>
-                  <polygon points={pts} fill="#f59e0b" opacity="0.9"/>
-                </svg>
-              );
-            })()}
+
+            {/* Setter laufweg */}
+            <SetterLaufwegSVG startPos={editorSetterStart} endPos={editorSetterEnd} animated={false}/>
+
+            {/* Zuspielzone marker */}
+            <div className="absolute pointer-events-none z-4" style={{left:`${SETTER_TARGET.x}%`,top:`${SETTER_TARGET.y}%`,transform:'translate(-50%,-50%)'}}>
+              <div className="w-8 h-8 rounded-full border-2 border-dashed border-yellow-500/60 flex items-center justify-center">
+                <span className="text-[8px] font-black text-yellow-700">Z♟</span>
+              </div>
+            </div>
+
             {Object.entries(lineup).map(([pos,slotId])=>{
               const posNum=parseInt(pos);const slot=slots.find(s=>s.id===slotId);if(!slot)return null;
               const p=POSITION_TYPES[slot.type];const player=roster[slotId];
               const coords=localFormation[posNum]||{x:50,y:50};const isDragging=draggingPos===posNum;
+              const isSetter=slot.type==='S';
               return(
                 <div key={pos} onMouseDown={e=>handlePointerDown(posNum,e)} onTouchStart={e=>handlePointerDown(posNum,e)}
                   className="absolute transform -translate-x-1/2 -translate-y-1/2 z-10 cursor-grab active:cursor-grabbing select-none"
                   style={{left:`${coords.x}%`,top:`${coords.y}%`,transition:isDragging?'none':'all 0.3s ease',touchAction:'none'}}>
                   <div className={`relative ${isDragging?'scale-110':''}`}>
                     <div className={`w-[60px] h-[60px] bg-gradient-to-br ${p.color} rounded-full flex flex-col items-center justify-center text-white shadow-xl ${isDragging?'ring-4 ring-white':''}`}>
-                      {slot.type==='S'&&<div className="absolute -top-1 -right-1"><Star size={10} fill="#fbbf24"/></div>}
+                      {isSetter&&<div className="absolute -top-1 -right-1"><Star size={10} fill="#fbbf24"/></div>}
                       <div className="text-[11px] font-black">{slot.short}</div>
                     </div>
                     {player&&<div className="text-[10px] text-center font-black text-gray-900 mt-1 max-w-[70px] truncate bg-white/90 rounded px-1 pointer-events-none">{player.name}</div>}
@@ -1453,6 +1419,13 @@ function FormationsEditor({rotation:setterRotation,setRotation:setSetterRotation
                 </div>
               );
             })}
+          </div>
+
+          {/* Legend */}
+          <div className="mt-2 flex items-center gap-3 text-[10px] text-gray-600 bg-gray-50 rounded-lg p-2">
+            <div className="flex items-center gap-1"><span className="inline-block w-6 border-t-2 border-dashed border-yellow-500"></span><span>Laufweg Z</span></div>
+            <div className="flex items-center gap-1"><div className="w-4 h-4 rounded-full border-2 border-dashed border-yellow-500/60 flex items-center justify-center"><span className="text-[7px]">Z♟</span></div><span>Zuspielzone</span></div>
+            <div className="flex items-center gap-1"><div className="w-4 h-4 rounded-full border border-yellow-500/40 bg-yellow-100/40"></div><span>Startpos. Z</span></div>
           </div>
         </div>
 
