@@ -164,18 +164,33 @@ function MatchVideoPlayer({matchId,events,matchSlots,rosterSnap,matchSetScores,o
     setSharing(true);
     try{
       const rec=await videoDB.get(matchId);
-      if(!rec||!rec.blob){alert('Video nicht gefunden');return;}
+      if(!rec||!rec.blob){alert('Video nicht gefunden');setSharing(false);return;}
       const ext=rec.blob.type.includes('mp4')?'mp4':'webm';
-      const file=new File([rec.blob],`match-${matchId}.${ext}`,{type:rec.blob.type});
-      if(navigator.canShare&&navigator.canShare({files:[file]})){
-        await navigator.share({files:[file],title:'Match Video'});
-      }else{
-        // Fallback: download
+      const filename=`match-${matchId}.${ext}`;
+      // Try file share first, fall back to URL share, then download
+      const tryDownload=()=>{
         const url=URL.createObjectURL(rec.blob);
-        const a=document.createElement('a');a.href=url;a.download=file.name;
-        document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
-      }
-    }catch(e){if(e.name!=='AbortError')alert('Teilen fehlgeschlagen: '+e.message);}
+        const a=document.createElement('a');a.href=url;a.download=filename;
+        document.body.appendChild(a);a.click();document.body.removeChild(a);
+        setTimeout(()=>URL.revokeObjectURL(url),3000);
+      };
+      if(navigator.share){
+        try{
+          const file=new File([rec.blob],filename,{type:rec.blob.type});
+          await navigator.share({files:[file],title:'Match Video'});
+        }catch(e){
+          if(e.name==='AbortError'){setSharing(false);return;}
+          // Permission denied or file share not supported → try URL share or download
+          try{
+            const url=URL.createObjectURL(rec.blob);
+            await navigator.share({url,title:'Match Video'});
+            setTimeout(()=>URL.revokeObjectURL(url),3000);
+          }catch(e2){
+            if(e2.name!=='AbortError')tryDownload();
+          }
+        }
+      }else{tryDownload();}
+    }catch(e){alert('Fehler: '+e.message);}
     setSharing(false);
   };
   const openScoreEditor=()=>{setDraftScores(matchSetScores&&matchSetScores.length>0?[...matchSetScores]:[{teamScore:0,opponentScore:0}]);setShowScoreEditor(true);};
