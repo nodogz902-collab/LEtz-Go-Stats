@@ -120,6 +120,34 @@ function getHighlightedPositions(highlight,lineup){
   }
   return null;
 }
+// Returns which slotIds are "suggested" (highlighted) vs "allowed but dimmed"
+function getSlotSuggestions(action, lineup){
+  if(!action||!action.forTeam)return{suggested:null,allowed:null};
+  const suggested=new Set();
+  const allowed=new Set();
+  const allSlotIds=Object.values(lineup);
+  allSlotIds.forEach(sid=>{
+    const type=sid.replace(/\d+$/,'');
+    // Determine suggested
+    if(action.highlight==='none'){suggested.add(sid);}
+    else if(action.highlight==='server'){
+      const pos=Object.entries(lineup).find(([_,s])=>s===sid)?.[0];
+      if(parseInt(pos)===1)suggested.add(sid);
+    } else if(action.highlight==='front'){
+      const pos=Object.entries(lineup).find(([_,s])=>s===sid)?.[0];
+      if(FRONT_POSITIONS.includes(parseInt(pos)))suggested.add(sid);
+    } else if(action.highlight==='back'){
+      const pos=Object.entries(lineup).find(([_,s])=>s===sid)?.[0];
+      if(BACK_POSITIONS.includes(parseInt(pos))&&type!=='S'&&type!=='OPP')suggested.add(sid);
+    }
+    // All slots always allowed (override with 2nd tap)
+    allowed.add(sid);
+  });
+  // Special overrides: reception also allowed for S and OPP
+  // kill also allowed for back-row / defensive players
+  // → all slots are always in allowed, suggested is the highlighted subset
+  return{suggested,allowed};
+}
 function fmtTime(s){const m=Math.floor(s/60);return`${m}:${Math.floor(s%60).toString().padStart(2,'0')}`;}
 // ── MatchVideoPlayer ──────────────────────────────────────────────────────────
 function MatchVideoPlayer({matchId,events,matchSlots,rosterSnap,matchSetScores,onEventsChange,onSetScoresChange,editMode,onToggleEdit}){
@@ -131,6 +159,7 @@ function MatchVideoPlayer({matchId,events,matchSlots,rosterSnap,matchSetScores,o
   const [pendingFlash,setPendingFlash]=useState(null);
   const [showScoreEditor,setShowScoreEditor]=useState(false);
   const [draftScores,setDraftScores]=useState([]);
+  const [pendingOverride,setPendingOverride]=useState(null);
   const videoEl=useRef(null);
   useEffect(()=>{
     let mounted=true;let url=null;
@@ -181,6 +210,14 @@ function MatchVideoPlayer({matchId,events,matchSlots,rosterSnap,matchSetScores,o
   const recordOppAtTime=(type)=>commitAtTime({type,slotId:null,playerName:null,forTeam:false});
   const tapPlayerOnVideo=(slotId)=>{
     if(!selectedAction)return;
+    // Build a fake lineup from matchSlots (no rotation context in retro mode)
+    const fakeLineup={};matchSlots.forEach((s,i)=>{fakeLineup[i+1]=s.id;});
+    const {suggested}=getSlotSuggestions(selectedAction,fakeLineup);
+    const isSuggested=!suggested||suggested.has(slotId);
+    if(!isSuggested){
+      if(pendingOverride===slotId){setPendingOverride(null);}
+      else{setPendingOverride(slotId);return;}
+    } else {setPendingOverride(null);}
     const slot=matchSlots.find(s=>s.id===slotId);
     commitAtTime({type:selectedAction.type,slotId,playerName:rosterSnap[slotId]?.name,slotShort:slot?.short,forTeam:true});
   };
@@ -311,13 +348,21 @@ function MatchVideoPlayer({matchId,events,matchSlots,rosterSnap,matchSetScores,o
             <div className="grid grid-cols-3 gap-1">
               {matchSlots.filter(s=>rosterSnap[s.id]).map(slot=>{
                 const p=POSITION_TYPES[slot.type];
-                const highlighted=getHighlightForSlot(slot.id);
+                const fakeLineup={};matchSlots.forEach((s,i)=>{fakeLineup[i+1]=s.id;});
+                const {suggested}=getSlotSuggestions(selectedAction,fakeLineup);
+                const isSuggested=!suggested||suggested.has(slot.id);
+                const isOverride=pendingOverride===slot.id;
                 const isFlashing=pendingFlash?.slotId===slot.id;
                 return(
                   <button key={slot.id} onClick={()=>tapPlayerOnVideo(slot.id)}
-                    className={`p-1.5 rounded-xl font-bold text-xs active:scale-90 transition-all ${highlighted?`bg-gradient-to-br ${p.color} text-white ring-2 ring-yellow-300 shadow-lg`:'bg-gray-100 text-gray-400 opacity-40'} ${isFlashing?'scale-110 ring-4 ring-white':''}`}>
+                    className={`p-1.5 rounded-xl font-bold text-xs active:scale-90 transition-all relative
+                      ${isSuggested?`bg-gradient-to-br ${p.color} text-white ring-2 ring-yellow-300 shadow-lg`
+                        :isOverride?`bg-gradient-to-br ${p.color} text-white ring-2 ring-orange-400 shadow-lg`
+                        :'bg-gray-100 text-gray-400 opacity-40'}
+                      ${isFlashing?'scale-110 ring-4 ring-white':''}`}>
                     <div className="font-black">{slot.short}</div>
                     <div className="text-[9px] truncate">{rosterSnap[slot.id]?.name}</div>
+                    {isOverride&&<div className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-orange-500 text-white text-[7px] font-black px-1 rounded-full whitespace-nowrap">nochmal</div>}
                   </button>
                 );
               })}
@@ -373,8 +418,11 @@ function VolleyballTracker(){
   const [importMessage,setImportMessage]=useState('');
   const [matchFormat,setMatchFormat]=useState('bo3');
   const [selectedAction,setSelectedAction]=useState(null);
+  const [pendingOverride,setPendingOverride]=useState(null); // slotId awaiting 2nd-tap confirm
   const [pendingFlash,setPendingFlash]=useState(null);
   const [editingVideo,setEditingVideo]=useState(false);
+  const [showBench,setShowBench]=useState(false);
+  const [subStep,setSubStep]=useState(null); // {slotId: fieldPlayer, type:'sub'|'libero'}
   const [recordingEnabled,setRecordingEnabled]=useState(false);
   const [isRecording,setIsRecording]=useState(false);
   const [recordingStart,setRecordingStart]=useState(null);
@@ -485,12 +533,31 @@ function VolleyballTracker(){
       format:matchFormat,maxSets,setsToWin,
       hasVideo:recStarted,videoStartTime:recStarted?Date.now():null,
     };
-    setCurrentMatch(match);setServingTeam('us');setShowNewMatch(false);setOpponentName('');setSelectedAction(null);setView('match');
+    setCurrentMatch(match);setServingTeam('us');setShowNewMatch(false);setOpponentName('');setSelectedAction(null);
+    if(recStarted)setCameraPreviewOpen(true);
+    setView('match');
   };
   const updateMatch=fn=>setCurrentMatch(prev=>fn(prev));
-  const recordEventForPlayer=slotId=>{
+  const recordEventForPlayer=(slotId,force=false)=>{
     if(!selectedAction||!currentMatch)return;
     const action=selectedAction;
+    const lineup=getEffectiveLineup(currentMatch.lineupSnapshot,matchSlots,currentMatch.rotation);
+    const trueLineup=getLineupForRotation(currentMatch.lineupSnapshot,currentMatch.rotation);
+    const liberoSlot=matchSlots.find(s=>s.type==='L');
+    const autoLiberoPos=liberoSlot?Object.entries(lineup).find(([pos,sid])=>sid===liberoSlot.id&&Object.entries(trueLineup).find(([p,s])=>p===pos&&s!==liberoSlot.id))?.[0]:null;
+    const {suggested}=getSlotSuggestions(action,lineup);
+    // If not suggested, require a second tap (override)
+    if(!force&&suggested&&!suggested.has(slotId)){
+      if(pendingOverride===slotId){
+        // second tap confirmed — fall through
+        setPendingOverride(null);
+      } else {
+        setPendingOverride(slotId);
+        return;
+      }
+    } else {
+      setPendingOverride(null);
+    }
     const videoTime=isRecording&&recordingStart?Math.floor((Date.now()-recordingStart)/1000):null;
     const slot=generateSlots(currentMatch.configSnapshot).find(s=>s.id===slotId);
     const event={
@@ -520,8 +587,39 @@ function VolleyballTracker(){
     updateMatch(m=>({...m,events:[...m.events,event],teamScore:m.teamScore+td,opponentScore:m.opponentScore+od}));
     setServingTeam(newServing);setSelectedAction(null);
   };
-  const undoLastEvent=()=>{
-    if(!currentMatch||currentMatch.events.length===0)return;
+  // Auto-libero: compute the effective display lineup with libero swapped in for back-row MB
+  const getEffectiveLineup=(lineupSnapshot, matchSlots, rotation)=>{
+    const rotated=getLineupForRotation(lineupSnapshot, rotation);
+    const liberoSlot=matchSlots.find(s=>s.type==='L');
+    if(!liberoSlot)return rotated;
+    // Find MB slots
+    const mbSlots=matchSlots.filter(s=>s.type==='MB');
+    if(!mbSlots.length)return rotated;
+    // Find which MB is in back row
+    const backMBEntry=Object.entries(rotated).find(([pos,slotId])=>{
+      const posNum=parseInt(pos);
+      return BACK_POSITIONS.includes(posNum)&&mbSlots.some(mb=>mb.id===slotId);
+    });
+    if(!backMBEntry)return rotated;
+    const [backPos, mbSlotId]=backMBEntry;
+    // Swap libero in
+    return{...rotated,[backPos]:liberoSlot.id};
+  };
+  // Returns the "true" lineup (for rotation tracking, serving, stats) - no libero auto-swap
+  // Effective lineup (for display + event recording) uses auto-libero
+
+  // Substitution: swap fieldSlotId with benchSlotId in active lineup
+  const doSubstitution=(fieldSlotId, benchSlotId)=>{
+    updateMatch(m=>{
+      const newLineup={...m.lineupSnapshot};
+      const pos=Object.entries(newLineup).find(([_,s])=>s===fieldSlotId)?.[0];
+      if(pos)newLineup[pos]=benchSlotId;
+      const subs=[...(m.substitutions||[]),{out:fieldSlotId,in:benchSlotId,set:m.set,rotation:m.rotation}];
+      return{...m,lineupSnapshot:newLineup,substitutions:subs};
+    });
+    setSubStep(null);setShowBench(false);
+  };
+  const undoLastEvent=()=>{    if(!currentMatch||currentMatch.events.length===0)return;
     const last=currentMatch.events[currentMatch.events.length-1];
     let td=0,od=0,undoRotate=false;
     if(['kill','ace','block','opp_error'].includes(last.type)){td=-1;if(last.serving==='opp')undoRotate=true;}
@@ -791,11 +889,16 @@ function VolleyballTracker(){
       const layout={};COURT_POSITIONS.forEach(c=>{layout[c.pos]={x:c.x,y:c.y};});
       positionLayout=layout;
     }
-    const highlightedPositions=selectedAction?getHighlightedPositions(selectedAction.highlight,lineup):null;
+    const {suggested: suggestedSlots}=getSlotSuggestions(selectedAction, lineup);
     const isPosSelectable=(pos)=>{
       if(!selectedAction||!selectedAction.forTeam)return false;
-      if(!highlightedPositions)return true;
-      return highlightedPositions.has(pos);
+      return true; // all positions tappable; dimmed ones need 2nd tap
+    };
+    const isPosSuggested=(pos)=>{
+      if(!selectedAction||!selectedAction.forTeam)return false;
+      if(!suggestedSlots)return true;
+      const slotId=lineup[pos];
+      return suggestedSlots.has(slotId);
     };
     const teamActions=ACTIONS.filter(a=>a.forTeam);
     const oppActions=ACTIONS.filter(a=>!a.forTeam);
@@ -926,24 +1029,30 @@ function VolleyballTracker(){
                 const isSetter=slot.type==='S';
                 const isServing=posNum===1&&servingTeam==='us';
                 const coords=positionLayout[posNum]||{x:50,y:50};
+                const isAutoLibero=autoLiberoPos===pos;
                 const selectable=isPosSelectable(posNum);
-                const dimmed=selectedAction&&!selectable;
+                const suggested=isPosSuggested(posNum);
+                const dimmed=selectedAction&&selectable&&!suggested;
+                const isOverridePending=pendingOverride===slotId;
                 const isFlashing=pendingFlash?.slotId===slotId;
                 let ringClass='';
-                if(selectable)ringClass='ring-4 ring-yellow-300 highlight-pulse';
+                if(suggested&&selectable)ringClass='ring-4 ring-yellow-300 highlight-pulse';
+                if(isOverridePending)ringClass='ring-4 ring-orange-400 highlight-pulse';
                 if(isSetter&&!selectedAction)ringClass='ring-2 ring-yellow-400';
                 if(isServing&&!selectedAction)ringClass='ring-4 ring-green-400';
                 if(isFlashing)ringClass='ring-4 ring-white';
                 return(
                   <div key={pos} onClick={()=>{if(selectable)recordEventForPlayer(slotId);}}
-                    className={`absolute transform -translate-x-1/2 -translate-y-1/2 z-10 transition-all duration-300 ${selectable?'active:scale-90 cursor-pointer':''} ${dimmed?'player-dim':''}`}
+                    className={`absolute transform -translate-x-1/2 -translate-y-1/2 z-10 transition-all duration-300 ${selectable?'active:scale-90 cursor-pointer':''} ${dimmed&&!isOverridePending?'player-dim':''}`}
                     style={{left:`${coords.x}%`,top:`${coords.y}%`}}>
                     <div className="relative">
-                      <div className={`w-[55px] h-[55px] bg-gradient-to-br ${p.color} rounded-full flex flex-col items-center justify-center text-white shadow-xl ${ringClass} ${selectable?'scale-110':''} transition-all duration-200`}>
+                      <div className={`w-[55px] h-[55px] bg-gradient-to-br ${p.color} rounded-full flex flex-col items-center justify-center text-white shadow-xl ${ringClass} ${suggested&&selectable?'scale-110':''} transition-all duration-200`}>
                         {isSetter&&<div className="absolute -top-1 -right-1"><Star size={10} fill="#fbbf24"/></div>}
+                        {isAutoLibero&&<div className="absolute -top-1 -right-1 w-4 h-4 bg-white border-2 border-gray-600 rounded-full flex items-center justify-center text-[8px] font-black text-gray-700">L</div>}
                         <div className="text-[11px] font-black">{slot.short}</div>
                         {isFlashing&&<div className="absolute inset-0 bg-white/50 rounded-full animate-ping"></div>}
                       </div>
+                      {isOverridePending&&<div className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-orange-500 text-white text-[8px] font-black px-1 rounded-full whitespace-nowrap">nochmal tippen</div>}
                       {player&&<div className="text-[10px] text-center font-black text-gray-900 mt-1 max-w-[65px] truncate bg-white/80 rounded px-1">{player.name}</div>}
                       <div className="absolute -top-1.5 -left-1.5 w-4 h-4 bg-white border border-orange-400 text-orange-600 rounded-full flex items-center justify-center text-[9px] font-black">{posNum}</div>
                     </div>
@@ -957,6 +1066,86 @@ function VolleyballTracker(){
               )}
             </div>
           </div>
+          {/* Bench panel */}
+          {(()=>{
+            const onField=new Set(Object.values(trueLineup));
+            const benchSlots=matchSlots.filter(s=>rosterSnap[s.id]&&!onField.has(s.id)&&s.type!=='L'&&s.type!=='DS');
+            if(benchSlots.length===0)return null;
+            return(
+              <div className="bg-white/95 rounded-2xl shadow-xl mb-3 overflow-hidden">
+                <button onClick={()=>{setShowBench(v=>!v);setSubStep(null);}}
+                  className="w-full flex items-center justify-between px-4 py-3 active:bg-gray-50">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">🪑</span>
+                    <span className="font-black text-gray-700 text-sm">Bank ({benchSlots.length})</span>
+                    {subStep&&<span className="bg-yellow-400 text-yellow-900 text-[10px] font-black px-2 py-0.5 rounded-full">Feldsp. wählen</span>}
+                  </div>
+                  <span className="text-gray-400 text-xs">{showBench?'▲':'▼'}</span>
+                </button>
+                {showBench&&(
+                  <div className="px-3 pb-3 border-t border-gray-100">
+                    {/* Step 1: no subStep yet → show bench players, tap to select incoming */}
+                    {!subStep&&(
+                      <>
+                        <div className="text-[10px] font-bold text-gray-400 mt-2 mb-1.5">① BANKSP. WÄHLEN (kommt rein)</div>
+                        <div className="grid grid-cols-3 gap-1.5">
+                          {benchSlots.map(slot=>{
+                            const p=POSITION_TYPES[slot.type];
+                            const isLibero=slot.type==='L'||slot.type==='DS';
+                            return(
+                              <button key={slot.id} onClick={()=>setSubStep({benchSlotId:slot.id,isLibero})}
+                                className={`p-2 rounded-xl font-bold text-xs active:scale-90 bg-gradient-to-br ${p.color} text-white`}>
+                                <div className="font-black text-sm">{slot.short}</div>
+                                <div className="text-[9px] truncate">{rosterSnap[slot.id]?.name}</div>
+                                {isLibero&&<div className="text-[8px] bg-white/30 rounded px-1 mt-0.5">Libero</div>}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </>
+                    )}
+                    {/* Step 2: subStep set → show field players, tap to select outgoing */}
+                    {subStep&&(()=>{
+                      const benchSlot=matchSlots.find(s=>s.id===subStep.benchSlotId);
+                      const incomingP=POSITION_TYPES[benchSlot.type];
+                      const fieldCandidates=Object.entries(lineup).map(([pos,slotId])=>{
+                        const slot=matchSlots.find(s=>s.id===slotId);
+                        if(!slot)return null;
+                        // Libero can only replace back-row non-libero players
+                        if(subStep.isLibero&&FRONT_POSITIONS.includes(parseInt(pos)))return null;
+                        if(subStep.isLibero&&(slot.type==='L'||slot.type==='DS'))return null;
+                        return{pos:parseInt(pos),slot,slotId};
+                      }).filter(Boolean);
+                      return(
+                        <>
+                          <div className="flex items-center gap-2 mt-2 mb-1.5">
+                            <div className={`bg-gradient-to-br ${incomingP.color} text-white px-2 py-1 rounded-lg text-xs font-black`}>
+                              {benchSlot.short} {rosterSnap[subStep.benchSlotId]?.name} ↓
+                            </div>
+                            <div className="text-[10px] font-bold text-gray-400 flex-1">② FELDSP. WÄHLEN (geht raus)</div>
+                            <button onClick={()=>setSubStep(null)} className="text-gray-400 text-xs">✕</button>
+                          </div>
+                          <div className="grid grid-cols-3 gap-1.5">
+                            {fieldCandidates.map(({pos,slot,slotId})=>{
+                              const p=POSITION_TYPES[slot.type];
+                              return(
+                                <button key={slotId} onClick={()=>doSubstitution(slotId,subStep.benchSlotId)}
+                                  className={`p-2 rounded-xl font-bold text-xs active:scale-90 bg-gradient-to-br ${p.color} text-white ring-2 ring-yellow-300`}>
+                                  <div className="text-[9px] text-white/70">Pos {pos}</div>
+                                  <div className="font-black text-sm">{slot.short}</div>
+                                  <div className="text-[9px] truncate">{rosterSnap[slotId]?.name}</div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
           {/* Controls */}
           <div className="grid grid-cols-2 gap-2 mb-3">
             <button onClick={undoLastEvent} disabled={currentMatch.events.length===0} className="bg-gray-700 text-white p-3 rounded-2xl font-bold disabled:opacity-40">↶ Rückgängig</button>
@@ -988,16 +1177,39 @@ function VolleyballTracker(){
             </div>
           )}
         </div>
-        {cameraPreviewOpen&&cameraStream&&(
+        {/* Collapsible camera preview — shown when recording is active */}
+        {isRecording&&cameraStream&&(
+          <div className={`fixed z-40 transition-all duration-300 ${cameraPreviewOpen?'bottom-4 right-4':'bottom-4 right-4'}`}>
+            {cameraPreviewOpen?(
+              <div className="bg-black rounded-2xl shadow-2xl overflow-hidden border-2 border-white/30" style={{width:'180px'}}>
+                <div className="flex items-center justify-between px-2 py-1 bg-black/80">
+                  <div className="flex items-center gap-1">
+                    <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse inline-block"></span>
+                    <span className="text-white text-[10px] font-black">LIVE</span>
+                  </div>
+                  <button onClick={()=>setCameraPreviewOpen(false)} className="text-white/70 text-xs font-bold hover:text-white">▼ einklappen</button>
+                </div>
+                <video autoPlay playsInline muted className="w-full block" style={{height:'101px',objectFit:'cover'}}
+                  ref={el=>{if(el&&el.srcObject!==cameraStream)el.srcObject=cameraStream;}}/>
+              </div>
+            ):(
+              <button onClick={()=>setCameraPreviewOpen(true)}
+                className="flex items-center gap-1.5 bg-black/80 border-2 border-red-500 text-white px-3 py-1.5 rounded-full shadow-xl text-xs font-black animate-pulse">
+                <span className="w-2 h-2 bg-red-500 rounded-full inline-block"></span>
+                REC · Vorschau
+              </button>
+            )}
+          </div>
+        )}
+        {/* Full-screen camera preview (legacy, keep for compat) */}
+        {cameraPreviewOpen&&cameraStream&&!isRecording&&(
           <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4" onClick={()=>setCameraPreviewOpen(false)}>
             <div className="relative w-full max-w-md">
               <video autoPlay playsInline muted ref={el=>{if(el&&el.srcObject!==cameraStream)el.srcObject=cameraStream;}} className="w-full rounded-2xl"/>
-              <div className="absolute top-2 left-2 flex items-center gap-1 bg-red-500 text-white px-2 py-1 rounded-full text-xs font-black animate-pulse">
-                <span className="w-2 h-2 bg-white rounded-full"></span> LIVE
-              </div>
               <button onClick={()=>setCameraPreviewOpen(false)} className="absolute top-2 right-2 bg-white/90 text-gray-800 w-8 h-8 rounded-full font-black">✕</button>
             </div>
           </div>
+        )}
         )}
       </div>
     );
