@@ -105,11 +105,14 @@ function getLineupForRotation(startingLineup,rotation){
   return lineup;
 }
 function setterRotToInternal(r){return{1:1,2:6,3:5,4:4,5:3,6:2}[r]||1;}
-// Auto-libero: swap libero in for back-row MB
-function getEffectiveLineup(lineupSnapshot,matchSlots,rotation){
+// Auto-libero: swap libero in for back-row MB, but only if libero has a player assigned
+function getEffectiveLineup(lineupSnapshot,matchSlots,rotation,rosterSnap){
   const rotated=getLineupForRotation(lineupSnapshot,rotation);
   const liberoSlot=matchSlots.find(s=>s.type==='L');
   if(!liberoSlot)return rotated;
+  // Only activate if libero player is actually assigned
+  const roster=rosterSnap||{};
+  if(!roster[liberoSlot.id])return rotated;
   const mbSlots=matchSlots.filter(s=>s.type==='MB');
   if(!mbSlots.length)return rotated;
   const backMBEntry=Object.entries(rotated).find(([pos,slotId])=>BACK_POSITIONS.includes(parseInt(pos))&&mbSlots.some(mb=>mb.id===slotId));
@@ -156,6 +159,25 @@ function MatchVideoPlayer({matchId,events,matchSlots,rosterSnap,matchSetScores,o
   },[matchId]);
   const jumpTo=(sec)=>{if(videoEl.current&&sec!=null){videoEl.current.currentTime=Math.max(0,sec-2);videoEl.current.play().catch(()=>{});}};
   const deleteVideo=async()=>{if(!confirm('Video löschen? Stats bleiben.'))return;try{await videoDB.delete(matchId);setVideoUrl(null);setErr('Video gelöscht');}catch(e){}};
+  const [sharing,setSharing]=useState(false);
+  const shareVideo=async()=>{
+    setSharing(true);
+    try{
+      const rec=await videoDB.get(matchId);
+      if(!rec||!rec.blob){alert('Video nicht gefunden');return;}
+      const ext=rec.blob.type.includes('mp4')?'mp4':'webm';
+      const file=new File([rec.blob],`match-${matchId}.${ext}`,{type:rec.blob.type});
+      if(navigator.canShare&&navigator.canShare({files:[file]})){
+        await navigator.share({files:[file],title:'Match Video'});
+      }else{
+        // Fallback: download
+        const url=URL.createObjectURL(rec.blob);
+        const a=document.createElement('a');a.href=url;a.download=file.name;
+        document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+      }
+    }catch(e){if(e.name!=='AbortError')alert('Teilen fehlgeschlagen: '+e.message);}
+    setSharing(false);
+  };
   const openScoreEditor=()=>{setDraftScores(matchSetScores&&matchSetScores.length>0?[...matchSetScores]:[{teamScore:0,opponentScore:0}]);setShowScoreEditor(true);};
   const saveScoreEdit=()=>{const cleaned=draftScores.filter(s=>s.teamScore>0||s.opponentScore>0);if(cleaned.length===0){alert('Mindestens einen Satz eintragen.');return;}onSetScoresChange(cleaned);setShowScoreEditor(false);};
   const updateDraft=(idx,field,val)=>{const n=[...draftScores];if(!n[idx])n[idx]={teamScore:0,opponentScore:0};n[idx][field]=Math.max(0,parseInt(val)||0);setDraftScores(n);};
@@ -190,6 +212,7 @@ function MatchVideoPlayer({matchId,events,matchSlots,rosterSnap,matchSetScores,o
         <div className="flex gap-2">
           <button onClick={onToggleEdit} className={`text-xs font-bold px-2 py-1 rounded-lg ${editMode?'bg-green-500 text-white':'bg-gray-200 text-gray-700'}`}>{editMode?'✓ Fertig':'✏️ Nachtracken'}</button>
           {editMode&&<button onClick={openScoreEditor} className="text-xs font-bold px-2 py-1 rounded-lg bg-blue-100 text-blue-700">📊 Score</button>}
+          <button onClick={shareVideo} disabled={sharing} className="text-xs font-bold px-2 py-1 rounded-lg bg-indigo-100 text-indigo-700 disabled:opacity-50">{sharing?'…':'⬆️'}</button>
           <button onClick={deleteVideo} className="text-red-500 text-xs p-1"><Trash2 size={14}/></button>
         </div>
       </div>
@@ -477,7 +500,7 @@ function VolleyballTracker(){
     if(!selectedAction||!currentMatch)return;
     const action=selectedAction;
     const matchSlotsLocal=generateSlots(currentMatch.configSnapshot);
-    const lineupLocal=getEffectiveLineup(currentMatch.lineupSnapshot,matchSlotsLocal,currentMatch.rotation);
+    const lineupLocal=getEffectiveLineup(currentMatch.lineupSnapshot,matchSlotsLocal,currentMatch.rotation,currentMatch.rosterSnapshot);
     const {suggested}=getSlotSuggestions(action,lineupLocal);
     if(suggested&&!suggested.has(slotId)){
       if(pendingOverride===slotId){setPendingOverride(null);}
@@ -797,9 +820,10 @@ function VolleyballTracker(){
     const matchSlots=generateSlots(currentMatch.configSnapshot);
     const formations=currentMatch.formationsSnapshot||{};
     const trueLineup=getLineupForRotation(currentMatch.lineupSnapshot,currentMatch.rotation);
-    const lineup=getEffectiveLineup(currentMatch.lineupSnapshot,matchSlots,currentMatch.rotation);
+    const lineup=getEffectiveLineup(currentMatch.lineupSnapshot,matchSlots,currentMatch.rotation,rosterSnap);
     const liberoSlot=matchSlots.find(s=>s.type==='L');
-    const autoLiberoPos=liberoSlot
+    const liberoActive=liberoSlot&&rosterSnap[liberoSlot.id];
+    const autoLiberoPos=liberoActive
       ?Object.entries(lineup).find(([pos,sid])=>sid===liberoSlot.id&&trueLineup[pos]!==liberoSlot.id)?.[0]
       :null;
     const setterSlot=matchSlots.find(s=>s.type==='S');
@@ -815,8 +839,18 @@ function VolleyballTracker(){
     const setBallOpp=currentMatch.opponentScore>=setTargetPoints-1&&currentMatch.opponentScore>=currentMatch.teamScore&&!setWonBy;
     const isExtension=currentMatch.teamScore>=setTargetPoints||currentMatch.opponentScore>=setTargetPoints;
     let positionLayout;
-    if(isReceiving){positionLayout=formations[parseInt(setterPos)]||getDefaultReception();}
-    else{const l={};COURT_POSITIONS.forEach(c=>{l[c.pos]={x:c.x,y:c.y};});positionLayout=l;}
+    if(isReceiving){
+      const baseFormation=formations[parseInt(setterPos)]||getDefaultReception();
+      if(liberoActive){
+        // Find which position the back-row MB is in (in trueLineup) and use that pos for libero
+        const mbSlots=matchSlots.filter(s=>s.type==='MB');
+        const backMBPos=Object.entries(trueLineup).find(([pos,sid])=>BACK_POSITIONS.includes(parseInt(pos))&&mbSlots.some(mb=>mb.id===sid))?.[0];
+        if(backMBPos){
+          // Swap: libero takes MB's formation position, MB gets libero's default off-court (not shown)
+          positionLayout=baseFormation;
+        }else{positionLayout=baseFormation;}
+      }else{positionLayout=baseFormation;}
+    }else{const l={};COURT_POSITIONS.forEach(c=>{l[c.pos]={x:c.x,y:c.y};});positionLayout=l;}
     const {suggested:suggestedSlots}=getSlotSuggestions(selectedAction,lineup);
     const isPosSelectable=()=>selectedAction&&selectedAction.forTeam;
     const isPosSuggested=(pos)=>{
