@@ -1,4 +1,4 @@
-const CACHE_NAME = 'volleyball-coach-v2';
+const CACHE_NAME = 'volleyball-coach-v. videoshare';
 const urlsToCache = [
   './',
   './index.html',
