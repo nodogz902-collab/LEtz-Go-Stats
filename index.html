@@ -981,7 +981,30 @@ function VolleyballTracker(){
               <div className="absolute top-0 left-0 right-0 h-1 bg-gray-700"></div>
               <div className="absolute top-1 left-0 right-0 text-center text-[9px] font-bold text-gray-600">— NETZ —</div>
               <div className="absolute top-[47%] left-0 right-0 border-t-2 border-dashed border-orange-400"></div>
-              {Object.entries(lineup).map(([pos,slotId])=>{
+              {/* ── Z Laufweg SVG ── */}
+            {(()=>{
+              const start=COURT_POSITIONS.find(c=>c.pos===setterRotation)||{x:50,y:50};
+              const end=localFormation[setterRotation]||start;
+              const dx=end.x-start.x, dy=end.y-start.y;
+              const dist=Math.sqrt(dx*dx+dy*dy);
+              if(dist<5)return null;
+              const ux=dx/dist, uy=dy/dist, px=-uy, py=ux;
+              const s=3;
+              const tip={x:end.x-ux*3.5,y:end.y-uy*3.5}; // stop before player bubble
+              const arrow=`${tip.x},${tip.y} ${tip.x-s*ux+s*0.55*px},${tip.y-s*uy+s*0.55*py} ${tip.x-s*ux-s*0.55*px},${tip.y-s*uy-s*0.55*py}`;
+              return(
+                <svg key="zpath" className="absolute inset-0 w-full h-full pointer-events-none" style={{zIndex:5}} viewBox="0 0 100 100" preserveAspectRatio="none">
+                  {/* ghost marker at start */}
+                  <circle cx={start.x} cy={start.y} r="5" fill="#fbbf24" fillOpacity="0.15" stroke="#f59e0b" strokeWidth="0.7" strokeDasharray="2,1.5"/>
+                  <text x={start.x} y={start.y+1.2} textAnchor="middle" dominantBaseline="middle" fontSize="3.2" fill="#f59e0b" opacity="0.7" fontWeight="bold">Z</text>
+                  {/* dashed run path */}
+                  <line x1={start.x} y1={start.y} x2={tip.x} y2={tip.y} stroke="#f59e0b" strokeWidth="1.1" strokeDasharray="3.5,2" opacity="0.85" strokeLinecap="round"/>
+                  {/* arrowhead */}
+                  <polygon points={arrow} fill="#f59e0b" opacity="0.9"/>
+                </svg>
+              );
+            })()}
+            {Object.entries(lineup).map(([pos,slotId])=>{
                 const posNum=parseInt(pos);
                 const slot=matchSlots.find(s=>s.id===slotId);if(!slot)return null;
                 const p=POSITION_TYPES[slot.type];
@@ -1347,7 +1370,7 @@ function FormationsEditor({rotation:setterRotation,setRotation:setSetterRotation
         {/* ── Preset picker ── */}
         <div className="bg-white/95 rounded-2xl p-3 shadow-xl mb-3">
           <div className="text-xs font-bold text-gray-600 mb-2">📐 FORMATIONS-VORLAGE</div>
-          <div className="grid grid-cols-2 gap-1.5 mb-2">
+          <div className="grid grid-cols-3 gap-1.5 mb-2">
             {Object.entries(RECEPTION_PRESETS).map(([key,p])=>(
               <button key={key} onClick={()=>applyPreset(key,false)}
                 className={`p-2.5 rounded-xl active:scale-90 text-white text-left bg-gradient-to-br ${p.color} transition-all ${activePreset===key?'ring-2 ring-yellow-300 scale-105 shadow-lg':''}`}>
@@ -1356,13 +1379,12 @@ function FormationsEditor({rotation:setterRotation,setRotation:setSetterRotation
                 <div className="text-[9px] opacity-80 font-normal mt-0.5 leading-tight">{p.desc}</div>
               </button>
             ))}
-            <button onClick={()=>{setLocalFormation(getDefaultReception());setDirty(true);setActivePreset(null);}}
-              className={`p-2.5 rounded-xl active:scale-90 transition-all text-left ${activePreset===null?'bg-gray-700 text-white ring-2 ring-yellow-300 scale-105':'bg-gray-200 text-gray-700'}`}>
-              <div className="text-xl leading-none mb-1">✏️</div>
-              <div className="font-black text-[11px]">Frei / Custom</div>
-              <div className="text-[9px] opacity-70 font-normal mt-0.5">selbst einzeichnen</div>
-            </button>
           </div>
+          <button onClick={()=>{setLocalFormation(getDefaultReception());setDirty(true);setActivePreset(null);}}
+            className={`w-full p-2 rounded-xl active:scale-95 transition-all text-left flex items-center gap-2 mb-2 ${activePreset===null?'bg-gray-700 text-white ring-2 ring-yellow-300':'bg-gray-200 text-gray-700'}`}>
+            <span className="text-lg">✏️</span>
+            <div><div className="font-black text-[11px]">Frei / Custom</div><div className="text-[9px] opacity-70 font-normal">Feld leeren und selbst einzeichnen</div></div>
+          </button>
           {activePreset&&(
             <button onClick={()=>applyPreset(activePreset,true)}
               className="w-full bg-gradient-to-r from-orange-500 to-amber-500 text-white p-2 rounded-xl font-bold text-xs active:scale-95 flex items-center justify-center gap-1.5">
