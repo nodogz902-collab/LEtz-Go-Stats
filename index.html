@@ -477,26 +477,72 @@ function VolleyballTracker(){
   const saveLineup=async l=>{setStartingLineup(l);await storage.set('starting_lineup_v2',JSON.stringify(l));};
   const saveFormations=async f=>{setReceptionFormations(f);await storage.set('reception_formations_v2',JSON.stringify(f));};
   const saveMatches=async m=>{setMatches(m);await storage.set('matches_v3',JSON.stringify(m));};
-  const exportData=()=>{
-    const data={version:1,exportDate:new Date().toISOString(),teamConfig,roster,startingLineup,receptionFormations,matches};
-    const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
-    const url=URL.createObjectURL(blob);const a=document.createElement('a');
-    a.href=url;a.download=`vb-backup-${new Date().toISOString().split('T')[0]}.json`;
-    document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
-    setImportMessage('✓ Backup heruntergeladen');setTimeout(()=>setImportMessage(''),3000);
+  const [showPasteImport,setShowPasteImport]=useState(false);
+  const [pasteText,setPasteText]=useState('');
+
+  const buildExportData=()=>({version:1,exportDate:new Date().toISOString(),teamConfig,roster,startingLineup,receptionFormations,matches});
+
+  const applyImportData=async(data)=>{
+    if(!data.version)throw new Error('Ungültige Daten');
+    if(!confirm('⚠️ Aktuelle Daten überschreiben?'))return false;
+    if(data.teamConfig)await saveConfig(data.teamConfig);
+    if(data.roster)await saveRoster(data.roster);
+    if(data.startingLineup)await saveLineup(data.startingLineup);
+    if(data.receptionFormations)await saveFormations(data.receptionFormations);
+    if(data.matches)await saveMatches(data.matches);
+    return true;
   };
+
+  const exportData=()=>{
+    const json=JSON.stringify(buildExportData(),null,2);
+    try{
+      const blob=new Blob([json],{type:'application/json'});
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a');
+      a.href=url;a.download=`vb-backup-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+      setImportMessage('✓ Heruntergeladen');
+    }catch(e){setImportMessage('✗ Download fehlgeschlagen — nutze Kopieren');}
+    setTimeout(()=>setImportMessage(''),3000);
+  };
+
+  const exportCopy=async()=>{
+    const json=JSON.stringify(buildExportData());
+    const b64=btoa(unescape(encodeURIComponent(json)));
+    try{
+      await navigator.clipboard.writeText(b64);
+      setImportMessage('✓ In Zwischenablage kopiert');
+    }catch(e){
+      // Fallback: show in textarea for manual copy
+      setPasteText(b64);setShowPasteImport(true);
+      setImportMessage('📋 Text zum Kopieren markieren');
+    }
+    setTimeout(()=>setImportMessage(''),3000);
+  };
+
+  const importFromPaste=async()=>{
+    if(!pasteText.trim()){setImportMessage('✗ Kein Text eingefügt');setTimeout(()=>setImportMessage(''),3000);return;}
+    try{
+      let json;
+      try{json=decodeURIComponent(escape(atob(pasteText.trim())));}
+      catch{json=pasteText.trim();}
+      const data=JSON.parse(json);
+      const ok=await applyImportData(data);
+      if(ok){setImportMessage('✓ Importiert!');setShowPasteImport(false);setPasteText('');}
+    }catch(err){setImportMessage('✗ '+err.message);}
+    setTimeout(()=>setImportMessage(''),4000);
+  };
+
   const importData=event=>{
     const file=event.target.files[0];if(!file)return;
     const reader=new FileReader();
     reader.onload=async e=>{
       try{
-        const data=JSON.parse(e.target.result);if(!data.version)throw new Error('Ungültige Datei');
-        if(!confirm('⚠️ Aktuelle Daten überschreiben?')){event.target.value='';return;}
-        if(data.teamConfig)await saveConfig(data.teamConfig);if(data.roster)await saveRoster(data.roster);
-        if(data.startingLineup)await saveLineup(data.startingLineup);if(data.receptionFormations)await saveFormations(data.receptionFormations);
-        if(data.matches)await saveMatches(data.matches);
-        setImportMessage('✓ Importiert!');setTimeout(()=>setImportMessage(''),3000);
-      }catch(err){setImportMessage('✗ '+err.message);setTimeout(()=>setImportMessage(''),4000);}
+        const data=JSON.parse(e.target.result);
+        const ok=await applyImportData(data);
+        if(ok)setImportMessage('✓ Importiert!');
+      }catch(err){setImportMessage('✗ '+err.message);}
+      setTimeout(()=>setImportMessage(''),4000);
       event.target.value='';
     };
     reader.readAsText(file);
@@ -541,10 +587,15 @@ function VolleyballTracker(){
   const recordEventForPlayer=(slotId,force=false)=>{
     if(!selectedAction||!currentMatch)return;
     const action=selectedAction;
-    const lineup=getEffectiveLineup(currentMatch.lineupSnapshot,matchSlots,currentMatch.rotation);
     const trueLineup=getLineupForRotation(currentMatch.lineupSnapshot,currentMatch.rotation);
+    const lineup=getEffectiveLineup(currentMatch.lineupSnapshot,matchSlots,currentMatch.rotation);
     const liberoSlot=matchSlots.find(s=>s.type==='L');
-    const autoLiberoPos=liberoSlot?Object.entries(lineup).find(([pos,sid])=>sid===liberoSlot.id&&Object.entries(trueLineup).find(([p,s])=>p===pos&&s!==liberoSlot.id))?.[0]:null;
+    const autoLiberoPos=liberoSlot
+      ?Object.entries(lineup).find(([pos,sid])=>{
+          if(sid!==liberoSlot.id)return false;
+          return trueLineup[pos]!==liberoSlot.id;
+        })?.[0]
+      :null;
     const {suggested}=getSlotSuggestions(action,lineup);
     // If not suggested, require a second tap (override)
     if(!force&&suggested&&!suggested.has(slotId)){
@@ -697,9 +748,24 @@ function VolleyballTracker(){
             <div className="space-y-3">
               <div className="bg-gray-50 p-3 rounded-2xl">
                 <div className="text-xs font-bold text-gray-700 mb-2">💾 DATEN-BACKUP</div>
+                <div className="text-[10px] text-gray-500 mb-2">Export → auf zweitem Gerät importieren</div>
+                <div className="grid grid-cols-2 gap-2 mb-2">
+                  <button onClick={exportData} className="bg-gradient-to-r from-blue-500 to-cyan-600 text-white p-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 active:scale-95">
+                    <Download size={13}/> Download
+                  </button>
+                  <button onClick={exportCopy} className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white p-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 active:scale-95">
+                    📋 Kopieren
+                  </button>
+                </div>
+                <div className="text-[10px] text-gray-500 mb-2">Import</div>
                 <div className="grid grid-cols-2 gap-2">
-                  <button onClick={exportData} className="bg-gradient-to-r from-blue-500 to-cyan-600 text-white p-3 rounded-xl font-bold text-sm flex items-center justify-center gap-1.5 active:scale-95"><Download size={14}/> Export</button>
-                  <label className="bg-gradient-to-r from-purple-500 to-pink-600 text-white p-3 rounded-xl font-bold text-sm flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer"><Upload size={14}/> Import<input type="file" accept=".json" onChange={importData} className="hidden"/></label>
+                  <label className="bg-gradient-to-r from-purple-500 to-pink-600 text-white p-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer">
+                    <Upload size={13}/> Datei
+                    <input type="file" accept=".json,.txt,application/json,text/plain,text/*" onChange={importData} className="hidden"/>
+                  </label>
+                  <button onClick={()=>{setPasteText('');setShowPasteImport(true);}} className="bg-gradient-to-r from-pink-500 to-rose-500 text-white p-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 active:scale-95">
+                    📥 Einfügen
+                  </button>
                 </div>
                 {importMessage&&<div className={`mt-2 p-2 rounded-lg text-xs font-bold text-center ${importMessage.startsWith('✓')?'bg-green-100 text-green-800':'bg-red-100 text-red-800'}`}>{importMessage}</div>}
               </div>
@@ -709,6 +775,27 @@ function VolleyballTracker(){
               </div>
             </div>
             <button onClick={()=>setShowSettings(false)} className="w-full mt-4 bg-gray-200 text-gray-700 p-3 rounded-2xl font-bold">Schließen</button>
+          </div>
+        </div>
+      )}
+      {/* Paste import modal */}
+      {showPasteImport&&(
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-3xl p-5 w-full max-w-sm shadow-2xl">
+            <h2 className="text-xl font-black text-purple-700 mb-1">📥 Text importieren</h2>
+            <p className="text-xs text-gray-500 mb-3">Füge den kopierten Backup-Text hier ein.</p>
+            <textarea
+              value={pasteText}
+              onChange={e=>setPasteText(e.target.value)}
+              placeholder="Backup-Text hier einfügen…"
+              className="w-full h-28 p-3 border-2 border-purple-200 rounded-xl text-xs font-mono resize-none focus:outline-none focus:border-purple-500 mb-3"
+              autoFocus
+            />
+            {importMessage&&<div className={`mb-3 p-2 rounded-lg text-xs font-bold text-center ${importMessage.startsWith('✓')?'bg-green-100 text-green-800':'bg-red-100 text-red-800'}`}>{importMessage}</div>}
+            <div className="flex gap-2">
+              <button onClick={()=>{setShowPasteImport(false);setPasteText('');}} className="flex-1 bg-gray-200 p-3 rounded-2xl font-bold">Abbrechen</button>
+              <button onClick={importFromPaste} disabled={!pasteText.trim()} className="flex-1 bg-gradient-to-r from-purple-600 to-pink-500 text-white p-3 rounded-2xl font-bold disabled:opacity-50">Importieren ✓</button>
+            </div>
           </div>
         </div>
       )}
