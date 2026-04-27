@@ -64,15 +64,15 @@ const POSITION_TYPES={
 };
 const DEFAULT_CONFIG={S:1,OPP:1,OH:2,MB:2,L:1,DS:0};
 const ACTIONS=[
-  {type:'kill',       emoji:'💥',label:'Kill',         color:'bg-gradient-to-br from-green-500 to-emerald-600',  forTeam:true,highlight:'front', isPoint:true},
-  {type:'block',      emoji:'🧱',label:'Stuff',        color:'bg-gradient-to-br from-purple-500 to-indigo-600',  forTeam:true,highlight:'front', isPoint:true},
-  {type:'ace',        emoji:'🎯',label:'Ace',           color:'bg-gradient-to-br from-blue-500 to-cyan-600',      forTeam:true,highlight:'server',isPoint:true},
-  {type:'error',      emoji:'❌',label:'Angriff-F.',   color:'bg-gradient-to-br from-red-500 to-rose-600',       forTeam:true,highlight:'front', isPoint:false},
-  {type:'block_error',emoji:'🚫',label:'Block-F.',     color:'bg-gradient-to-br from-red-600 to-pink-700',       forTeam:true,highlight:'front', isPoint:false},
-  {type:'service_error',emoji:'📉',label:'Svc-F.',     color:'bg-gradient-to-br from-orange-500 to-red-500',     forTeam:true,highlight:'server',isPoint:false},
-  {type:'reception_bad',emoji:'⚠️',label:'Ann. -',    color:'bg-gradient-to-br from-amber-500 to-orange-600',   forTeam:true,highlight:'receive',isPoint:false},
-  {type:'reception_good',emoji:'✅',label:'Ann. +',   color:'bg-gradient-to-br from-lime-500 to-green-600',     forTeam:true,highlight:'receive',isPoint:false,soft:true},
-  {type:'attack_attempt',emoji:'⚔️',label:'Angr.v.',  color:'bg-gradient-to-br from-teal-500 to-cyan-500',      forTeam:true,highlight:'front', isPoint:false,soft:true},
+  {type:'kill',         emoji:'💥',label:'Kill',       color:'bg-gradient-to-br from-green-500 to-emerald-600',  forTeam:true,highlight:'front', isPoint:true},
+  {type:'block',        emoji:'🧱',label:'Stuff',      color:'bg-gradient-to-br from-purple-500 to-indigo-600',  forTeam:true,highlight:'front', isPoint:true},
+  {type:'ace',          emoji:'🎯',label:'Ace',         color:'bg-gradient-to-br from-blue-500 to-cyan-600',      forTeam:true,highlight:'server',isPoint:true},
+  {type:'error',        emoji:'❌',label:'Angriff-F.',  color:'bg-gradient-to-br from-red-500 to-rose-600',       forTeam:true,highlight:'front', isPoint:false},
+  {type:'block_error',  emoji:'🚫',label:'Block-F.',    color:'bg-gradient-to-br from-red-600 to-pink-700',       forTeam:true,highlight:'front', isPoint:false},
+  {type:'service_error',emoji:'📉',label:'Svc-F.',      color:'bg-gradient-to-br from-orange-500 to-red-500',     forTeam:true,highlight:'server',isPoint:false},
+  {type:'reception_bad',emoji:'⚠️',label:'Ann. -',     color:'bg-gradient-to-br from-amber-500 to-orange-600',   forTeam:true,highlight:'receive',isPoint:false},
+  {type:'reception_good',emoji:'✅',label:'Ann. +',    color:'bg-gradient-to-br from-lime-500 to-green-600',     forTeam:true,highlight:'receive',isPoint:false,soft:true},
+  {type:'attack_attempt',emoji:'⚔️',label:'Angr.v.',   color:'bg-gradient-to-br from-teal-500 to-cyan-500',      forTeam:true,highlight:'front', isPoint:false,soft:true},
 ];
 const EVENT_LABELS={kill:'💥 Kill',ace:'🎯 Ace',block:'🧱 Stuff',error:'❌ Angriff-F.',service_error:'📉 Svc-F.',block_error:'🚫 Block-F.',attack_attempt:'⚔️ Angriffsv.',opp_point:'🆚 +1 Gegner',opp_error:'🎁 Geg.-Fehler',reception_good:'✅ Ann.+',reception_bad:'⚠️ Ann.-',assist:'🤝 Assist'};
 const COURT_POSITIONS=[
@@ -81,36 +81,20 @@ const COURT_POSITIONS=[
 ];
 const FRONT_POSITIONS=[2,3,4];
 const BACK_POSITIONS=[1,5,6];
-
-// Setter target zone (Zuspielposition) — always right front
 const SETTER_TARGET={x:82,y:20};
 
-// ── Reception Presets (5-1 only) ─────────────────────────────────────────────
-// Formation layout: for each Z-start-position (1..6), where each court slot stands.
-// Z runs from their rotation spot → SETTER_TARGET.
-// Receivers: AA, MB(back), Libero form W or U; OPP/MB(front) stay out of reception.
+// ── Reception Presets ─────────────────────────────────────────────────────────
 const RECEPTION_PRESETS={
-  '5-1-w':{
-    label:'5-1 W-Formation',emoji:'🔱',color:'from-blue-500 to-indigo-600',
-    desc:'Z → Pos 2 · W-Riegel mit 5 Empfängern',
+  '5-1-w':{label:'5-1 W-Formation',emoji:'🔱',color:'from-blue-500 to-indigo-600',desc:'Z → Pos 2 · W-Riegel mit 5 Empfängern',
     formations:{
-      // Z at pos 1 (RB): runs up right side → Pos2. AA2(2) stays front, OPP(3) front.
       1:{1:{x:82,y:20},2:{x:65,y:52},3:{x:28,y:52},4:{x:14,y:72},5:{x:48,y:82},6:{x:76,y:70}},
-      // Z at pos 6 (MB): short run right
       6:{1:{x:50,y:80},2:{x:82,y:20},3:{x:68,y:52},4:{x:30,y:52},5:{x:14,y:72},6:{x:82,y:20}},
-      // Z at pos 5 (LB): long diagonal run
       5:{1:{x:50,y:80},2:{x:74,y:68},3:{x:62,y:52},4:{x:28,y:52},5:{x:82,y:20},6:{x:14,y:72}},
-      // Z at pos 4 (LF): cross-court run
       4:{1:{x:50,y:80},2:{x:74,y:68},3:{x:58,y:52},4:{x:82,y:20},5:{x:14,y:72},6:{x:30,y:80}},
-      // Z at pos 3 (MF): short right run
       3:{1:{x:50,y:80},2:{x:74,y:68},3:{x:82,y:20},4:{x:14,y:28},5:{x:14,y:72},6:{x:36,y:80}},
-      // Z at pos 2 (RF): stays, easiest
       2:{1:{x:50,y:80},2:{x:82,y:20},3:{x:18,y:28},4:{x:50,y:28},5:{x:14,y:72},6:{x:36,y:80}},
-    }
-  },
-  '5-1-u':{
-    label:'5-1 U-Formation',emoji:'🌙',color:'from-purple-500 to-pink-600',
-    desc:'Z → Pos 2 · Halbkreis-U · tiefe Mitte',
+    }},
+  '5-1-u':{label:'5-1 U-Formation',emoji:'🌙',color:'from-purple-500 to-pink-600',desc:'Z → Pos 2 · Halbkreis-U · tiefe Mitte',
     formations:{
       1:{1:{x:82,y:20},2:{x:72,y:54},3:{x:50,y:46},4:{x:22,y:60},5:{x:12,y:78},6:{x:50,y:82}},
       6:{1:{x:50,y:82},2:{x:82,y:20},3:{x:72,y:54},4:{x:50,y:46},5:{x:22,y:60},6:{x:12,y:78}},
@@ -118,8 +102,7 @@ const RECEPTION_PRESETS={
       4:{1:{x:50,y:82},2:{x:72,y:62},3:{x:56,y:48},4:{x:82,y:20},5:{x:12,y:78},6:{x:30,y:82}},
       3:{1:{x:50,y:82},2:{x:72,y:62},3:{x:82,y:20},4:{x:14,y:28},5:{x:12,y:78},6:{x:34,y:82}},
       2:{1:{x:50,y:82},2:{x:82,y:20},3:{x:18,y:28},4:{x:50,y:28},5:{x:12,y:78},6:{x:34,y:82}},
-    }
-  },
+    }},
 };
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -133,9 +116,7 @@ function generateSlots(config){
   });
   return s;
 }
-function getDefaultReception(){
-  return{1:{x:75,y:40},2:{x:30,y:62},3:{x:50,y:22},4:{x:20,y:25},5:{x:55,y:68},6:{x:80,y:68}};
-}
+function getDefaultReception(){return{1:{x:75,y:40},2:{x:30,y:62},3:{x:50,y:22},4:{x:20,y:25},5:{x:55,y:68},6:{x:80,y:68}};}
 function getLineupForRotation(startingLineup,rotation){
   const cw=[1,6,5,4,3,2];const lineup={};
   Object.entries(startingLineup).forEach(([pos,slotId])=>{
@@ -145,31 +126,27 @@ function getLineupForRotation(startingLineup,rotation){
   return lineup;
 }
 function setterRotToInternal(r){return{1:1,2:6,3:5,4:4,5:3,6:2}[r]||1;}
-function getEffectiveLineup(lineupSnapshot,matchSlots,rotation){
-  return getLineupForRotation(lineupSnapshot,rotation);
-}
+function getEffectiveLineup(lineupSnapshot,matchSlots,rotation){return getLineupForRotation(lineupSnapshot,rotation);}
 function getSlotSuggestions(action,lineup,servingTeam='us'){
   if(!action||!action.forTeam)return{suggested:null,allowed:null};
-  const suggested=new Set();
-  const allowed=new Set();
+  const suggested=new Set();const allowed=new Set();
   Object.entries(lineup).forEach(([pos,sid])=>{
-    const posNum=parseInt(pos);
-    const type=sid.replace(/\d+$/,'');
+    const posNum=parseInt(pos);const type=sid.replace(/\d+$/,'');
     allowed.add(sid);
-    if(action.highlight==='none'){suggested.add(sid);}
-    else if(action.highlight==='server'){if(servingTeam==='us'&&posNum===1)suggested.add(sid);}
+    if(action.highlight==='server'){if(servingTeam==='us'&&posNum===1)suggested.add(sid);}
     else if(action.highlight==='front'){if(FRONT_POSITIONS.includes(posNum))suggested.add(sid);}
     else if(action.highlight==='back'){if(BACK_POSITIONS.includes(posNum)&&type!=='S'&&type!=='OPP')suggested.add(sid);}
     else if(action.highlight==='receive'){if(type!=='S'&&type!=='OPP')suggested.add(sid);}
+    else suggested.add(sid);
   });
   return{suggested,allowed};
 }
 function fmtTime(s){const m=Math.floor(s/60);return`${m}:${Math.floor(s%60).toString().padStart(2,'0')}`;}
 
-// ── SetterLaufweg SVG component ───────────────────────────────────────────────
+// ── SetterLaufweg SVG ─────────────────────────────────────────────────────────
 function SetterLaufwegSVG({startPos,endPos,animated=false}){
   if(!startPos||!endPos)return null;
-  const dx=endPos.x-startPos.x, dy=endPos.y-startPos.y;
+  const dx=endPos.x-startPos.x,dy=endPos.y-startPos.y;
   const dist=Math.sqrt(dx*dx+dy*dy);
   if(dist<4)return null;
   const ux=dx/dist,uy=dy/dist,px=-uy,py=ux,s=3.2;
@@ -177,210 +154,16 @@ function SetterLaufwegSVG({startPos,endPos,animated=false}){
   const arrow=`${tip.x},${tip.y} ${tip.x-s*ux+s*0.6*px},${tip.y-s*uy+s*0.6*py} ${tip.x-s*ux-s*0.6*px},${tip.y-s*uy-s*0.6*py}`;
   return(
     <svg className="absolute inset-0 pointer-events-none" style={{width:'100%',height:'100%',zIndex:6}} viewBox="0 0 100 100" preserveAspectRatio="none">
-      {/* ghost start circle */}
       <circle cx={startPos.x} cy={startPos.y} r="5.5" fill="#fbbf2420" stroke="#f59e0b" strokeWidth="0.9" strokeDasharray="2.5,1.5"/>
       <text x={startPos.x} y={startPos.y+0.8} textAnchor="middle" dominantBaseline="middle" style={{fontSize:'3.2px',fontWeight:'bold',fill:'#f59e0b',opacity:0.8}}>Z</text>
-      {/* animated dashed line */}
-      <line x1={startPos.x} y1={startPos.y} x2={tip.x} y2={tip.y}
-        stroke="#f59e0b" strokeWidth="1.4" strokeDasharray="4,2.5" strokeLinecap="round" opacity="0.9"
-        className={animated?'laufweg-line':''}/>
-      {/* arrowhead */}
+      <line x1={startPos.x} y1={startPos.y} x2={tip.x} y2={tip.y} stroke="#f59e0b" strokeWidth="1.4" strokeDasharray="4,2.5" strokeLinecap="round" opacity="0.9" className={animated?'laufweg-line':''}/>
       <polygon points={arrow} fill="#f59e0b" opacity="0.95"/>
-      {/* label */}
-      <text x={(startPos.x+endPos.x)/2-1} y={(startPos.y+endPos.y)/2-3} textAnchor="middle"
-        style={{fontSize:'2.6px',fill:'#92400e',opacity:0.75,fontWeight:'bold'}}>Laufweg Z</text>
+      <text x={(startPos.x+endPos.x)/2-1} y={(startPos.y+endPos.y)/2-3} textAnchor="middle" style={{fontSize:'2.6px',fill:'#92400e',opacity:0.75,fontWeight:'bold'}}>Laufweg Z</text>
     </svg>
   );
 }
 
-// ── MatchVideoPlayer ──────────────────────────────────────────────────────────
-function MatchVideoPlayer({matchId,events,matchSlots,rosterSnap,matchSetScores,onEventsChange,onSetScoresChange,editMode,onToggleEdit}){
-  const [videoUrl,setVideoUrl]=useState(null);
-  const [loading,setLoading]=useState(true);
-  const [err,setErr]=useState('');
-  const [currentTime,setCurrentTime]=useState(0);
-  const [selectedAction,setSelectedAction]=useState(null);
-  const [pendingFlash,setPendingFlash]=useState(null);
-  const [pendingOverride,setPendingOverride]=useState(null);
-  const [highlightSuggestions,setHighlightSuggestions]=useState(true);
-  const [showScoreEditor,setShowScoreEditor]=useState(false);
-  const [draftScores,setDraftScores]=useState([]);
-  const videoEl=useRef(null);
-  useEffect(()=>{
-    let mounted=true;let url=null;
-    async function load(){
-      try{const rec=await videoDB.get(matchId);if(rec&&rec.blob&&mounted){url=URL.createObjectURL(rec.blob);setVideoUrl(url);}else if(mounted)setErr('Video nicht gefunden');}catch(e){if(mounted)setErr('Fehler: '+e.message);}
-      if(mounted)setLoading(false);
-    }
-    load();
-    return()=>{mounted=false;if(url)URL.revokeObjectURL(url);};
-  },[matchId]);
-  const jumpTo=(sec)=>{if(videoEl.current&&sec!=null){videoEl.current.currentTime=Math.max(0,sec-2);videoEl.current.play().catch(()=>{});}};
-  const deleteVideo=async()=>{if(!confirm('Video löschen? Stats bleiben.'))return;try{await videoDB.delete(matchId);setVideoUrl(null);setErr('Video gelöscht');}catch(e){}};
-  const [sharing,setSharing]=useState(false);
-  const shareVideo=async()=>{
-    setSharing(true);
-    try{
-      const rec=await videoDB.get(matchId);
-      if(!rec||!rec.blob){alert('Video nicht gefunden');setSharing(false);return;}
-      const ext=rec.blob.type.includes('mp4')?'mp4':'webm';
-      const filename=`match-${matchId}.${ext}`;
-      const tryDownload=()=>{const url=URL.createObjectURL(rec.blob);const a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(()=>URL.revokeObjectURL(url),3000);};
-      if(navigator.share){
-        try{const file=new File([rec.blob],filename,{type:rec.blob.type});await navigator.share({files:[file],title:'Match Video'});}
-        catch(e){if(e.name==='AbortError'){setSharing(false);return;}try{const url=URL.createObjectURL(rec.blob);await navigator.share({url,title:'Match Video'});setTimeout(()=>URL.revokeObjectURL(url),3000);}catch(e2){if(e2.name!=='AbortError')tryDownload();}}
-      }else{tryDownload();}
-    }catch(e){alert('Fehler: '+e.message);}
-    setSharing(false);
-  };
-  const openScoreEditor=()=>{setDraftScores(matchSetScores&&matchSetScores.length>0?[...matchSetScores]:[{teamScore:0,opponentScore:0}]);setShowScoreEditor(true);};
-  const saveScoreEdit=()=>{const cleaned=draftScores.filter(s=>s.teamScore>0||s.opponentScore>0);if(cleaned.length===0){alert('Mindestens einen Satz eintragen.');return;}onSetScoresChange(cleaned);setShowScoreEditor(false);};
-  const updateDraft=(idx,field,val)=>{const n=[...draftScores];if(!n[idx])n[idx]={teamScore:0,opponentScore:0};n[idx][field]=Math.max(0,parseInt(val)||0);setDraftScores(n);};
-  const commitAtTime=(details)=>{
-    const event={id:Date.now().toString()+Math.random(),set:1,serving:'us',teamScore:0,opponentScore:0,timestamp:Date.now(),videoTime:Math.floor(currentTime),retroactive:true,...details};
-    const newEvents=[event];
-    if(details.type==='kill'){
-      const setterSlot=matchSlots.find(s=>s.type==='S');
-      if(setterSlot&&setterSlot.id!==details.slotId&&rosterSnap[setterSlot.id]){
-        newEvents.push({id:Date.now().toString()+Math.random()+'_a',set:1,serving:'us',videoTime:Math.floor(currentTime),retroactive:true,auto:true,slotId:setterSlot.id,playerName:rosterSnap[setterSlot.id]?.name,slotShort:setterSlot.short,type:'assist',forTeam:true,timestamp:Date.now()});
-      }
-    }
-    onEventsChange([...events,...newEvents].sort((a,b)=>(a.videoTime??0)-(b.videoTime??0)));
-    setPendingFlash({slotId:details.slotId,type:details.type});setTimeout(()=>setPendingFlash(null),600);
-    setSelectedAction(null);
-  };
-  const tapPlayerOnVideo=(slotId)=>{
-    if(!selectedAction)return;
-    const fakeLineup={};matchSlots.forEach((s,i)=>{fakeLineup[i+1]=s.id;});
-    const {suggested}=getSlotSuggestions(selectedAction,fakeLineup);
-    const isSuggested=!suggested||suggested.has(slotId);
-    if(!isSuggested){if(pendingOverride===slotId){setPendingOverride(null);}else{setPendingOverride(slotId);return;}}else{setPendingOverride(null);}
-    const slot=matchSlots.find(s=>s.id===slotId);
-    commitAtTime({type:selectedAction.type,slotId,playerName:rosterSnap[slotId]?.name,slotShort:slot?.short,forTeam:true});
-  };
-  const deleteEvent=(id)=>{if(confirm('Event löschen?'))onEventsChange(events.filter(e=>e.id!==id));};
-  if(loading)return<div className="bg-white/95 rounded-2xl p-4 shadow-xl mb-3 text-center text-xs text-gray-500">🎬 Lade Video...</div>;
-  if(err||!videoUrl)return<div className="bg-yellow-100 border-2 border-yellow-400 rounded-2xl p-3 mb-3 text-xs text-yellow-800 text-center">🎬 {err||'Kein Video'}</div>;
-  const eventsWithTime=events.filter(e=>e.videoTime!=null).sort((a,b)=>a.videoTime-b.videoTime);
-  return(
-    <div className="bg-white/95 rounded-2xl p-3 shadow-xl mb-3">
-      <div className="flex justify-between items-center mb-2">
-        <h3 className="font-black text-purple-700">🎬 Match-Video</h3>
-        <div className="flex gap-2">
-          <button onClick={onToggleEdit} className={`text-xs font-bold px-2 py-1 rounded-lg ${editMode?'bg-green-500 text-white':'bg-gray-200 text-gray-700'}`}>{editMode?'✓ Fertig':'✏️ Nachtracken'}</button>
-          {editMode&&<button onClick={openScoreEditor} className="text-xs font-bold px-2 py-1 rounded-lg bg-blue-100 text-blue-700">📊 Score</button>}
-          <button onClick={shareVideo} disabled={sharing} className="text-xs font-bold px-2 py-1 rounded-lg bg-indigo-100 text-indigo-700 disabled:opacity-50">{sharing?'…':'⬆️'}</button>
-          <button onClick={deleteVideo} className="text-red-500 text-xs p-1"><Trash2 size={14}/></button>
-        </div>
-      </div>
-      {showScoreEditor&&(
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-3xl p-5 w-full max-w-sm shadow-2xl">
-            <h2 className="text-xl font-black text-purple-700 mb-1">📊 Satz-Ergebnisse</h2>
-            <p className="text-xs text-gray-500 mb-3">Korrigiere die finalen Satz-Stände.</p>
-            <div className="space-y-2 mb-3">
-              {draftScores.map((s,idx)=>(
-                <div key={idx} className="bg-gray-50 rounded-xl p-2">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-bold text-gray-600">Satz {idx+1}</span>
-                    {draftScores.length>1&&<button onClick={()=>setDraftScores(draftScores.filter((_,i)=>i!==idx))} className="text-red-400 text-xs">✕</button>}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1"><div className="text-[10px] text-purple-600 font-bold mb-0.5">WIR</div><input type="number" inputMode="numeric" value={s.teamScore} onChange={e=>updateDraft(idx,'teamScore',e.target.value)} className="w-full p-2 border-2 border-purple-200 rounded-lg text-center text-xl font-black focus:outline-none focus:border-purple-500"/></div>
-                    <div className="text-gray-400 font-black mt-4">:</div>
-                    <div className="flex-1"><div className="text-[10px] text-orange-600 font-bold mb-0.5">GEGNER</div><input type="number" inputMode="numeric" value={s.opponentScore} onChange={e=>updateDraft(idx,'opponentScore',e.target.value)} className="w-full p-2 border-2 border-orange-200 rounded-lg text-center text-xl font-black focus:outline-none focus:border-orange-500"/></div>
-                  </div>
-                </div>
-              ))}
-            </div>
-            {draftScores.length<5&&<button onClick={()=>setDraftScores([...draftScores,{teamScore:0,opponentScore:0}])} className="w-full bg-gray-100 text-gray-600 p-2 rounded-xl font-bold text-sm mb-3">+ Satz hinzufügen</button>}
-            <div className="flex gap-2">
-              <button onClick={()=>setShowScoreEditor(false)} className="flex-1 bg-gray-200 p-3 rounded-2xl font-bold">Abbrechen</button>
-              <button onClick={saveScoreEdit} className="flex-1 bg-gradient-to-r from-purple-600 to-pink-500 text-white p-3 rounded-2xl font-bold">Speichern ✓</button>
-            </div>
-          </div>
-        </div>
-      )}
-      <video ref={videoEl} src={videoUrl} controls playsInline className="w-full rounded-xl mb-2" onTimeUpdate={e=>setCurrentTime(e.target.currentTime)}/>
-      {editMode&&(
-        <div className="bg-gradient-to-br from-purple-50 to-indigo-50 border-2 border-purple-300 rounded-xl p-2 mb-2">
-          <div className="text-[10px] font-bold text-purple-700 mb-2 flex items-center justify-between">
-            <span>✏️ NACHTRACKEN · <span className="font-mono bg-purple-200 px-1 rounded">{fmtTime(currentTime)}</span></span>
-            <span className="text-gray-500">Pausiere → Aktion → Spieler</span>
-          </div>
-          {selectedAction&&(<div className="bg-purple-700 text-white text-[10px] font-bold px-2 py-1 rounded-lg mb-2 flex items-center justify-between"><span>② {selectedAction.emoji} {selectedAction.label} → Spieler wählen</span><button onClick={()=>setSelectedAction(null)} className="text-purple-200 ml-2">✕</button></div>)}
-          {!selectedAction&&(
-            <>
-              <div className="text-[10px] font-bold text-gray-500 mb-1">① AKTION WÄHLEN</div>
-              <div className="grid grid-cols-3 gap-1 mb-1">
-                {[ACTIONS.find(a=>a.type==='kill'),ACTIONS.find(a=>a.type==='block'),ACTIONS.find(a=>a.type==='ace')].map(a=>(
-                  <button key={a.type} onClick={()=>setSelectedAction(a)} className={`${a.color} text-white p-1.5 rounded-lg text-center active:scale-90`}><div className="text-base">{a.emoji}</div><div className="text-[8px] font-bold leading-tight">{a.label}</div></button>
-                ))}
-              </div>
-              <div className="grid grid-cols-3 gap-1 mb-1">
-                {[ACTIONS.find(a=>a.type==='error'),ACTIONS.find(a=>a.type==='block_error'),ACTIONS.find(a=>a.type==='service_error')].map(a=>(
-                  <button key={a.type} onClick={()=>setSelectedAction(a)} className={`${a.color} text-white p-1.5 rounded-lg text-center active:scale-90`}><div className="text-base">{a.emoji}</div><div className="text-[8px] font-bold leading-tight">{a.label}</div></button>
-                ))}
-              </div>
-              <div className="grid grid-cols-3 gap-1">
-                {[ACTIONS.find(a=>a.type==='reception_good'),ACTIONS.find(a=>a.type==='reception_bad'),ACTIONS.find(a=>a.type==='attack_attempt')].map(a=>(
-                  <button key={a.type} onClick={()=>setSelectedAction(a)} className={`${a.color} text-white p-1.5 rounded-lg text-center active:scale-90 relative ${a.soft?'opacity-60 border border-dashed border-white/40':''}`}>
-                    {a.soft&&<span className="absolute -top-1 -right-1 bg-gray-600 text-white text-[6px] font-black px-0.5 rounded-full leading-none">~stat</span>}
-                    <div className="text-base">{a.emoji}</div><div className="text-[8px] font-bold leading-tight">{a.label}</div>
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-          {selectedAction&&(
-            <div className="grid grid-cols-3 gap-1">
-              {matchSlots.filter(s=>rosterSnap[s.id]).map(slot=>{
-                const p=POSITION_TYPES[slot.type];
-                const fakeLineup={};matchSlots.forEach((s,i)=>{fakeLineup[i+1]=s.id;});
-                const {suggested}=getSlotSuggestions(selectedAction,fakeLineup);
-                const isSuggested=!suggested||suggested.has(slot.id);
-                const isOverride=pendingOverride===slot.id;
-                const isFlashing=pendingFlash?.slotId===slot.id;
-                return(
-                  <button key={slot.id} onClick={()=>tapPlayerOnVideo(slot.id)}
-                    className={`p-1.5 rounded-xl font-bold text-xs active:scale-90 transition-all relative ${isSuggested?`bg-gradient-to-br ${p.color} text-white ring-2 ring-yellow-300 shadow-lg`:isOverride?`bg-gradient-to-br ${p.color} text-white ring-2 ring-orange-400 shadow-lg`:'bg-gray-100 text-gray-400 opacity-40'} ${isFlashing?'scale-110 ring-4 ring-white':''}`}>
-                    <div className="font-black">{slot.short}</div>
-                    <div className="text-[9px] truncate">{rosterSnap[slot.id]?.name}</div>
-                    {isOverride&&<div className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-orange-500 text-white text-[7px] font-black px-1 rounded-full whitespace-nowrap">nochmal</div>}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
-      {eventsWithTime.length>0&&(
-        <>
-          <div className="text-xs font-bold text-gray-600 mb-1">📍 {eventsWithTime.length} Events</div>
-          <div className="space-y-1 max-h-52 overflow-y-auto">
-            {eventsWithTime.map(e=>{
-              const label=EVENT_LABELS[e.type]||e.type;
-              const outcomeEmoji=['kill','ace','block','opp_error'].includes(e.type)?'🟢':['error','service_error','block_error','reception_bad','opp_point'].includes(e.type)?'🔴':'⚪';
-              return(
-                <div key={e.id} className="flex items-center gap-1.5 bg-gray-50 rounded-lg px-2 py-1 text-xs">
-                  <button onClick={()=>jumpTo(e.videoTime)} className="flex-1 flex items-center gap-1.5 text-left active:scale-95">
-                    <span className="font-mono text-[10px] text-purple-600 bg-purple-100 px-1 rounded w-10 flex-shrink-0">{fmtTime(e.videoTime)}</span>
-                    <span className="flex-1 font-semibold">{outcomeEmoji} {label}</span>
-                    <span className="text-gray-400 text-[10px] truncate">{e.slotShort||''} {e.playerName||'—'}</span>
-                    {e.retroactive&&<span className="text-[8px] bg-purple-100 text-purple-600 px-1 rounded">retro</span>}
-                  </button>
-                  {editMode&&<button onClick={()=>deleteEvent(e.id)} className="text-red-400 flex-shrink-0"><Trash2 size={12}/></button>}
-                </div>
-              );
-            })}
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
-
-// ── Analytics helpers ────────────────────────────────────────────────────────
+// ── Analytics helpers ─────────────────────────────────────────────────────────
 function computeRotationStats(events){
   const s={};for(let r=1;r<=6;r++)s[r]={won:0,lost:0,soWon:0,soTotal:0};
   const wonT=['kill','ace','block','opp_error'],lostT=['error','service_error','block_error','opp_point'];
@@ -411,6 +194,246 @@ function computeReceptionEff(matches){
   });
   return bySlot;
 }
+function computeInsights(m,matchSlots){
+  const rs=computeRotationStats(m.events);
+  const dist=computeSetterDist(m.events,matchSlots);
+  const bySlot={};
+  m.events.forEach(e=>{if(!e.slotId)return;if(!bySlot[e.slotId])bySlot[e.slotId]={};bySlot[e.slotId][e.type]=(bySlot[e.slotId][e.type]||0)+1;});
+  const out=[];
+  const rotArr=[1,2,3,4,5,6].map(r=>({r,...rs[r],tot:rs[r].won+rs[r].lost})).filter(d=>d.tot>=3);
+  if(rotArr.length){
+    const srt=[...rotArr].sort((a,b)=>(b.won/b.tot)-(a.won/a.tot));
+    const best=srt[0],worst=srt[srt.length-1];
+    out.push({type:'strength',text:`Rotation ${best.r} ist eure stärkste (${Math.round(best.won/best.tot*100)}% Gewinnquote, ${best.tot} Rallies)`});
+    if(srt.length>1&&Math.round(worst.won/worst.tot*100)<50)
+      out.push({type:'weakness',text:`Rotation ${worst.r} verliert häufig (${Math.round(worst.won/worst.tot*100)}%) → gezielt im Training adressieren`});
+    const soArr=rotArr.filter(d=>d.soTotal>=3).sort((a,b)=>(a.soWon/a.soTotal)-(b.soWon/b.soTotal));
+    if(soArr.length){const w=soArr[0];const sp=Math.round(w.soWon/w.soTotal*100);if(sp<50)out.push({type:'weakness',text:`Sideout-Problem Rotation ${w.r}: nur ${sp}% bei gegnerischem Aufschlag`});}
+  }
+  const totK=Object.values(dist).reduce((s,d)=>s+d.kills,0);
+  if(totK>=5){
+    const top=Object.entries(dist).sort((a,b)=>b[1].kills-a[1].kills)[0];
+    const pct=Math.round(top[1].kills/totK*100);const name=m.rosterSnapshot[top[0]]?.name||top[1].slot.short;
+    if(pct>55)out.push({type:'info',text:`Z setzt ${pct}% zu ${name} – Variationsarmut, Gegner könnte Muster lesen`});
+    else out.push({type:'strength',text:`Setter verteilt ausgewogen – kein Angreifer über 55%`});
+  }
+  const recP=matchSlots.map(s=>({s,g:bySlot[s.id]?.reception_good||0,b:bySlot[s.id]?.reception_bad||0})).filter(p=>p.g+p.b>=3);
+  if(recP.length){
+    const srt=[...recP].sort((a,b)=>(b.g/(b.g+b.b))-(a.g/(a.g+a.b)));
+    const best=srt[0],worst=srt[srt.length-1];
+    const bp=Math.round(best.g/(best.g+best.b)*100),wp=Math.round(worst.g/(worst.g+worst.b)*100);
+    out.push({type:'strength',text:`${m.rosterSnapshot[best.s.id]?.name||best.s.short} ist zuverlässigster Annahmespieler (${bp}%)`});
+    if(srt.length>1&&wp<45)out.push({type:'weakness',text:`${m.rosterSnapshot[worst.s.id]?.name||worst.s.short} unter Druck in der Annahme (${wp}%) – Gegner könnte ihn gezielt anservieren`});
+  }
+  return out;
+}
+function exportMatchPDF(m,matchSlots){
+  const rs=computeRotationStats(m.events);const dist=computeSetterDist(m.events,matchSlots);const ins=computeInsights(m,matchSlots);
+  const bySlot={};m.events.forEach(e=>{if(!e.slotId)return;if(!bySlot[e.slotId])bySlot[e.slotId]={};bySlot[e.slotId][e.type]=(bySlot[e.slotId][e.type]||0)+1;});
+  const sw=m.setScores.filter(s=>s.teamScore>s.opponentScore).length,sl=m.setScores.length-sw;
+  const css=`*{box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;margin:0;padding:24px;color:#1f2937;font-size:13px;background:#f9fafb}
+h2{margin:0 0 12px;font-size:14px;font-weight:800;color:#6d28d9}
+.hdr{background:linear-gradient(135deg,#7c3aed,#db2777);color:#fff;padding:20px 24px;border-radius:14px;margin-bottom:16px}
+.hdr h1{margin:0 0 2px;font-size:22px;font-weight:900}.score{font-size:52px;font-weight:900;margin:6px 0;letter-spacing:-1px}.meta{opacity:.8;font-size:12px}
+.card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.ins{display:flex;gap:8px;align-items:flex-start;padding:9px 11px;border-radius:9px;margin-bottom:7px;font-size:12px;line-height:1.45}
+.ins.s{background:#ecfdf5;color:#065f46;border-left:3px solid #10b981}.ins.w{background:#fef2f2;color:#991b1b;border-left:3px solid #ef4444}.ins.i{background:#eff6ff;color:#1e40af;border-left:3px solid #3b82f6}
+.br{margin-bottom:10px}.bl{display:flex;justify-content:space-between;font-size:11px;font-weight:600;margin-bottom:4px}
+.bt{height:10px;background:#f3f4f6;border-radius:5px;overflow:hidden}.bf{height:100%;border-radius:5px}
+table{width:100%;border-collapse:collapse;font-size:11px}th{background:#f8f7ff;padding:6px 8px;font-weight:800;border-bottom:2px solid #e5e7eb;text-align:center}th:first-child{text-align:left}
+td{padding:5px 8px;border-bottom:1px solid #f3f4f6;text-align:center}td:first-child{text-align:left;font-weight:600}td:nth-child(2){color:#6d28d9;font-weight:700}
+.g{color:#059669;font-weight:700}.r{color:#dc2626;font-weight:700}
+.footer{text-align:center;font-size:10px;color:#9ca3af;margin-top:16px;padding-top:12px;border-top:1px solid #e5e7eb}
+@media print{body{padding:8px;background:#fff}.card{box-shadow:none}}`;
+  const rotRows=[1,2,3,4,5,6].map(r=>{const d=rs[r];const tot=d.won+d.lost;const wp=tot>0?Math.round(d.won/tot*100):0;const sp=d.soTotal>0?Math.round(d.soWon/d.soTotal*100):null;
+    return`<div class="br"><div class="bl"><span>Rotation ${r}</span><span style="color:${wp>=50?'#059669':'#dc2626'}">${tot>0?wp+'%':'–'}</span></div><div class="bt"><div class="bf" style="width:${tot>0?Math.max(wp,1):0}%;background:${wp>=50?'#10b981':'#ef4444'}"></div></div><div style="font-size:10px;color:#9ca3af;margin-top:2px">✓${d.won}&nbsp;✗${d.lost}&nbsp;·&nbsp;${tot} Rallies${sp!==null?`&nbsp;·&nbsp;Sideout ${sp}%`:''}</div></div>`;
+  }).join('');
+  const totK=Object.values(dist).reduce((s,d)=>s+d.kills,0);
+  const distRows=totK>0?Object.entries(dist).sort((a,b)=>b[1].kills-a[1].kills).map(([sid,d])=>{const pct=Math.round(d.kills/totK*100);const name=m.rosterSnapshot[sid]?.name||d.slot.short;
+    return`<div class="br"><div class="bl"><span>${d.slot.short} · ${name}</span><span>${d.kills}× · ${pct}%</span></div><div class="bt"><div class="bf" style="width:${pct}%;background:#6366f1"></div></div></div>`;
+  }).join(''):'<p style="color:#9ca3af;font-size:12px">Keine Kills getracked</p>';
+  const playerRows=matchSlots.filter(s=>bySlot[s.id]).map(s=>{const st=bySlot[s.id]||{};const name=m.rosterSnapshot[s.id]?.name||'—';const rt=(st.reception_good||0)+(st.reception_bad||0);const rp=rt>0?Math.round((st.reception_good||0)/rt*100):null;
+    return`<tr><td>${name}</td><td>${s.short}</td><td class="g">${st.kill||0}</td><td>${st.assist||0}</td><td class="g">${st.ace||0}</td><td class="g">${st.block||0}</td><td class="r">${st.error||0}</td><td class="r">${st.service_error||0}</td><td class="r">${st.block_error||0}</td><td>${st.reception_good||0}${rp!==null?` <small style="color:#9ca3af">(${rp}%)</small>`:''}</td><td class="r">${st.reception_bad||0}</td></tr>`;
+  }).join('');
+  const insHtml=ins.map(i=>`<div class="ins ${i.type==='strength'?'s':i.type==='weakness'?'w':'i'}"><span style="font-size:16px">${i.type==='strength'?'💪':i.type==='weakness'?'⚠️':'ℹ️'}</span><span>${i.text}</span></div>`).join('');
+  const html=`<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"/><title>Report vs ${m.opponent}</title><style>${css}</style></head><body>
+<div class="hdr"><div class="meta">${new Date(m.date).toLocaleDateString('de-DE',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</div><h1>Match Report · vs ${m.opponent}</h1><div class="score">${sw}&thinsp;:&thinsp;${sl}&ensp;${sw>sl?'✅':'❌'}</div><div class="meta">Sätze: ${m.setScores.map(s=>`${s.teamScore}–${s.opponentScore}`).join('&ensp;|&ensp;')}</div></div>
+${ins.length?`<div class="card"><h2>💡 Erkenntnisse & Empfehlungen</h2>${insHtml}</div>`:''}
+<div class="g2"><div class="card"><h2>🔄 Rotationsanalyse</h2>${rotRows}</div><div class="card"><h2>🎯 Setter-Verteilung</h2>${distRows}</div></div>
+<div class="card"><h2>📊 Spieler-Statistiken</h2><table><tr><th>Spieler</th><th>Pos</th><th>💥Kill</th><th>🤝Ass.</th><th>🎯Ace</th><th>🧱Block</th><th>❌Angr.F</th><th>📉Svc.F</th><th>🚫Blk.F</th><th>✅Ann+</th><th>⚠️Ann−</th></tr>${playerRows}</table></div>
+<div class="footer">Volleyball Coach Tracker · Erstellt ${new Date().toLocaleDateString('de-DE')}</div>
+<script>setTimeout(()=>window.print(),500);<\/script></body></html>`;
+  const w=window.open('','_blank');if(w){w.document.write(html);w.document.close();}else alert('Popup geblockt – bitte im Browser erlauben');
+}
+
+// ── MatchVideoPlayer ──────────────────────────────────────────────────────────
+function MatchVideoPlayer({matchId,events,matchSlots,rosterSnap,matchSetScores,onEventsChange,onSetScoresChange,editMode,onToggleEdit}){
+  const [videoUrl,setVideoUrl]=useState(null);
+  const [loading,setLoading]=useState(true);
+  const [err,setErr]=useState('');
+  const [currentTime,setCurrentTime]=useState(0);
+  const [selectedAction,setSelectedAction]=useState(null);
+  const [pendingFlash,setPendingFlash]=useState(null);
+  const [showScoreEditor,setShowScoreEditor]=useState(false);
+  const [draftScores,setDraftScores]=useState([]);
+  const videoEl=useRef(null);
+  useEffect(()=>{
+    let mounted=true;let url=null;
+    async function load(){
+      try{const rec=await videoDB.get(matchId);if(rec&&rec.blob&&mounted){url=URL.createObjectURL(rec.blob);setVideoUrl(url);}else if(mounted)setErr('Video nicht gefunden');}catch(e){if(mounted)setErr('Fehler: '+e.message);}
+      if(mounted)setLoading(false);
+    }
+    load();
+    return()=>{mounted=false;if(url)URL.revokeObjectURL(url);};
+  },[matchId]);
+  const jumpTo=(sec)=>{if(videoEl.current&&sec!=null){videoEl.current.currentTime=Math.max(0,sec-2);videoEl.current.play().catch(()=>{});}};
+  const deleteVideo=async()=>{if(!confirm('Video löschen? Stats bleiben.'))return;try{await videoDB.delete(matchId);setVideoUrl(null);setErr('Video gelöscht');}catch(e){}};
+  const [sharing,setSharing]=useState(false);
+  const shareVideo=async()=>{
+    setSharing(true);
+    try{
+      const rec=await videoDB.get(matchId);if(!rec||!rec.blob){alert('Video nicht gefunden');setSharing(false);return;}
+      const ext=rec.blob.type.includes('mp4')?'mp4':'webm';const filename=`match-${matchId}.${ext}`;
+      const tryDownload=()=>{const url=URL.createObjectURL(rec.blob);const a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(()=>URL.revokeObjectURL(url),3000);};
+      if(navigator.share){try{await navigator.share({files:[new File([rec.blob],filename,{type:rec.blob.type})],title:'Match Video'});}catch(e){if(e.name==='AbortError'){setSharing(false);return;}tryDownload();}}else tryDownload();
+    }catch(e){alert('Fehler: '+e.message);}
+    setSharing(false);
+  };
+  const openScoreEditor=()=>{setDraftScores(matchSetScores?.length?[...matchSetScores]:[{teamScore:0,opponentScore:0}]);setShowScoreEditor(true);};
+  const saveScoreEdit=()=>{const cleaned=draftScores.filter(s=>s.teamScore>0||s.opponentScore>0);if(!cleaned.length){alert('Mindestens einen Satz.');return;}onSetScoresChange(cleaned);setShowScoreEditor(false);};
+  const updateDraft=(idx,field,val)=>{const n=[...draftScores];if(!n[idx])n[idx]={teamScore:0,opponentScore:0};n[idx][field]=Math.max(0,parseInt(val)||0);setDraftScores(n);};
+  const commitAtTime=(details)=>{
+    const event={id:Date.now().toString()+Math.random(),set:1,serving:'us',teamScore:0,opponentScore:0,timestamp:Date.now(),videoTime:Math.floor(currentTime),retroactive:true,...details};
+    const newEvents=[event];
+    if(details.type==='kill'){
+      const setterSlot=matchSlots.find(s=>s.type==='S');
+      if(setterSlot&&setterSlot.id!==details.slotId&&rosterSnap[setterSlot.id])
+        newEvents.push({id:Date.now().toString()+Math.random()+'_a',set:1,serving:'us',videoTime:Math.floor(currentTime),retroactive:true,auto:true,slotId:setterSlot.id,playerName:rosterSnap[setterSlot.id]?.name,slotShort:setterSlot.short,type:'assist',forTeam:true,timestamp:Date.now()});
+    }
+    onEventsChange([...events,...newEvents].sort((a,b)=>(a.videoTime??0)-(b.videoTime??0)));
+    setPendingFlash({slotId:details.slotId});setTimeout(()=>setPendingFlash(null),600);
+    setSelectedAction(null);
+  };
+  const tapPlayerOnVideo=(slotId)=>{
+    if(!selectedAction)return;
+    const slot=matchSlots.find(s=>s.id===slotId);
+    commitAtTime({type:selectedAction.type,slotId,playerName:rosterSnap[slotId]?.name,slotShort:slot?.short,forTeam:true});
+  };
+  const deleteEvent=(id)=>{if(confirm('Event löschen?'))onEventsChange(events.filter(e=>e.id!==id));};
+  if(loading)return<div className="bg-white/95 rounded-2xl p-4 shadow-xl mb-3 text-center text-xs text-gray-500">🎬 Lade Video...</div>;
+  if(err||!videoUrl)return<div className="bg-yellow-100 border-2 border-yellow-400 rounded-2xl p-3 mb-3 text-xs text-yellow-800 text-center">🎬 {err||'Kein Video'}</div>;
+  const eventsWithTime=events.filter(e=>e.videoTime!=null).sort((a,b)=>a.videoTime-b.videoTime);
+  return(
+    <div className="bg-white/95 rounded-2xl p-3 shadow-xl mb-3">
+      <div className="flex justify-between items-center mb-2">
+        <h3 className="font-black text-purple-700">🎬 Match-Video</h3>
+        <div className="flex gap-2">
+          <button onClick={onToggleEdit} className={`text-xs font-bold px-2 py-1 rounded-lg ${editMode?'bg-green-500 text-white':'bg-gray-200 text-gray-700'}`}>{editMode?'✓ Fertig':'✏️ Nachtracken'}</button>
+          {editMode&&<button onClick={openScoreEditor} className="text-xs font-bold px-2 py-1 rounded-lg bg-blue-100 text-blue-700">📊 Score</button>}
+          <button onClick={shareVideo} disabled={sharing} className="text-xs font-bold px-2 py-1 rounded-lg bg-indigo-100 text-indigo-700 disabled:opacity-50">{sharing?'…':'⬆️'}</button>
+          <button onClick={deleteVideo} className="text-red-500 text-xs p-1"><Trash2 size={14}/></button>
+        </div>
+      </div>
+      {showScoreEditor&&(
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-3xl p-5 w-full max-w-sm shadow-2xl">
+            <h2 className="text-xl font-black text-purple-700 mb-3">📊 Satz-Ergebnisse</h2>
+            <div className="space-y-2 mb-3">
+              {draftScores.map((s,idx)=>(
+                <div key={idx} className="bg-gray-50 rounded-xl p-2">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-bold text-gray-600">Satz {idx+1}</span>
+                    {draftScores.length>1&&<button onClick={()=>setDraftScores(draftScores.filter((_,i)=>i!==idx))} className="text-red-400 text-xs">✕</button>}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1"><div className="text-[10px] text-purple-600 font-bold mb-0.5">WIR</div><input type="number" inputMode="numeric" value={s.teamScore} onChange={e=>updateDraft(idx,'teamScore',e.target.value)} className="w-full p-2 border-2 border-purple-200 rounded-lg text-center text-xl font-black focus:outline-none"/></div>
+                    <div className="text-gray-400 font-black mt-4">:</div>
+                    <div className="flex-1"><div className="text-[10px] text-orange-600 font-bold mb-0.5">GEGNER</div><input type="number" inputMode="numeric" value={s.opponentScore} onChange={e=>updateDraft(idx,'opponentScore',e.target.value)} className="w-full p-2 border-2 border-orange-200 rounded-lg text-center text-xl font-black focus:outline-none"/></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {draftScores.length<5&&<button onClick={()=>setDraftScores([...draftScores,{teamScore:0,opponentScore:0}])} className="w-full bg-gray-100 text-gray-600 p-2 rounded-xl font-bold text-sm mb-3">+ Satz hinzufügen</button>}
+            <div className="flex gap-2">
+              <button onClick={()=>setShowScoreEditor(false)} className="flex-1 bg-gray-200 p-3 rounded-2xl font-bold">Abbrechen</button>
+              <button onClick={saveScoreEdit} className="flex-1 bg-gradient-to-r from-purple-600 to-pink-500 text-white p-3 rounded-2xl font-bold">Speichern ✓</button>
+            </div>
+          </div>
+        </div>
+      )}
+      <video ref={videoEl} src={videoUrl} controls playsInline className="w-full rounded-xl mb-2" onTimeUpdate={e=>setCurrentTime(e.target.currentTime)}/>
+      {editMode&&(
+        <div className="bg-gradient-to-br from-purple-50 to-indigo-50 border-2 border-purple-300 rounded-xl p-2 mb-2">
+          <div className="text-[10px] font-bold text-purple-700 mb-2 flex items-center justify-between">
+            <span>✏️ NACHTRACKEN · <span className="font-mono bg-purple-200 px-1 rounded">{fmtTime(currentTime)}</span></span>
+            <span className="text-gray-500">Pausiere → Aktion → Spieler</span>
+          </div>
+          {selectedAction&&<div className="bg-purple-700 text-white text-[10px] font-bold px-2 py-1 rounded-lg mb-2 flex items-center justify-between"><span>② {selectedAction.emoji} {selectedAction.label} → Spieler wählen</span><button onClick={()=>setSelectedAction(null)} className="text-purple-200 ml-2">✕</button></div>}
+          {!selectedAction&&(
+            <>
+              <div className="text-[10px] font-bold text-gray-500 mb-1">① AKTION WÄHLEN</div>
+              <div className="grid grid-cols-3 gap-1 mb-1">
+                {[ACTIONS.find(a=>a.type==='kill'),ACTIONS.find(a=>a.type==='block'),ACTIONS.find(a=>a.type==='ace')].map(a=>(
+                  <button key={a.type} onClick={()=>setSelectedAction(a)} className={`${a.color} text-white p-1.5 rounded-lg text-center active:scale-90`}><div className="text-base">{a.emoji}</div><div className="text-[8px] font-bold leading-tight">{a.label}</div></button>
+                ))}
+              </div>
+              <div className="grid grid-cols-3 gap-1 mb-1">
+                {[ACTIONS.find(a=>a.type==='error'),ACTIONS.find(a=>a.type==='block_error'),ACTIONS.find(a=>a.type==='service_error')].map(a=>(
+                  <button key={a.type} onClick={()=>setSelectedAction(a)} className={`${a.color} text-white p-1.5 rounded-lg text-center active:scale-90`}><div className="text-base">{a.emoji}</div><div className="text-[8px] font-bold leading-tight">{a.label}</div></button>
+                ))}
+              </div>
+              <div className="grid grid-cols-3 gap-1">
+                {[ACTIONS.find(a=>a.type==='reception_good'),ACTIONS.find(a=>a.type==='reception_bad'),ACTIONS.find(a=>a.type==='attack_attempt')].map(a=>(
+                  <button key={a.type} onClick={()=>setSelectedAction(a)} className={`${a.color} text-white p-1.5 rounded-lg text-center active:scale-90 relative ${a.soft?'opacity-60 border border-dashed border-white/40':''}`}>
+                    {a.soft&&<span className="absolute -top-1 -right-1 bg-gray-600 text-white text-[6px] font-black px-0.5 rounded-full leading-none">~stat</span>}
+                    <div className="text-base">{a.emoji}</div><div className="text-[8px] font-bold leading-tight">{a.label}</div>
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+          {selectedAction&&(
+            <div className="grid grid-cols-3 gap-1">
+              {matchSlots.filter(s=>rosterSnap[s.id]).map(slot=>{
+                const p=POSITION_TYPES[slot.type];const isFlashing=pendingFlash?.slotId===slot.id;
+                return(
+                  <button key={slot.id} onClick={()=>tapPlayerOnVideo(slot.id)}
+                    className={`p-1.5 rounded-xl font-bold text-xs active:scale-90 transition-all bg-gradient-to-br ${p.color} text-white shadow-lg ${isFlashing?'scale-110 ring-4 ring-white':''}`}>
+                    <div className="font-black">{slot.short}</div>
+                    <div className="text-[9px] truncate">{rosterSnap[slot.id]?.name}</div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+      {eventsWithTime.length>0&&(
+        <>
+          <div className="text-xs font-bold text-gray-600 mb-1">📍 {eventsWithTime.length} Events</div>
+          <div className="space-y-1 max-h-52 overflow-y-auto">
+            {eventsWithTime.map(e=>{
+              const label=EVENT_LABELS[e.type]||e.type;
+              const oe=['kill','ace','block','opp_error'].includes(e.type)?'🟢':['error','service_error','block_error','reception_bad','opp_point'].includes(e.type)?'🔴':'⚪';
+              return(
+                <div key={e.id} className="flex items-center gap-1.5 bg-gray-50 rounded-lg px-2 py-1 text-xs">
+                  <button onClick={()=>jumpTo(e.videoTime)} className="flex-1 flex items-center gap-1.5 text-left active:scale-95">
+                    <span className="font-mono text-[10px] text-purple-600 bg-purple-100 px-1 rounded w-10 flex-shrink-0">{fmtTime(e.videoTime)}</span>
+                    <span className="flex-1 font-semibold">{oe} {label}</span>
+                    <span className="text-gray-400 text-[10px] truncate">{e.slotShort||''} {e.playerName||'—'}</span>
+                    {e.retroactive&&<span className="text-[8px] bg-purple-100 text-purple-600 px-1 rounded">retro</span>}
+                  </button>
+                  {editMode&&<button onClick={()=>deleteEvent(e.id)} className="text-red-400 flex-shrink-0"><Trash2 size={12}/></button>}
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 
 // ── Main App ──────────────────────────────────────────────────────────────────
 function VolleyballTracker(){
@@ -437,7 +460,6 @@ function VolleyballTracker(){
   const [pasteText,setPasteText]=useState('');
   const [matchFormat,setMatchFormat]=useState('bo3');
   const [selectedAction,setSelectedAction]=useState(null);
-  const [pendingOverride,setPendingOverride]=useState(null);
   const [pendingFlash,setPendingFlash]=useState(null);
   const [editingVideo,setEditingVideo]=useState(false);
   const [showBench,setShowBench]=useState(false);
@@ -448,6 +470,8 @@ function VolleyballTracker(){
   const [cameraStream,setCameraStream]=useState(null);
   const [cameraPreviewOpen,setCameraPreviewOpen]=useState(false);
   const [undoStack,setUndoStack]=useState([]);
+  // ── FIX: highlightSuggestions declared here (was missing) ──
+  const [highlightSuggestions,setHighlightSuggestions]=useState(true);
   const mediaRecorderRef=useRef(null);
   const recordedChunksRef=useRef([]);
   const persistReady=useRef(false);
@@ -462,14 +486,11 @@ function VolleyballTracker(){
       try{
         const cm=await storage.get('current_match');
         if(cm&&cm.value&&cm.value!=='null'){
-          const parsed=JSON.parse(cm.value);
-          setCurrentMatch(parsed);
-          const st=await storage.get('serving_team');
-          if(st&&st.value)setServingTeam(st.value);
+          const parsed=JSON.parse(cm.value);setCurrentMatch(parsed);
+          const st=await storage.get('serving_team');if(st&&st.value)setServingTeam(st.value);
         }
       }catch(e){}
-      persistReady.current=true;
-      setLoading(false);
+      persistReady.current=true;setLoading(false);
     }
     load();
   },[]);
@@ -493,10 +514,8 @@ function VolleyballTracker(){
       recordedChunksRef.current=[];
       const rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:1500000});
       rec.ondataavailable=e=>{if(e.data.size>0)recordedChunksRef.current.push(e.data);};
-      rec.start(1000);
-      mediaRecorderRef.current=rec;
-      setIsRecording(true);setRecordingStart(Date.now());
-      return true;
+      rec.start(1000);mediaRecorderRef.current=rec;
+      setIsRecording(true);setRecordingStart(Date.now());return true;
     }catch(err){return false;}
   };
   const stopRecording=async()=>new Promise(res=>{
@@ -538,7 +557,7 @@ function VolleyballTracker(){
   const exportCopy=async()=>{
     const b64=btoa(unescape(encodeURIComponent(JSON.stringify(buildExportData()))));
     try{await navigator.clipboard.writeText(b64);setImportMessage('✓ Kopiert');}
-    catch(e){setPasteText(b64);setShowPasteImport(true);setImportMessage('📋 Text kopieren');}
+    catch(e){setPasteText(b64);setShowPasteImport(true);}
     setTimeout(()=>setImportMessage(''),3000);
   };
   const importFromPaste=async()=>{
@@ -572,48 +591,39 @@ function VolleyballTracker(){
   const updateConfigCount=(type,delta)=>{const c=teamConfig[type]||0;saveConfig({...teamConfig,[type]:Math.max(0,Math.min(6,c+delta))});};
   const assignToPosition=(pos,slotId)=>{const nl={};Object.entries(startingLineup).forEach(([p,s])=>{if(s!==slotId)nl[p]=s;});nl[pos]=slotId;saveLineup(nl);};
   const lineupComplete=[1,2,3,4,5,6].every(p=>startingLineup[p]);
+
   const startNewMatch=async()=>{
     if(!opponentName.trim())return;
     let recStarted=false;
-    if(recordingEnabled){recStarted=await startRecording();if(!recStarted&&!confirm('Aufnahme fehlgeschlagen. Ohne Video starten?'))return;}
+    if(recordingEnabled){recStarted=await startRecording();if(!recStarted&&!confirm('Aufnahme fehlgeschlagen. Ohne Video?'))return;}
     const maxSets=matchFormat==='bo1'?1:matchFormat==='bo3'?3:5;
     const setsToWin=matchFormat==='bo1'?1:matchFormat==='bo3'?2:3;
-    const match={
-      id:Date.now().toString(),opponent:opponentName.trim(),date:new Date().toISOString(),
-      events:[],set:1,rotation:1,teamScore:0,opponentScore:0,setScores:[],
-      rosterSnapshot:{...roster},lineupSnapshot:{...startingLineup},
-      configSnapshot:{...teamConfig},formationsSnapshot:{...receptionFormations},
-      format:matchFormat,maxSets,setsToWin,hasVideo:recStarted,videoStartTime:recStarted?Date.now():null,
-    };
-    setCurrentMatch(match);setServingTeam('us');setShowNewMatch(false);setOpponentName('');setSelectedAction(null);
-    setUndoStack([]);
+    const match={id:Date.now().toString(),opponent:opponentName.trim(),date:new Date().toISOString(),events:[],set:1,rotation:1,teamScore:0,opponentScore:0,setScores:[],
+      rosterSnapshot:{...roster},lineupSnapshot:{...startingLineup},configSnapshot:{...teamConfig},formationsSnapshot:{...receptionFormations},
+      format:matchFormat,maxSets,setsToWin,hasVideo:recStarted,videoStartTime:recStarted?Date.now():null};
+    setCurrentMatch(match);setServingTeam('us');setShowNewMatch(false);setOpponentName('');setSelectedAction(null);setUndoStack([]);
     if(recStarted)setCameraPreviewOpen(true);
     setView('match');
   };
   const updateMatch=fn=>setCurrentMatch(prev=>fn(prev));
   const pushUndo=()=>setUndoStack(prev=>[...prev.slice(-29),{match:currentMatch,servingTeam}]);
+
   const recordEventForPlayer=(slotId)=>{
     if(!selectedAction||!currentMatch)return;
     const action=selectedAction;
     const matchSlotsLocal=generateSlots(currentMatch.configSnapshot);
     const lineupLocal=getEffectiveLineup(currentMatch.lineupSnapshot,matchSlotsLocal,currentMatch.rotation);
-    const {suggested}=getSlotSuggestions(action,lineupLocal,servingTeam);
-    setPendingOverride(null);
     pushUndo();
     const videoTime=isRecording&&recordingStart?Math.floor((Date.now()-recordingStart)/1000):null;
     const slot=matchSlotsLocal.find(s=>s.id===slotId);
-    const event={
-      id:Date.now().toString()+Math.random(),
-      slotId:action.forTeam?slotId:null,playerName:action.forTeam?currentMatch.rosterSnapshot[slotId]?.name:null,
+    const event={id:Date.now().toString()+Math.random(),slotId:action.forTeam?slotId:null,playerName:action.forTeam?currentMatch.rosterSnapshot[slotId]?.name:null,
       slotShort:action.forTeam?slot?.short:null,type:action.type,forTeam:action.forTeam,
-      set:currentMatch.set,rotation:currentMatch.rotation,serving:servingTeam,timestamp:Date.now(),videoTime,
-    };
+      set:currentMatch.set,rotation:currentMatch.rotation,serving:servingTeam,timestamp:Date.now(),videoTime};
     const eventsToAdd=[event];
     if(action.type==='kill'){
       const setterSlotLocal=matchSlotsLocal.find(s=>s.type==='S');
-      if(setterSlotLocal&&setterSlotLocal.id!==slotId&&currentMatch.rosterSnapshot[setterSlotLocal.id]){
+      if(setterSlotLocal&&setterSlotLocal.id!==slotId&&currentMatch.rosterSnapshot[setterSlotLocal.id])
         eventsToAdd.push({id:Date.now().toString()+Math.random()+'_a',slotId:setterSlotLocal.id,playerName:currentMatch.rosterSnapshot[setterSlotLocal.id]?.name,slotShort:setterSlotLocal.short,type:'assist',forTeam:true,set:currentMatch.set,rotation:currentMatch.rotation,serving:servingTeam,timestamp:Date.now(),videoTime,auto:true});
-      }
     }
     let td=0,od=0,rotateUs=false,newServing=servingTeam;
     if(['kill','ace','block'].includes(action.type)){td=1;if(servingTeam==='opp'){rotateUs=true;newServing='us';}}
@@ -649,7 +659,7 @@ function VolleyballTracker(){
     setSubStep(null);setShowBench(false);
   };
   const undoLastEvent=()=>{
-    if(undoStack.length===0)return;
+    if(!undoStack.length)return;
     const snap=undoStack[undoStack.length-1];
     setCurrentMatch(snap.match);setServingTeam(snap.servingTeam);
     setUndoStack(prev=>prev.slice(0,-1));setSelectedAction(null);
@@ -674,19 +684,13 @@ function VolleyballTracker(){
     }
   };
 
-  if(loading)return(
-    <div className="min-h-screen bg-gradient-to-br from-purple-600 via-pink-500 to-orange-400 flex items-center justify-center">
-      <div className="text-white text-xl font-bold animate-pulse">Lade... 🏐</div>
-    </div>
-  );
+  if(loading)return(<div className="min-h-screen bg-gradient-to-br from-purple-600 via-pink-500 to-orange-400 flex items-center justify-center"><div className="text-white text-xl font-bold animate-pulse">Lade... 🏐</div></div>);
 
   // ═══ HOME ════════════════════════════════════════════════════════════════════
   if(view==='home')return(
     <div className="min-h-screen bg-gradient-to-br from-purple-600 via-pink-500 to-orange-400 p-4">
       <div className="max-w-md mx-auto">
-        <div className="flex justify-end pt-2">
-          <button onClick={()=>setShowSettings(true)} className="bg-white/20 text-white p-2 rounded-full active:scale-95"><Settings size={18}/></button>
-        </div>
+        <div className="flex justify-end pt-2"><button onClick={()=>setShowSettings(true)} className="bg-white/20 text-white p-2 rounded-full active:scale-95"><Settings size={18}/></button></div>
         <div className="text-center py-4">
           <div className="text-6xl mb-2">🏐</div>
           <h1 className="text-4xl font-black text-white drop-shadow-lg">Coach Tracker</h1>
@@ -698,43 +702,26 @@ function VolleyballTracker(){
           </button>
         )}
         <div className="grid grid-cols-2 gap-3 mb-4">
-          <button onClick={()=>setShowNewMatch(true)} disabled={!lineupComplete} className="bg-white/95 p-5 rounded-3xl shadow-xl active:scale-95 disabled:opacity-50">
-            <div className="text-4xl mb-1">🚀</div><div className="font-black text-purple-700">Neues Spiel</div>
-          </button>
-          <button onClick={()=>setView('roster')} className="bg-white/95 p-5 rounded-3xl shadow-xl active:scale-95">
-            <div className="text-4xl mb-1">👥</div><div className="font-black text-pink-600">Kader</div>
-            <div className="text-xs text-gray-500">{assignedSlots.length} Spieler</div>
-          </button>
-          <button onClick={()=>setView('lineup')} className="bg-white/95 p-5 rounded-3xl shadow-xl active:scale-95">
-            <div className="text-4xl mb-1">📋</div><div className="font-black text-indigo-600">Aufstellung</div>
-            <div className="text-xs text-gray-500">{lineupComplete?'✓ Bereit':`${Object.keys(startingLineup).length}/6`}</div>
-          </button>
-          <button onClick={()=>{setView('formations');setFormationEditRotation(1);}} disabled={!lineupComplete} className="bg-white/95 p-5 rounded-3xl shadow-xl active:scale-95 disabled:opacity-50">
-            <div className="text-4xl mb-1">🎯</div><div className="font-black text-cyan-700">Annahme 5-1</div>
-            <div className="text-xs text-gray-500">{Object.keys(receptionFormations).length}/6 gespeichert</div>
-          </button>
-          <button onClick={()=>setView('stats')} className="bg-white/95 p-5 rounded-3xl shadow-xl active:scale-95 col-span-2">
-            <div className="text-4xl mb-1">📊</div><div className="font-black text-orange-600">Statistiken & Historie</div>
-            <div className="text-xs text-gray-500">{matches.length} Spiele</div>
-          </button>
+          <button onClick={()=>setShowNewMatch(true)} disabled={!lineupComplete} className="bg-white/95 p-5 rounded-3xl shadow-xl active:scale-95 disabled:opacity-50"><div className="text-4xl mb-1">🚀</div><div className="font-black text-purple-700">Neues Spiel</div></button>
+          <button onClick={()=>setView('roster')} className="bg-white/95 p-5 rounded-3xl shadow-xl active:scale-95"><div className="text-4xl mb-1">👥</div><div className="font-black text-pink-600">Kader</div><div className="text-xs text-gray-500">{assignedSlots.length} Spieler</div></button>
+          <button onClick={()=>setView('lineup')} className="bg-white/95 p-5 rounded-3xl shadow-xl active:scale-95"><div className="text-4xl mb-1">📋</div><div className="font-black text-indigo-600">Aufstellung</div><div className="text-xs text-gray-500">{lineupComplete?'✓ Bereit':`${Object.keys(startingLineup).length}/6`}</div></button>
+          <button onClick={()=>{setView('formations');setFormationEditRotation(1);}} disabled={!lineupComplete} className="bg-white/95 p-5 rounded-3xl shadow-xl active:scale-95 disabled:opacity-50"><div className="text-4xl mb-1">🎯</div><div className="font-black text-cyan-700">Annahme 5-1</div><div className="text-xs text-gray-500">{Object.keys(receptionFormations).length}/6 gespeichert</div></button>
+          <button onClick={()=>setView('stats')} className="bg-white/95 p-5 rounded-3xl shadow-xl active:scale-95 col-span-2"><div className="text-4xl mb-1">📊</div><div className="font-black text-orange-600">Statistiken & Historie</div><div className="text-xs text-gray-500">{matches.length} Spiele</div></button>
         </div>
       </div>
-
       {showSettings&&(
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50" onClick={()=>setShowSettings(false)}>
           <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl" onClick={e=>e.stopPropagation()}>
             <h2 className="text-2xl font-black text-gray-800 mb-4">⚙️ Einstellungen</h2>
             <div className="space-y-3">
               <div className="bg-gray-50 p-3 rounded-2xl">
-                <div className="text-xs font-bold text-gray-700 mb-1">💾 DATEN-BACKUP</div>
+                <div className="text-xs font-bold text-gray-700 mb-2">💾 DATEN-BACKUP</div>
                 <div className="grid grid-cols-2 gap-2 mb-2">
                   <button onClick={exportData} className="bg-gradient-to-r from-blue-500 to-cyan-600 text-white p-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 active:scale-95"><Download size={13}/> Download</button>
                   <button onClick={exportCopy} className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white p-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 active:scale-95">📋 Kopieren</button>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
-                  <label className="bg-gradient-to-r from-purple-500 to-pink-600 text-white p-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer">
-                    <Upload size={13}/> Datei<input type="file" accept=".json,.txt" onChange={importData} className="hidden"/>
-                  </label>
+                  <label className="bg-gradient-to-r from-purple-500 to-pink-600 text-white p-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer"><Upload size={13}/> Datei<input type="file" accept=".json,.txt" onChange={importData} className="hidden"/></label>
                   <button onClick={()=>{setPasteText('');setShowPasteImport(true);}} className="bg-gradient-to-r from-pink-500 to-rose-500 text-white p-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 active:scale-95">📥 Einfügen</button>
                 </div>
                 {importMessage&&<div className={`mt-2 p-2 rounded-lg text-xs font-bold text-center ${importMessage.startsWith('✓')?'bg-green-100 text-green-800':'bg-red-100 text-red-800'}`}>{importMessage}</div>}
@@ -751,7 +738,7 @@ function VolleyballTracker(){
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-3xl p-5 w-full max-w-sm shadow-2xl">
             <h2 className="text-xl font-black text-purple-700 mb-1">📥 Text importieren</h2>
-            <textarea value={pasteText} onChange={e=>setPasteText(e.target.value)} placeholder="Backup-Text hier einfügen…" className="w-full h-28 p-3 border-2 border-purple-200 rounded-xl text-xs font-mono resize-none focus:outline-none focus:border-purple-500 mb-3" autoFocus/>
+            <textarea value={pasteText} onChange={e=>setPasteText(e.target.value)} placeholder="Backup-Text hier einfügen…" className="w-full h-28 p-3 border-2 border-purple-200 rounded-xl text-xs font-mono resize-none focus:outline-none mb-3" autoFocus/>
             {importMessage&&<div className={`mb-3 p-2 rounded-lg text-xs font-bold text-center ${importMessage.startsWith('✓')?'bg-green-100 text-green-800':'bg-red-100 text-red-800'}`}>{importMessage}</div>}
             <div className="flex gap-2">
               <button onClick={()=>{setShowPasteImport(false);setPasteText('');}} className="flex-1 bg-gray-200 p-3 rounded-2xl font-bold">Abbrechen</button>
@@ -922,7 +909,6 @@ function VolleyballTracker(){
     const setterSlot=matchSlots.find(s=>s.type==='S');
     const setterPos=setterSlot?Object.entries(lineup).find(([_,sid])=>sid===setterSlot.id)?.[0]:null;
     const setterInBack=setterPos&&BACK_POSITIONS.includes(parseInt(setterPos));
-    const setterInFront=setterPos&&FRONT_POSITIONS.includes(parseInt(setterPos));
     const isReceiving=servingTeam==='opp';
     const setTargetPoints=25;
     const setWonBy=(currentMatch.teamScore>=setTargetPoints&&currentMatch.teamScore-currentMatch.opponentScore>=2)?'us':(currentMatch.opponentScore>=setTargetPoints&&currentMatch.opponentScore-currentMatch.teamScore>=2)?'opp':null;
@@ -936,22 +922,11 @@ function VolleyballTracker(){
     const setterPosForFormation=setterSlot?Object.entries(trueLineup).find(([_,sid])=>sid===setterSlot.id)?.[0]:null;
 
     let positionLayout;
-    if(isReceiving){
-      const formationKey=setterPosForFormation?parseInt(setterPosForFormation):parseInt(setterPos);
-      positionLayout=formations[formationKey]||getDefaultReception();
-    }else{
-      const l={};COURT_POSITIONS.forEach(c=>{l[c.pos]={x:c.x,y:c.y};});positionLayout=l;
-    }
+    if(isReceiving){const fk=setterPosForFormation?parseInt(setterPosForFormation):parseInt(setterPos);positionLayout=formations[fk]||getDefaultReception();}
+    else{const l={};COURT_POSITIONS.forEach(c=>{l[c.pos]={x:c.x,y:c.y};});positionLayout=l;}
 
-    // Setter laufweg for match view
-    const matchLaufwegStart=(()=>{
-      if(!isReceiving||!setterPosForFormation)return null;
-      return COURT_POSITIONS.find(c=>c.pos===parseInt(setterPosForFormation))||null;
-    })();
-    const matchLaufwegEnd=(()=>{
-      if(!isReceiving||!setterPosForFormation)return null;
-      return positionLayout[parseInt(setterPosForFormation)]||null;
-    })();
+    const matchLaufwegStart=isReceiving&&setterPosForFormation?COURT_POSITIONS.find(c=>c.pos===parseInt(setterPosForFormation))||null:null;
+    const matchLaufwegEnd=isReceiving&&setterPosForFormation?positionLayout[parseInt(setterPosForFormation)]||null:null;
 
     const {suggested:suggestedSlots}=getSlotSuggestions(selectedAction,lineup,servingTeam);
     const isPosSelectable=()=>selectedAction&&selectedAction.forTeam;
@@ -1057,10 +1032,7 @@ function VolleyballTracker(){
               <div className="absolute top-0 left-0 right-0 h-1 bg-gray-700"></div>
               <div className="absolute top-1 left-0 right-0 text-center text-[9px] font-bold text-gray-600">— NETZ —</div>
               <div className="absolute top-[47%] left-0 right-0 border-t-2 border-dashed border-orange-400"></div>
-
-              {/* Setter Laufweg – only during reception */}
               <SetterLaufwegSVG startPos={matchLaufwegStart} endPos={matchLaufwegEnd} animated={true}/>
-
               {Object.entries(lineup).map(([pos,slotId])=>{
                 const posNum=parseInt(pos);
                 const slot=matchSlots.find(s=>s.id===slotId);if(!slot)return null;
@@ -1071,6 +1043,7 @@ function VolleyballTracker(){
                 const coords=positionLayout[posNum]||{x:50,y:50};
                 const selectable=isPosSelectable();
                 const suggested=isPosSuggested(posNum);
+                // FIX: removed isOverridePending (was never defined, caused crash)
                 const dimmed=highlightSuggestions&&selectedAction&&selectable&&!suggested;
                 const isFlashing=pendingFlash?.slotId===slotId;
                 let ringClass='';
@@ -1080,15 +1053,14 @@ function VolleyballTracker(){
                 if(isFlashing)ringClass='ring-4 ring-white';
                 return(
                   <div key={pos} onClick={()=>{if(selectable)recordEventForPlayer(slotId);}}
-                    className={`absolute transform -translate-x-1/2 -translate-y-1/2 z-10 transition-all duration-300 ${selectable?'active:scale-90 cursor-pointer':''} ${dimmed&&!isOverridePending?'player-dim':''}`}
+                    className={`absolute transform -translate-x-1/2 -translate-y-1/2 z-10 transition-all duration-300 ${selectable?'active:scale-90 cursor-pointer':''} ${dimmed?'player-dim':''}`}
                     style={{left:`${coords.x}%`,top:`${coords.y}%`}}>
                     <div className="relative">
-                      <div className={`w-[55px] h-[55px] bg-gradient-to-br ${p.color} rounded-full flex flex-col items-center justify-center text-white shadow-xl ${ringClass} ${suggested&&selectable?'scale-110':''} transition-all duration-200`}>
+                      <div className={`w-[55px] h-[55px] bg-gradient-to-br ${p.color} rounded-full flex flex-col items-center justify-center text-white shadow-xl ${ringClass} ${highlightSuggestions&&suggested&&selectable?'scale-110':''} transition-all duration-200`}>
                         {isSetter&&<div className="absolute -top-1 -right-1"><Star size={10} fill="#fbbf24"/></div>}
                         <div className="text-[11px] font-black">{slot.short}</div>
                         {isFlashing&&<div className="absolute inset-0 bg-white/50 rounded-full animate-ping"></div>}
                       </div>
-                      {isOverridePending&&<div className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-orange-500 text-white text-[8px] font-black px-1 rounded-full whitespace-nowrap">nochmal tippen</div>}
                       {player&&<div className="text-[10px] text-center font-black text-gray-900 mt-1 max-w-[65px] truncate bg-white/80 rounded px-1">{player.name}</div>}
                       <div className="absolute -top-1.5 -left-1.5 w-4 h-4 bg-white border border-orange-400 text-orange-600 rounded-full flex items-center justify-center text-[9px] font-black">{posNum}</div>
                     </div>
@@ -1101,7 +1073,6 @@ function VolleyballTracker(){
                 </div>
               )}
             </div>
-            {/* Laufweg legend */}
             {isReceiving&&matchLaufwegStart&&matchLaufwegEnd&&(()=>{const dx=matchLaufwegEnd.x-matchLaufwegStart.x,dy=matchLaufwegEnd.y-matchLaufwegStart.y;return Math.sqrt(dx*dx+dy*dy)>=4;})()&&(
               <div className="mt-1.5 flex items-center gap-1.5 text-[10px] text-amber-700 font-bold bg-amber-50 rounded-lg px-2 py-1">
                 <span>—›</span><span>Laufweg Z (Pos {setterPosForFormation} → Zuspielposition)</span>
@@ -1113,42 +1084,29 @@ function VolleyballTracker(){
           {(()=>{
             const onField=new Set(Object.values(trueLineup));
             const benchSlots=matchSlots.filter(s=>rosterSnap[s.id]&&!onField.has(s.id));
-            if(benchSlots.length===0)return null;
+            if(!benchSlots.length)return null;
             return(
               <div className="bg-white/95 rounded-2xl shadow-xl mb-3 overflow-hidden">
                 <button onClick={()=>{setShowBench(v=>!v);setSubStep(null);}} className="w-full flex items-center justify-between px-4 py-3 active:bg-gray-50">
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg">🪑</span>
-                    <span className="font-black text-gray-700 text-sm">Bank ({benchSlots.length})</span>
-                    {subStep&&<span className="bg-yellow-400 text-yellow-900 text-[10px] font-black px-2 py-0.5 rounded-full">Feldsp. wählen</span>}
-                  </div>
+                  <div className="flex items-center gap-2"><span className="text-lg">🪑</span><span className="font-black text-gray-700 text-sm">Bank ({benchSlots.length})</span></div>
                   <span className="text-gray-400 text-xs">{showBench?'▲':'▼'}</span>
                 </button>
                 {showBench&&(
                   <div className="px-3 pb-3 border-t border-gray-100">
-                    {!subStep&&(
+                    {!subStep?(
                       <>
                         <div className="text-[10px] font-bold text-gray-400 mt-2 mb-1.5">① BANKSP. WÄHLEN</div>
                         <div className="grid grid-cols-3 gap-1.5">
-                          {benchSlots.map(slot=>{
-                            const p=POSITION_TYPES[slot.type];
-                            return(
-                              <button key={slot.id} onClick={()=>setSubStep({benchSlotId:slot.id})} className={`p-2 rounded-xl font-bold text-xs active:scale-90 bg-gradient-to-br ${p.color} text-white`}>
-                                <div className="font-black text-sm">{slot.short}</div>
-                                <div className="text-[9px] truncate">{rosterSnap[slot.id]?.name}</div>
-                              </button>
-                            );
-                          })}
+                          {benchSlots.map(slot=>{const p=POSITION_TYPES[slot.type];return(
+                            <button key={slot.id} onClick={()=>setSubStep({benchSlotId:slot.id})} className={`p-2 rounded-xl font-bold text-xs active:scale-90 bg-gradient-to-br ${p.color} text-white`}>
+                              <div className="font-black text-sm">{slot.short}</div><div className="text-[9px] truncate">{rosterSnap[slot.id]?.name}</div>
+                            </button>);})}
                         </div>
                       </>
-                    )}
-                    {subStep&&(()=>{
+                    ):(()=>{
                       const benchSlot=matchSlots.find(s=>s.id===subStep.benchSlotId);
                       const incomingP=POSITION_TYPES[benchSlot.type];
-                      const fieldCandidates=Object.entries(lineup).map(([pos,slotId])=>{
-                        const slot=matchSlots.find(s=>s.id===slotId);if(!slot)return null;
-                        return{pos:parseInt(pos),slot,slotId};
-                      }).filter(Boolean);
+                      const fieldCandidates=Object.entries(lineup).map(([pos,slotId])=>{const slot=matchSlots.find(s=>s.id===slotId);if(!slot)return null;return{pos:parseInt(pos),slot,slotId};}).filter(Boolean);
                       return(
                         <>
                           <div className="flex items-center gap-2 mt-2 mb-1.5">
@@ -1157,16 +1115,10 @@ function VolleyballTracker(){
                             <button onClick={()=>setSubStep(null)} className="text-gray-400 text-xs">✕</button>
                           </div>
                           <div className="grid grid-cols-3 gap-1.5">
-                            {fieldCandidates.map(({pos,slot,slotId})=>{
-                              const p=POSITION_TYPES[slot.type];
-                              return(
-                                <button key={slotId} onClick={()=>doSubstitution(slotId,subStep.benchSlotId)} className={`p-2 rounded-xl font-bold text-xs active:scale-90 bg-gradient-to-br ${p.color} text-white ring-2 ring-yellow-300`}>
-                                  <div className="text-[9px] text-white/70">Pos {pos}</div>
-                                  <div className="font-black text-sm">{slot.short}</div>
-                                  <div className="text-[9px] truncate">{rosterSnap[slotId]?.name}</div>
-                                </button>
-                              );
-                            })}
+                            {fieldCandidates.map(({pos,slot,slotId})=>{const p=POSITION_TYPES[slot.type];return(
+                              <button key={slotId} onClick={()=>doSubstitution(slotId,subStep.benchSlotId)} className={`p-2 rounded-xl font-bold text-xs active:scale-90 bg-gradient-to-br ${p.color} text-white ring-2 ring-yellow-300`}>
+                                <div className="text-[9px] text-white/70">Pos {pos}</div><div className="font-black text-sm">{slot.short}</div><div className="text-[9px] truncate">{rosterSnap[slotId]?.name}</div>
+                              </button>);})}
                           </div>
                         </>
                       );
@@ -1179,7 +1131,7 @@ function VolleyballTracker(){
 
           {/* Controls */}
           <div className="grid grid-cols-2 gap-2 mb-3">
-            <button onClick={undoLastEvent} disabled={undoStack.length===0} className="bg-gray-700 text-white p-3 rounded-2xl font-bold disabled:opacity-40">↶ Rückgängig {undoStack.length>0&&<span className="text-xs opacity-70">({undoStack.length})</span>}</button>
+            <button onClick={undoLastEvent} disabled={!undoStack.length} className="bg-gray-700 text-white p-3 rounded-2xl font-bold disabled:opacity-40">↶ Rückgängig {undoStack.length>0&&<span className="text-xs opacity-70">({undoStack.length})</span>}</button>
             {matchWonBy
               ?<button onClick={finishMatch} className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white p-3 rounded-2xl font-black animate-pulse">🏆 Match beenden</button>
               :<button onClick={()=>{if(!setWonBy&&!confirm('Satz noch nicht gewonnen. Weiter?'))return;nextSet();}} disabled={currentMatch.set>=currentMatch.maxSets} className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white p-3 rounded-2xl font-bold disabled:opacity-40">
@@ -1209,8 +1161,6 @@ function VolleyballTracker(){
             </div>
           )}
         </div>
-
-        {/* Camera preview */}
         {isRecording&&cameraStream&&(
           <div className="fixed z-40 bottom-4 right-4">
             {cameraPreviewOpen?(
@@ -1246,6 +1196,7 @@ function VolleyballTracker(){
               <button onClick={()=>{setViewingMatch(null);setEditingVideo(false);}} className="bg-white/20 p-2 rounded-full"><ArrowLeft/></button>
               <h1 className="text-2xl font-black text-white flex-1">vs {m.opponent}</h1>
               {m.hasVideo&&<span className="text-white text-sm">🎬</span>}
+              <button onClick={()=>exportMatchPDF(m,matchSlots)} className="bg-white text-purple-700 px-3 py-1.5 rounded-full text-xs font-black active:scale-95 shadow-lg">📄 PDF</button>
             </div>
             <div className="bg-white/95 rounded-2xl p-4 shadow-xl mb-3">
               <div className="text-xs text-gray-500 mb-2">{new Date(m.date).toLocaleDateString('de-DE')}</div>
@@ -1262,6 +1213,25 @@ function VolleyballTracker(){
                 onEventsChange={async newEvents=>{const updated={...m,events:newEvents};const nm=matches.map(x=>x.id===m.id?updated:x);await saveMatches(nm);setViewingMatch(updated);}}
                 onSetScoresChange={async newSetScores=>{const updated={...m,setScores:newSetScores};const nm=matches.map(x=>x.id===m.id?updated:x);await saveMatches(nm);setViewingMatch(updated);}}/>
             )}
+            {/* Insights */}
+            {(()=>{
+              const ins=computeInsights(m,matchSlots);
+              if(!ins.length)return null;
+              return(
+                <div className="bg-white/95 rounded-2xl p-4 shadow-xl mb-3">
+                  <h3 className="font-black text-gray-800 mb-3 flex items-center gap-2">💡 <span>Erkenntnisse & Empfehlungen</span></h3>
+                  <div className="space-y-2">
+                    {ins.map((item,idx)=>(
+                      <div key={idx} className={`flex items-start gap-2.5 p-2.5 rounded-xl text-xs leading-relaxed font-medium ${item.type==='strength'?'bg-green-50 text-green-800':item.type==='weakness'?'bg-red-50 text-red-800':'bg-blue-50 text-blue-800'}`}>
+                        <span className="text-base flex-shrink-0 mt-px">{item.type==='strength'?'💪':item.type==='weakness'?'⚠️':'ℹ️'}</span>
+                        <span>{item.text}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+            {/* Per-player stats */}
             <div className="bg-white/95 rounded-2xl p-4 shadow-xl">
               <h3 className="font-black text-purple-700 mb-3">📊 Nach Spieler</h3>
               {Object.entries(bySlot).map(([slotId,s])=>{
@@ -1288,6 +1258,7 @@ function VolleyballTracker(){
                 );
               })}
             </div>
+            {/* Rotationsanalyse */}
             {(()=>{
               const rs=computeRotationStats(m.events);
               return(
@@ -1318,6 +1289,7 @@ function VolleyballTracker(){
                 </div>
               );
             })()}
+            {/* Setter-Verteilung */}
             {(()=>{
               const dist=computeSetterDist(m.events,matchSlots);
               const tot=Object.values(dist).reduce((s,d)=>s+d.kills,0);
@@ -1328,8 +1300,7 @@ function VolleyballTracker(){
                   <h3 className="font-black text-purple-700 mb-1">🎯 Setter-Verteilung</h3>
                   <p className="text-[10px] text-gray-400 mb-3">Wer bekam die meisten Zuspiele? ({tot} Kills total)</p>
                   {sorted.map(([sid,d])=>{
-                    const pct=Math.round(d.kills/tot*100);
-                    const p=POSITION_TYPES[d.slot.type];
+                    const pct=Math.round(d.kills/tot*100);const p=POSITION_TYPES[d.slot.type];
                     return(
                       <div key={sid} className="mb-2.5">
                         <div className="flex items-center gap-2 mb-1">
@@ -1350,6 +1321,7 @@ function VolleyballTracker(){
         </div>
       );
     }
+    // List view
     return(
       <div className="min-h-screen bg-gradient-to-br from-orange-400 via-pink-500 to-purple-600 p-4">
         <div className="max-w-md mx-auto">
@@ -1362,8 +1334,8 @@ function VolleyballTracker(){
             :<div className="bg-white/95 rounded-2xl p-4 shadow-xl">
               <div className="space-y-2">
                 {matches.map(m=>{
-                  const setsWon=m.setScores.filter(s=>s.teamScore>s.opponentScore).length;
-                  const setsLost=m.setScores.length-setsWon;const won=setsWon>setsLost;
+                  const sw=m.setScores.filter(s=>s.teamScore>s.opponentScore).length;
+                  const sl=m.setScores.length-sw;const won=sw>sl;
                   return(
                     <div key={m.id} className="flex items-center gap-2">
                       <button onClick={()=>{setViewingMatch(m);setEditingVideo(false);}} className={`flex-1 p-3 rounded-xl text-left ${won?'bg-gradient-to-r from-green-100 to-emerald-100':'bg-gradient-to-r from-red-100 to-rose-100'}`}>
@@ -1372,7 +1344,7 @@ function VolleyballTracker(){
                             <div className="font-bold text-gray-800 flex items-center gap-1">vs {m.opponent}{m.hasVideo&&<span className="text-pink-600">🎬</span>}</div>
                             <div className="text-xs text-gray-500">{new Date(m.date).toLocaleDateString('de-DE')}</div>
                           </div>
-                          <div className={`font-black text-lg ${won?'text-green-700':'text-red-600'}`}>{setsWon}:{setsLost}</div>
+                          <div className={`font-black text-lg ${won?'text-green-700':'text-red-600'}`}>{sw}:{sl}</div>
                         </div>
                       </button>
                       <button onClick={async()=>{if(confirm('Löschen?')){if(m.hasVideo){try{await videoDB.delete(m.id);}catch(e){}}await saveMatches(matches.filter(x=>x.id!==m.id));}}} className="text-red-500 p-2"><Trash2 size={18}/></button>
@@ -1391,8 +1363,7 @@ function VolleyballTracker(){
                 <h3 className="font-black text-purple-700 mb-1">✅ Annahme-Effizienz</h3>
                 <p className="text-[10px] text-gray-400 mb-3">Ann+ / (Ann+ + Ann−) gesamt · Verlauf pro Spiel</p>
                 {players.map((d,i)=>{
-                  const tg=d.hist.reduce((s,h)=>s+h.g,0);
-                  const tb=d.hist.reduce((s,h)=>s+h.b,0);
+                  const tg=d.hist.reduce((s,h)=>s+h.g,0),tb=d.hist.reduce((s,h)=>s+h.b,0);
                   const tot=tg+tb;const pct=tot>0?Math.round(tg/tot*100):0;
                   return(
                     <div key={i} className="mb-4 pb-3 border-b last:border-b-0">
@@ -1403,7 +1374,7 @@ function VolleyballTracker(){
                         </span>
                       </div>
                       <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden mb-2">
-                        <div className="h-full bg-gradient-to-r from-lime-400 to-green-500 rounded-full transition-all" style={{width:`${pct}%`}}/>
+                        <div className="h-full bg-gradient-to-r from-lime-400 to-green-500 rounded-full" style={{width:`${pct}%`}}/>
                       </div>
                       <div className="flex gap-1.5 flex-wrap">
                         {d.hist.slice(-8).map((h,j)=>{
@@ -1436,42 +1407,28 @@ function FormationsEditor({rotation:setterRotation,setRotation:setSetterRotation
   const [dirty,setDirty]=useState(false);
   const [draggingPos,setDraggingPos]=useState(null);
   const [activePreset,setActivePreset]=useState(null);
-
-  useEffect(()=>{
-    setLocalFormation(receptionFormations[setterRotation]||getDefaultReception());
-    setDirty(false);
-  },[setterRotation,receptionFormations]);
-
+  useEffect(()=>{setLocalFormation(receptionFormations[setterRotation]||getDefaultReception());setDirty(false);},[setterRotation,receptionFormations]);
   const internalRotation=setterRotToInternal(setterRotation);
   const lineup=getLineupForRotation(startingLineup,internalRotation);
-
   const applyPreset=(key,allRotations)=>{
     const preset=RECEPTION_PRESETS[key];if(!preset)return;
     setActivePreset(key);
     if(allRotations){
-      const newF={};
-      [1,6,5,4,3,2].forEach(r=>{if(preset.formations[r])newF[r]=preset.formations[r];});
+      const newF={};[1,6,5,4,3,2].forEach(r=>{if(preset.formations[r])newF[r]=preset.formations[r];});
       saveFormations({...receptionFormations,...newF});
-      setLocalFormation(preset.formations[setterRotation]||getDefaultReception());
-      setDirty(false);
-    }else{
-      const f=preset.formations[setterRotation];
-      if(f){setLocalFormation(f);setDirty(true);}
-    }
+      setLocalFormation(preset.formations[setterRotation]||getDefaultReception());setDirty(false);
+    }else{const f=preset.formations[setterRotation];if(f){setLocalFormation(f);setDirty(true);}}
   };
-
   const handlePointerDown=(pos,e)=>{e.preventDefault();setDraggingPos(pos);};
   const handlePointerMove=e=>{
     if(draggingPos===null||!courtRef.current)return;e.preventDefault();
     const rect=courtRef.current.getBoundingClientRect();
-    const cx=e.touches?e.touches[0].clientX:e.clientX;
-    const cy=e.touches?e.touches[0].clientY:e.clientY;
+    const cx=e.touches?e.touches[0].clientX:e.clientX,cy=e.touches?e.touches[0].clientY:e.clientY;
     const x=Math.max(5,Math.min(95,((cx-rect.left)/rect.width)*100));
     const y=Math.max(5,Math.min(95,((cy-rect.top)/rect.height)*100));
     setLocalFormation(prev=>({...prev,[draggingPos]:{x,y}}));setDirty(true);setActivePreset(null);
   };
   const handlePointerUp=()=>setDraggingPos(null);
-
   useEffect(()=>{
     if(draggingPos!==null){
       const move=e=>handlePointerMove(e);const up=()=>handlePointerUp();
@@ -1480,49 +1437,36 @@ function FormationsEditor({rotation:setterRotation,setRotation:setSetterRotation
       return()=>{window.removeEventListener('mousemove',move);window.removeEventListener('mouseup',up);window.removeEventListener('touchmove',move);window.removeEventListener('touchend',up);};
     }
   },[draggingPos]);
-
-  // Setter laufweg for editor
   const editorSetterStart=COURT_POSITIONS.find(c=>c.pos===setterRotation)||null;
   const editorSetterEnd=localFormation[setterRotation]||null;
-
   return(
     <div className="min-h-screen bg-gradient-to-br from-cyan-600 via-blue-600 to-indigo-700 p-4">
       <div className="max-w-md mx-auto">
         <div className="flex items-center gap-3 mb-4 pt-2">
           <button onClick={onBack} className="bg-white/20 p-2 rounded-full"><ArrowLeft/></button>
-          <div>
-            <h1 className="text-2xl font-black text-white">🎯 Annahme-Formation</h1>
-            <p className="text-white/70 text-xs">5-1 Läufersystem · Z läuft zu Pos 2</p>
-          </div>
+          <div><h1 className="text-2xl font-black text-white">🎯 Annahme-Formation</h1><p className="text-white/70 text-xs">5-1 Läufersystem · Z läuft zu Pos 2</p></div>
         </div>
-
-        {/* ── Preset picker (5-1 only) ── */}
         <div className="bg-white/95 rounded-2xl p-3 shadow-xl mb-3">
           <div className="text-xs font-bold text-gray-600 mb-2">📐 SYSTEM WÄHLEN</div>
           <div className="grid grid-cols-2 gap-2 mb-2">
             {Object.entries(RECEPTION_PRESETS).map(([key,p])=>(
-              <button key={key} onClick={()=>applyPreset(key,false)}
-                className={`p-3 rounded-xl active:scale-90 text-white text-left bg-gradient-to-br ${p.color} transition-all ${activePreset===key?'ring-2 ring-yellow-300 scale-105 shadow-lg':''}`}>
+              <button key={key} onClick={()=>applyPreset(key,false)} className={`p-3 rounded-xl active:scale-90 text-white text-left bg-gradient-to-br ${p.color} transition-all ${activePreset===key?'ring-2 ring-yellow-300 scale-105 shadow-lg':''}`}>
                 <div className="text-2xl leading-none mb-1">{p.emoji}</div>
                 <div className="font-black text-xs leading-tight">{p.label}</div>
-                <div className="text-[9px] opacity-80 font-normal mt-0.5 leading-tight">{p.desc}</div>
+                <div className="text-[9px] opacity-80 font-normal mt-0.5">{p.desc}</div>
               </button>
             ))}
           </div>
           <button onClick={()=>{setLocalFormation(getDefaultReception());setDirty(true);setActivePreset(null);}}
             className={`w-full p-2.5 rounded-xl active:scale-95 transition-all text-left flex items-center gap-2 ${activePreset===null?'bg-gray-700 text-white ring-2 ring-yellow-300':'bg-gray-100 text-gray-700'}`}>
-            <span className="text-lg">✏️</span>
-            <div><div className="font-black text-xs">Custom / Frei</div><div className="text-[9px] opacity-70 font-normal">Feld zurücksetzen, selbst einzeichnen</div></div>
+            <span className="text-lg">✏️</span><div><div className="font-black text-xs">Custom / Frei</div><div className="text-[9px] opacity-70">Feld zurücksetzen, selbst einzeichnen</div></div>
           </button>
           {activePreset&&(
-            <button onClick={()=>applyPreset(activePreset,true)}
-              className="mt-2 w-full bg-gradient-to-r from-orange-500 to-amber-500 text-white p-2 rounded-xl font-bold text-xs active:scale-95 flex items-center justify-center gap-1.5">
-              🔄 „{RECEPTION_PRESETS[activePreset].label}" → alle 6 Rotationen übernehmen
+            <button onClick={()=>applyPreset(activePreset,true)} className="mt-2 w-full bg-gradient-to-r from-orange-500 to-amber-500 text-white p-2 rounded-xl font-bold text-xs active:scale-95 flex items-center justify-center gap-1.5">
+              🔄 „{RECEPTION_PRESETS[activePreset].label}" → alle 6 Rotationen
             </button>
           )}
         </div>
-
-        {/* ── Rotation tabs ── */}
         <div className="bg-white/95 rounded-2xl p-3 shadow-xl mb-3">
           <div className="text-xs font-bold text-gray-600 mb-1">Z (ZUSPIELER) STARTET AUF POSITION:</div>
           <div className="text-[10px] text-gray-400 mb-2">Gestrichelte Linie = Laufweg des Zuspielers zur Zuspielzone</div>
@@ -1530,8 +1474,7 @@ function FormationsEditor({rotation:setterRotation,setRotation:setSetterRotation
             {[1,6,5,4,3,2].map((n,idx)=>{
               const saved=receptionFormations[n];
               return(
-                <button key={n} onClick={()=>setSetterRotation(n)}
-                  className={`p-2 rounded-xl font-black text-sm transition relative ${setterRotation===n?'bg-gradient-to-br from-yellow-400 to-orange-500 text-white shadow-lg scale-105':'bg-gray-100 text-gray-700'}`}>
+                <button key={n} onClick={()=>setSetterRotation(n)} className={`p-2 rounded-xl font-black text-sm transition relative ${setterRotation===n?'bg-gradient-to-br from-yellow-400 to-orange-500 text-white shadow-lg scale-105':'bg-gray-100 text-gray-700'}`}>
                   <div className="text-[9px] opacity-70 font-normal">{idx+1}.</div>{n}
                   {saved&&<div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>}
                 </button>
@@ -1539,37 +1482,27 @@ function FormationsEditor({rotation:setterRotation,setRotation:setSetterRotation
             })}
           </div>
         </div>
-
-        {/* ── Court with drag ── */}
         <div className="bg-white/95 rounded-2xl p-3 shadow-xl mb-3">
           <div className="text-xs font-bold text-cyan-800 mb-1 text-center">✋ Spieler ziehen · Laufweg Z wird automatisch angezeigt</div>
           <div ref={courtRef} className="relative bg-gradient-to-b from-orange-100 via-yellow-50 to-orange-100 rounded-xl border-2 border-orange-400 overflow-hidden touch-none" style={{height:'420px'}}>
             <div className="absolute top-0 left-0 right-0 h-1 bg-gray-700"></div>
             <div className="absolute top-1 left-0 right-0 text-center text-[9px] font-bold text-gray-600">— NETZ —</div>
             <div className="absolute top-[47%] left-0 right-0 border-t-2 border-dashed border-orange-400"></div>
-
-            {/* Setter laufweg */}
             <SetterLaufwegSVG startPos={editorSetterStart} endPos={editorSetterEnd} animated={false}/>
-
-            {/* Zuspielzone marker */}
             <div className="absolute pointer-events-none z-4" style={{left:`${SETTER_TARGET.x}%`,top:`${SETTER_TARGET.y}%`,transform:'translate(-50%,-50%)'}}>
-              <div className="w-8 h-8 rounded-full border-2 border-dashed border-yellow-500/60 flex items-center justify-center">
-                <span className="text-[8px] font-black text-yellow-700">Z♟</span>
-              </div>
+              <div className="w-8 h-8 rounded-full border-2 border-dashed border-yellow-500/60 flex items-center justify-center"><span className="text-[8px] font-black text-yellow-700">Z♟</span></div>
             </div>
-
             {Object.entries(lineup).map(([pos,slotId])=>{
               const posNum=parseInt(pos);const slot=slots.find(s=>s.id===slotId);if(!slot)return null;
               const p=POSITION_TYPES[slot.type];const player=roster[slotId];
               const coords=localFormation[posNum]||{x:50,y:50};const isDragging=draggingPos===posNum;
-              const isSetter=slot.type==='S';
               return(
                 <div key={pos} onMouseDown={e=>handlePointerDown(posNum,e)} onTouchStart={e=>handlePointerDown(posNum,e)}
                   className="absolute transform -translate-x-1/2 -translate-y-1/2 z-10 cursor-grab active:cursor-grabbing select-none"
                   style={{left:`${coords.x}%`,top:`${coords.y}%`,transition:isDragging?'none':'all 0.3s ease',touchAction:'none'}}>
                   <div className={`relative ${isDragging?'scale-110':''}`}>
                     <div className={`w-[60px] h-[60px] bg-gradient-to-br ${p.color} rounded-full flex flex-col items-center justify-center text-white shadow-xl ${isDragging?'ring-4 ring-white':''}`}>
-                      {isSetter&&<div className="absolute -top-1 -right-1"><Star size={10} fill="#fbbf24"/></div>}
+                      {slot.type==='S'&&<div className="absolute -top-1 -right-1"><Star size={10} fill="#fbbf24"/></div>}
                       <div className="text-[11px] font-black">{slot.short}</div>
                     </div>
                     {player&&<div className="text-[10px] text-center font-black text-gray-900 mt-1 max-w-[70px] truncate bg-white/90 rounded px-1 pointer-events-none">{player.name}</div>}
@@ -1578,15 +1511,11 @@ function FormationsEditor({rotation:setterRotation,setRotation:setSetterRotation
               );
             })}
           </div>
-
-          {/* Legend */}
           <div className="mt-2 flex items-center gap-3 text-[10px] text-gray-600 bg-gray-50 rounded-lg p-2">
             <div className="flex items-center gap-1"><span className="inline-block w-6 border-t-2 border-dashed border-yellow-500"></span><span>Laufweg Z</span></div>
             <div className="flex items-center gap-1"><div className="w-4 h-4 rounded-full border-2 border-dashed border-yellow-500/60 flex items-center justify-center"><span className="text-[7px]">Z♟</span></div><span>Zuspielzone</span></div>
-            <div className="flex items-center gap-1"><div className="w-4 h-4 rounded-full border border-yellow-500/40 bg-yellow-100/40"></div><span>Startpos. Z</span></div>
           </div>
         </div>
-
         <div className="grid grid-cols-2 gap-2">
           <button onClick={()=>{if(confirm('Reset?')){setLocalFormation(getDefaultReception());setDirty(true);setActivePreset(null);}}} className="bg-gray-200 text-gray-700 p-3 rounded-2xl font-bold active:scale-95 flex items-center justify-center gap-2"><RefreshCw size={16}/> Reset</button>
           <button onClick={()=>{saveFormations({...receptionFormations,[setterRotation]:localFormation});setDirty(false);}} disabled={!dirty} className="bg-gradient-to-r from-green-500 to-emerald-600 text-white p-3 rounded-2xl font-bold active:scale-95 disabled:opacity-40 flex items-center justify-center gap-2"><Save size={16}/> Speichern</button>
