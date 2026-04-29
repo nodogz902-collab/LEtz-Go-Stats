@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Datenschutz – Coach Tracker</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 720px; margin: 0 auto; padding: 24px; color: #222; line-height: 1.55; }
+    h1 { color: #6b21a8; }
+    h2 { color: #4338ca; margin-top: 1.6em; }
+    table { border-collapse: collapse; margin: 1em 0; }
+    th, td { border: 1px solid #ddd; padding: 6px 12px; text-align: left; }
+    th { background: #f3f4f6; }
+    code { background: #f3f4f6; padding: 1px 5px; border-radius: 4px; }
+    .meta { color: #666; font-size: 0.9em; }
+  </style>
+</head>
+<body>
+  <h1>Datenschutzerklärung – Coach Tracker</h1>
+  <p class="meta">Stand: 2026-04-29</p>
+
+  <p>Coach Tracker ist eine lokal arbeitende Volleyball-Tracking-App. Diese Erklärung beschreibt, welche Daten verarbeitet und an wen sie ggf. weitergegeben werden.</p>
+
+  <h2>Verantwortlicher</h2>
+  <p>Alexander Hiller — alexander.hiller@team.blue</p>
+
+  <h2>Lokale Speicherung</h2>
+  <p>Sämtliche Tracking-Daten (Teams, Spieler, Matches, Aufstellungen, Events) werden ausschließlich auf deinem Gerät gespeichert:</p>
+  <ul>
+    <li><b>localStorage</b> für Stammdaten und Match-Verlauf (Schlüsselpräfix <code>vbt_</code>)</li>
+    <li><b>IndexedDB</b> (<code>CoachVideos</code>) für aufgenommene Match-Videos</li>
+  </ul>
+  <p>Es findet keine Übertragung dieser Daten an Server der App-Betreiber statt.</p>
+
+  <h2>Mikrofon und Kamera</h2>
+  <p>Bei aktivierter Video-Aufnahme werden Kamera und Mikrofon verwendet. Das Video wird ausschließlich lokal in IndexedDB gespeichert. Du kannst es manuell über den nativen Share-Dialog teilen.</p>
+
+  <h2>Spracherkennung (Web Speech API)</h2>
+  <p>Wenn du die Voice-Funktion aktivierst, wird die <code>SpeechRecognition</code>-API des Betriebssystems bzw. Browsers genutzt.</p>
+  <ul>
+    <li>Auf Android/Chrome wird das Mikrofon-Audio dafür <b>an Google-Server</b> gesendet und dort in Text umgewandelt.</li>
+    <li>Wir haben keinen Einfluss darauf, wie Google diese Daten verarbeitet. Maßgeblich ist die <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google-Datenschutzerklärung</a>.</li>
+    <li>Die App speichert keine Audio-Aufnahmen aus der Voice-Eingabe; nur das transkribierte Kommando wird in den lokalen Match-Verlauf übernommen.</li>
+  </ul>
+  <p>Beim erstmaligen Aktivieren von Voice wirst du explizit um Zustimmung gebeten.</p>
+
+  <h2>Backups</h2>
+  <p>Manuell ausgelöste Daten-Exporte (JSON oder Zwischenablage) liegen nur dort, wohin du sie aktiv weitergibst. Auf Android ist das System-Backup für die App deaktiviert (<code>android:allowBackup="false"</code>).</p>
+
+  <h2>Berechtigungen (Android)</h2>
+  <table>
+    <tr><th>Berechtigung</th><th>Zweck</th></tr>
+    <tr><td><code>CAMERA</code></td><td>Aufnahme von Match-Videos</td></tr>
+    <tr><td><code>RECORD_AUDIO</code></td><td>Tonspur des Match-Videos / Spracherkennung</td></tr>
+    <tr><td><code>INTERNET</code></td><td>Nur für die Spracherkennung über die Web Speech API</td></tr>
+    <tr><td><code>MODIFY_AUDIO_SETTINGS</code></td><td>Audio-Routing während der Aufnahme</td></tr>
+  </table>
+
+  <h2>Drittanbieter-Dienste</h2>
+  <p>Google Web Speech API – nur, wenn du die Voice-Funktion aktivierst. Es werden keine Analytics-, Tracking- oder Werbe-SDKs verwendet.</p>
+
+  <h2>Deine Rechte</h2>
+  <p>Da keine personenbezogenen Daten an uns übertragen werden, können wir keine Auskunft, Löschung oder Berichtigung vornehmen. Sämtliche Daten kannst du in den App-Einstellungen über „Alle Daten löschen" entfernen.</p>
+
+  <h2>Kontakt</h2>
+  <p>Bei Fragen: <a href="mailto:alexander.hiller@team.blue">alexander.hiller@team.blue</a></p>
+</body>
+</html>
